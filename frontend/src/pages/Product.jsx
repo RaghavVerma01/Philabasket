@@ -261,7 +261,7 @@ const Product = () => {
             </div>
 
             {/* Product Name */}
-            <h1 className='text-xl md:text-2xl lg:text-3xl font-black text-gray-900 leading-tight mb-6 capitalize tracking-tight'>
+            <h1 className='text-xl md:text-2xl font-semibold lg:text-2xl font-black text-gray-900 leading-tight mb-6 capitalize tracking-tight'>
               {productData.name}
             </h1>
 
@@ -312,7 +312,7 @@ const Product = () => {
             {/* Description */}
             <div className='mb-8'>
               <p className='text-[9px] font-black text-[#BC002D] tracking-[0.3em] uppercase mb-3'>Description</p>
-              <p className='text-[13px] text-gray-500 leading-relaxed font-medium italic'>
+              <p className='text-[13px] text-gray-800 leading-relaxed font-medium '>
                 {productData.description}
               </p>
             </div>

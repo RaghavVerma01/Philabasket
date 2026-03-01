@@ -9,6 +9,7 @@ import NewHero from '../components/NewHero'
 import Banner from '../components/Banner'
 import FeaturedCategories from '../components/FeaturedCategory'
 import Testimonials from '../components/Testimonila'
+import StampCategoryScroll from '../components/StampCategoryScroll'
 
 const Home = () => {
   const latestCollectionRef = useRef(null);
@@ -20,6 +21,8 @@ const Home = () => {
       {/* 1. THE HOOK: High-impact emotional entrance */}
       {/* <NewHero scrollHandler={scrollToCollection} /> */}
       <Banner scrollHandler={scrollToCollection}/>
+
+      <StampCategoryScroll/>
 
       <FeaturedCategories/>
 

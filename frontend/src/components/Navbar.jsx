@@ -63,10 +63,10 @@ const Navbar = () => {
             {/* --- ANNOUNCEMENT MARQUEE --- */}
             <div className='bg-[#BC002D] py-2 overflow-hidden border-b border-black/10'>
                 <div className='flex whitespace-nowrap animate-marquee'>
-                    <p className='text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white px-18 '>
+                    <p className='text-[9px] md:text-[10px] font-black  tracking-[0.4em] text-white px-18 '>
                         •Buy More and Earn More  • Global Shipping Protocol Active • Secure SSL Acquisition Protocol • Collector's Archive Updated Weekly • Free Shipping on Orders Above ₹999 •
                     </p>
-                    <p className='text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] text-white px-18'>
+                    <p className='text-[9px] md:text-[10px] font-black  tracking-[0.4em] text-white px-18'>
                         • Buy More and Earn More  • Global Shipping Protocol Active • Secure SSL Acquisition Protocol • Collector's Archive Updated Weekly • Free Shipping on Orders Above ₹999 •
                     </p>
                 </div>

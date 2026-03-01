@@ -114,11 +114,11 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, isPri
                 </div>
 
                 {/* --- REWARD INFO --- */}
-                <div className='flex items-center justify-center py-1.5 border-y border-gray-50 bg-gray-50/50 rounded-lg'>
+                {/* <div className='flex items-center justify-center py-1.5 border-y border-gray-50 bg-gray-50/50 rounded-lg'>
                    <p className='text-[8px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5'>
                      Purchase and earn <span className='text-[#BC002D] font-black'>{potentialPoints} Rewards Points</span>
                    </p>
-                </div>
+                </div> */}
 
                 {/* --- ACTION BUTTONS --- */}
                 <div className='grid grid-cols-2 gap-2 mt-1'>

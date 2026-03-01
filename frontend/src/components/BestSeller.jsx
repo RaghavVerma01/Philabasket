@@ -18,7 +18,7 @@ const BestSeller = () => {
         const curatedBestsellers = products
             .filter(item => item.bestseller === true || item.bestseller === "true")
             .sort((a, b) => b.date - a.date)
-            .slice(0, 10);
+            .slice(0, 5);
         
         setBestSeller(curatedBestsellers);
     }, [products]);
@@ -68,7 +68,7 @@ const BestSeller = () => {
                 </div>
 
                 {/* Ranked Product Grid */}
-                <div className='flex overflow-x-auto gap-6 md:gap-x-12 snap-x snap-mandatory mobile-scrollbar lg:grid lg:grid-cols-4 lg:gap-y-20 lg:overflow-visible pb-10 lg:pb-0 px-2'>
+                <div className='flex overflow-x-auto gap-6 md:gap-x-12 snap-x snap-mandatory mobile-scrollbar lg:grid lg:grid-cols-5 lg:gap-y-20 lg:overflow-visible pb-10 lg:pb-0 px-2'>
                     {
                         bestSeller.length > 0 ? bestSeller.map((item, index) => (
                             <div 

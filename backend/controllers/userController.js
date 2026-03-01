@@ -340,6 +340,37 @@ const listUsers = async (req, res) => {
     }
 }
 
+export const getAllUsersData = async (req, res) => {
+    try {
+        // Fetch users and populate their virtual 'orders' field
+        const users = await userModel.find({})
+            .populate('orders')
+            .sort({ createdAt: -1 });
+
+        res.json({ success: true, users });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// Adjust Archive Credits (Reward Points)
+export const adjustRewardPoints = async (req, res) => {
+    try {
+        const { userId, amount, action } = req.body; 
+        
+        let update = {};
+        if (action === 'add') update = { $inc: { totalRewardPoints: Math.abs(amount) } };
+        else if (action === 'subtract') update = { $inc: { totalRewardPoints: -Math.abs(amount) } };
+        else if (action === 'overwrite') update = { $set: { totalRewardPoints: amount } };
+
+        const updatedUser = await userModel.findByIdAndUpdate(userId, update, { new: true });
+        res.json({ success: true, message: "Registry Valuation Updated", newPoints: updatedUser.totalRewardPoints });
+    } catch (error) {
+        const errorMsg = error.response?.data?.message || "Update Failed";
+    toast.error(errorMsg);
+    }
+};
+
 // Export it along with your login/register functions
 
 

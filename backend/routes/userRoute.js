@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getUserProfile ,googleLogin, forgotPassword, resetPassword, listUsers, updateAddress, getPhilatelistDetail, getTopPhilatelists } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getUserProfile ,googleLogin, forgotPassword, resetPassword, listUsers, updateAddress, getPhilatelistDetail, getTopPhilatelists, getAllUsersData, adjustRewardPoints } from '../controllers/userController.js';
 import { toggleWishlist, getWishlist } from '../controllers/wishlistController.js';
 
 
@@ -30,7 +30,11 @@ userRouter.get('/profile', authUser, getUserProfile);
 userRouter.post('/update-address', authUser, updateAddress);
 userRouter.get('/detail/:userId', adminAuth, getPhilatelistDetail);
 userRouter.get('/top-philatelists', adminAuth,getTopPhilatelists);
+userRouter.get('/admin-list', adminAuth, getAllUsersData);
+userRouter.post('/x', adminAuth, adjustRewardPoints);
+
 
 userRouter.get('/reward-history', authUser, getUnifiedHistory);
+
 
 export default userRouter;

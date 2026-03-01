@@ -79,18 +79,138 @@ const options = {
     }
 };
 
-const getOrderHtmlTemplate = (name, items, amount, currency, trackingNumber = null) => {
-    const itemRows = items.map(item => `
-        <tr>
-            <td style="padding: 10px; border-bottom: 1px solid #eee;">${item.name}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">${currency === 'USD' ? '$' : '₹'}${item.price}</td>
-        </tr>`).join('');
+const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
+    const { address, items, amount, currency, paymentMethod, orderNo, status, date } = orderData;
     const symbol = currency === 'USD' ? '$' : '₹';
-    const themeColor = trackingNumber ? '#219EBC' : '#E63946';
-    return `<div style="font-family: sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 10px; overflow: hidden;">
-        <div style="background-color: ${themeColor}; color: white; padding: 20px; text-align: center;"><h1>${trackingNumber ? 'Shipped!' : 'Confirmed!'}</h1></div>
-        <div style="padding: 20px;"><p>Hi <strong>${name}</strong>,</p><table><tbody>${itemRows}</tbody><tfoot><tr><td>Total Paid:</td><td>${symbol}${amount.toFixed(2)}</td></tr></tfoot></table></div></div>`;
+    const accentColor = "#BC002D"; // PhilaBasket Brand Red
+    const secondaryColor = "#1a1a1a";
+    const bgColor = "#FCF9F4";
+
+    const itemRows = items.map(item => `
+        <tr style="border-bottom: 1px solid #eeeeee;">
+            <td style="padding: 12px 0;">
+                <p style="margin: 0; font-weight: bold; color: ${secondaryColor}; font-size: 14px;">${item.name}</p>
+                <p style="margin: 4px 0 0 0; color: #888; font-size: 11px; text-transform: uppercase;">Specimen ID: ${item._id.toString().slice(-6)}</p>
+            </td>
+            <td style="padding: 12px 0; text-align: center; color: ${secondaryColor}; font-weight: bold;">x${item.quantity}</td>
+            <td style="padding: 12px 0; text-align: right; color: ${accentColor}; font-weight: bold;">${symbol}${item.price.toLocaleString()}</td>
+        </tr>`).join('');
+
+    // Dynamic Payment Protocol Section
+    let paymentInstructions = '';
+    if (paymentMethod === 'Direct bank transfer' || paymentMethod === 'Bank Transfer') {
+        paymentInstructions = `
+            <div style="margin-top: 25px; padding: 20px; background-color: #fff; border: 1px dashed ${accentColor}; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: ${accentColor}; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Bank Ledger Protocol</h4>
+                <p style="margin: 5px 0; font-size: 13px;"><strong>A/C Name:</strong> PhilaBasket.com</p>
+                <p style="margin: 5px 0; font-size: 13px;"><strong>Bank:</strong> ICICI Bank</p>
+                <p style="margin: 5px 0; font-size: 13px;"><strong>A/C Number:</strong> 072105001250</p>
+                <p style="margin: 5px 0; font-size: 13px;"><strong>IFSC:</strong> ICIC0000721</p>
+                <p style="margin: 15px 0 0 0; font-size: 11px; color: #666; font-style: italic;">*Please use Order #${orderNo} as payment reference.</p>
+            </div>`;
+    } else if (paymentMethod === 'Cheque') {
+        paymentInstructions = `
+            <div style="margin-top: 25px; padding: 20px; background-color: #fff; border: 1px dashed ${accentColor}; border-radius: 4px;">
+                <h4 style="margin: 0 0 10px 0; color: ${accentColor}; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Physical Cheque Protocol</h4>
+                <p style="margin: 5px 0; font-size: 13px;"><strong>Payable to:</strong> PhilaBasket.com</p>
+                <p style="margin: 5px 0; font-size: 11px; color: #444; line-height: 1.6;">
+                    <strong>Mailing Address:</strong><br>
+                    C/O Bhavyansh Prakhar Rastogi<br>
+                    S – 606/607 School Block – 2, Park End Apartment,<br>
+                    ShakarPur - 110092, Delhi, India
+                </p>
+            </div>`;
+    }
+
+    return `
+    <!DOCTYPE html>
+    <html>
+    <body style="margin: 0; padding: 0; background-color: ${bgColor}; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: ${secondaryColor};">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${bgColor}; padding: 40px 20px;">
+            <tr>
+                <td align="center">
+                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                        <tr>
+                            <td style="background-color: ${accentColor}; padding: 40px 20px; text-align: center;">
+                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 3px; font-weight: 900;">PhilaBasket</h1>
+                                <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">The World of Philately</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h2 style="margin: 0 0 15px 0; font-size: 20px;">Order ${trackingNumber ? 'Dispatched' : 'Confirmed'}</h2>
+                                <p style="font-size: 15px; color: #555; line-height: 1.6;">Hi ${address.firstName},</p>
+                                <p style="font-size: 15px; color: #555; line-height: 1.6;">
+                                    ${trackingNumber 
+                                        ? `Your philatelic acquisition has been dispatched from the registry. You can track your specimen using ID: <strong>${trackingNumber}</strong>.` 
+                                        : `We have successfully received your acquisition request. Your specimens are currently being authenticated and prepared for transit.`}
+                                </p>
+
+                                <table width="100%" style="margin: 25px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 15px 0;">
+                                    <tr>
+                                        <td><span style="font-size: 11px; color: #999; text-transform: uppercase;">Registry ID</span><br><strong>#${orderNo}</strong></td>
+                                        <td align="right"><span style="font-size: 11px; color: #999; text-transform: uppercase;">Acquisition Date</span><br><strong>${new Date(date).toLocaleDateString()}</strong></td>
+                                    </tr>
+                                </table>
+
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                                    <thead>
+                                        <tr style="text-align: left; font-size: 11px; color: #999; text-transform: uppercase;">
+                                            <th style="padding-bottom: 10px;">Specimen</th>
+                                            <th style="padding-bottom: 10px; text-align: center;">Qty</th>
+                                            <th style="padding-bottom: 10px; text-align: right;">Valuation</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${itemRows}</tbody>
+                                </table>
+
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 10px;">
+                                    <tr>
+                                        <td width="70%" style="padding: 5px 0; font-size: 14px; color: #777;">Registry Shipping Fee</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 14px; font-weight: bold;">${symbol}100.00</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 10px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Valuation</td>
+                                        <td align="right" style="padding: 10px 0; font-size: 18px; font-weight: 900; color: ${accentColor}; border-top: 2px solid ${secondaryColor};">${symbol}${amount.toLocaleString()}</td>
+                                    </tr>
+                                </table>
+
+                                ${paymentInstructions}
+
+                                <table width="100%" style="margin-top: 30px;">
+                                    <tr>
+                                        <td width="50%" valign="top">
+                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Shipping Registry</h4>
+                                            <p style="margin: 0; font-size: 12px; line-height: 1.5;">
+                                                ${address.firstName} ${address.lastName}<br>
+                                                ${address.street}<br>
+                                                ${address.city}, ${address.state} ${address.zipcode}
+                                            </p>
+                                        </td>
+                                        <td width="50%" valign="top">
+                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Payment Method</h4>
+                                            <p style="margin: 0; font-size: 12px; line-height: 1.5;">${paymentMethod}</p>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td style="padding: 30px; background-color: #f9f9f9; text-align: center; border-top: 1px solid #eee;">
+                                <p style="margin: 0; font-size: 11px; color: #999; line-height: 1.6;">
+                                    This is a certified acquisition record from the PhilaBasket Registry.<br>
+                                    For inquiries, contact: <strong>admin@philabasket.com</strong>
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>`;
 };
 
 const updateStock = async (items, type = "reduce") => {
@@ -110,6 +230,8 @@ const updateStock = async (items, type = "reduce") => {
 
 
 
+
+// backend/controllers/orderController.js
 
 const placeOrder = async (req, res) => {
     try {
@@ -146,11 +268,9 @@ const placeOrder = async (req, res) => {
             couponUsed: couponUsed || null,
             discountAmount: discountAmount || 0,
             currency: currency || 'INR',
-            // Set method to 'Cheque' if selected, otherwise default to provided or COD
             paymentMethod: paymentMethod || "COD", 
             payment: false,
             date: Date.now(),
-            // Initial status for Cheque is 'Cheque on Hold'
             status: status || (paymentMethod === 'Cheque' ? 'Cheque on Hold' : 'Order Placed')
         };
 
@@ -175,31 +295,40 @@ const placeOrder = async (req, res) => {
 
         // 5. DEDUCT REWARD POINTS
         if (pointsUsed > 0) {
-            await recordRewardActivity(
-                userId, 
-                address.email, 
-                -Math.abs(pointsUsed), 
-                'redeem_point', 
-                newOrder._id
-            );
+            await recordRewardActivity(userId, address.email, -Math.abs(pointsUsed), 'redeem_point', newOrder._id);
         }
 
-        // 6. UPDATE INVENTORY (Deduct Stock)
+        // 6. UPDATE INVENTORY
         for (const item of items) {
-            await productModel.findByIdAndUpdate(item._id, { 
-                $inc: { stock: -item.quantity } 
-            });
+            await productModel.findByIdAndUpdate(item._id, { $inc: { stock: -item.quantity } });
         }
 
-        // 7. CLEAN USER CART REGISTRY
+        // 7. CLEAN USER CART
         await userModel.findByIdAndUpdate(userId, { $set: { cartData: {} } });
 
-        // 8. FINAL SUCCESS RESPONSE
+        // --- 8. TRIGGER EMAIL NOTIFICATION (THE FIX) ---
+        try {
+            const emailSubject = orderData.paymentMethod === 'Cheque' 
+                ? "Order Received - Awaiting Cheque" 
+                : "Order Confirmation";
+            
+                const htmlContent = getOrderHtmlTemplate(newOrder);
+
+            await sendEmail(address.email, emailSubject, htmlContent);
+            console.log("Acquisition Email Sent to:", address.email);
+        } catch (emailError) {
+            console.error("Email notification failed to send:", emailError);
+        }
+
+        // 9. TRIGGER WHATSAPP ALERT FOR ADMIN
+        await sendWhatsAppAlert(orderData);
+
+        // 10. FINAL SUCCESS RESPONSE
         res.json({ 
             success: true, 
             message: paymentMethod === 'Cheque' 
                 ? "Acquisition secured. Order is 'On Hold' awaiting cheque clearance." 
-                : "Order Placed & Reward Logged.", 
+                : "Order Placed & Confirmation Sent.", 
             orderNo: newOrder.orderNo 
         });
 
@@ -293,6 +422,16 @@ const updateStatus = async (req, res) => {
 
             await updateSoldCount(currentOrder.items);
             console.log(`Registry Ledger Updated: ${earnedPoints} points awarded.`);
+
+            try {
+                await sendEmail(
+                    currentOrder.address.email, 
+                    "Acquisition Delivered - Registry Updated", 
+                    getOrderHtmlTemplate(currentOrder) 
+                );
+            } catch (emailError) {
+                console.error("Delivery Email Failed:", emailError);
+            }
         }
 
         // --- THE FIX: REMOVED THE 'RETURN' BLOCK ---
@@ -306,7 +445,7 @@ const updateStatus = async (req, res) => {
             await sendEmail(
                 currentOrder.address.email, 
                 "Items Shipped", 
-                getOrderHtmlTemplate(currentOrder.address.firstName, currentOrder.items, currentOrder.amount, currentOrder.currency, trackingNumber)
+                getOrderHtmlTemplate(currentOrder, trackingNumber) 
             );
         }
 

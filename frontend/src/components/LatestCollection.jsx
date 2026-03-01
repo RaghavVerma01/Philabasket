@@ -107,9 +107,9 @@ const LatestCollection = () => {
 
                 <div className='flex flex-col lg:flex-row gap-12'>
                     {/* --- SIDEBAR --- */}
-                    <div className='w-full lg:w-[25%]'>
+                    <div className='w-full lg:w-[24%]'>
                         <div className='lg:sticky lg:top-32'>
-                        <div className='bg-[#bd002d] p-6 lg:p-8 rounded-[30px] lg:rounded-[40px] shadow-2xl shadow-[#bd002d]/20 relative overflow-hidden'>
+                        <div className='bg-[#bd002d] p-2 lg:p-5 rounded-[30px] lg:rounded-[40px] shadow-2xl shadow-[#bd002d]/20 relative overflow-hidden'>
     
     {/* HEADER ROW */}
     <div className='flex items-center justify-between mb-6'>
@@ -193,7 +193,7 @@ const LatestCollection = () => {
                                             ) : (
                                                 <button 
                                                     onClick={() => handleCategoryClick(entry.name)} 
-                                                    className='text-white/80 hover:text-amber-400 text-[10px] font-black tracking-widest uppercase w-full py-3 px-3 hover:bg-white/5 rounded-xl transition-all flex items-center justify-between group'
+                                                    className='text-white/80 hover:text-amber-400 text-[10px] font-semibold tracking-widest uppercase w-full py-3 px-3 hover:bg-white/5 rounded-xl transition-all flex items-center justify-between group'
                                                 >
                                                     <span className='truncate'>{entry.name}</span>
                                                     {/* BRIGHT COUNT */}
@@ -223,34 +223,43 @@ const LatestCollection = () => {
 
                     {/* MAIN PRODUCT GRID */}
                     <div className='w-full lg:w-3/4'>
-                        <div className='flex overflow-x-auto lg:grid lg:grid-cols-4 gap-6 md:gap-x-8 gap-y-12 snap-x snap-mandatory px-2'>
-                            {latestProducts.map((item, index) => (
-                                <div 
-                                    key={item._id || index} 
-                                    onClick={() => handleProductClick(item._id)} 
-                                    className="min-w-[85%] sm:min-w-[45vw] lg:min-w-[20%] snap-center flex flex-col group bg-white border border-gray-100 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-br-[40px] md:rounded-br-[60px] overflow-hidden cursor-pointer"
-                                >
-                                    <div className="relative p-1 md:p-3 flex-grow">
-                                        <div className="absolute top-0 right-0 z-20 overflow-hidden w-20 h-20 pointer-events-none">
-                                            <div className="absolute top-[20%] -right-[30%] bg-[#bd002d] text-white text-[7px] font-black py-1 w-[140%] text-center transform rotate-45 shadow-sm uppercase tracking-tighter">New</div>
-                                        </div>
-                                        <div className="w-full bg-[#f8f8f8] rounded-br-[35px] md:rounded-br-[45px] p-2">
-                                            <ProductItem 
-                                                id={item._id} 
-                                                _id={item._id} 
-                                                image={item.image} 
-                                                name={item.name} 
-                                                price={item.price} 
-                                                marketPrice={item.marketPrice} 
-                                                category={item.category ? item.category[0] : ""} 
-                                                isPriorityMode={true} 
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+    {/* Grid setup matches the Collection page for visual consistency */}
+    <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-4 md:gap-x-6 gap-y-10 md:gap-y-16 items-stretch px-2'>
+        {latestProducts.map((item, index) => (
+            <div 
+                key={item._id || index} 
+                onClick={() => handleProductClick(item._id)} 
+                /* Removed: bg-white, border, shadow-lg, and rounded-br 
+                   to match the floating specimen look of the Archive.
+                */
+                className="flex flex-col h-full transition-all duration-500 cursor-pointer relative group"
+            >
+                {/* Rotated 'New' Ribbon Badge preserved for featured arrivals */}
+                <div className="absolute top-0 right-0 z-20 overflow-hidden w-16 h-16 pointer-events-none">
+                    <div className="absolute top-[15%] -right-[35%] bg-[#bd002d] text-white text-[6px] font-black py-1 w-[140%] text-center transform rotate-45 shadow-sm uppercase tracking-tighter">
+                        New
                     </div>
+                </div>
+
+                {/* Specimen Content: ProductItem handles its own internal layout */}
+                <div className="flex-grow flex flex-col">
+                    <div className="w-full flex-grow">
+                        <ProductItem 
+                            id={item._id} 
+                            _id={item._id} 
+                            image={item.image} 
+                            name={item.name} 
+                            price={item.price} 
+                            marketPrice={item.marketPrice} 
+                            category={item.category ? item.category[0] : ""} 
+                            isPriorityMode={true} 
+                        />
+                    </div>
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
                 </div>
             </div>
         </div>

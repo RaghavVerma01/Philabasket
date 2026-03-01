@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx'
 import axios from 'axios';
 import { backendUrl } from '../App';
 import { toast } from 'react-toastify';
@@ -144,23 +145,63 @@ const Orders = ({ token }) => {
 
   // ── CSV ───────────────────────────────────────────────────────────────────
   const downloadCSV = (data, filename) => {
-    if (!data.length) { toast.error("No data for this filter"); return; }
-    const headers = ["Order_ID","Date","Customer","Phone","Items","Amount_INR","Status","Payment","Tracking","City","State"];
-    const rows = data.map(o => [
-      `#${String(o._id).slice(-8)}`,
-      new Date(o.date).toLocaleDateString('en-IN'),
-      `${o.address?.firstName||''} ${o.address?.lastName||''}`,
-      o.address?.phone||'',
-      o.items.map(i=>`${i.name}(x${i.quantity})`).join(' | '),
-      o.amount, o.status, o.paymentMethod||'',
-      o.trackingNumber||'N/A', o.address?.city||'', o.address?.state||''
-    ]);
-    const csv = [headers,...rows].map(r=>r.map(c=>`"${c}"`).join(",")).join("\n");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-    a.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-  };
+    if (!data || !data.length) { 
+        toast.error("Registry Archive Empty for this filter"); 
+        return; 
+    }
+
+    // 1. Prepare and Format the Data for Excel
+    const worksheetData = data.map(o => ({
+        "Order ID": `#${String(o._id).slice(-8)}`,
+        "Date": new Date(o.date).toLocaleDateString('en-IN'),
+        "Customer": `${o.address?.firstName || ''} ${o.address?.lastName || ''}`.trim(),
+        "Email": o.address?.email || 'N/A',
+        "Phone": String(o.address?.phone || ''), // Force string to keep leading zeros
+        "Items": o.items.map(i => `${i.name} (x${i.quantity})`).join(' | '),
+        "Amount (INR)": o.amount,
+        "Status": o.status,
+        "Payment": o.paymentMethod || 'N/A',
+        "Tracking": o.trackingNumber || 'N/A',
+        "City": o.address?.city || '',
+        "State": o.address?.state || ''
+    }));
+
+    // 2. Create Workbook and Worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Order Registry");
+
+    // 3. Set Column Widths for better readability
+    const wscols = [
+        { wch: 15 }, // Order ID
+        { wch: 12 }, // Date
+        { wch: 20 }, // Customer
+        { wch: 25 }, // Email
+        { wch: 15 }, // Phone
+        { wch: 40 }, // Items
+        { wch: 12 }, // Amount
+        { wch: 15 }, // Status
+        { wch: 15 }, // Payment
+        { wch: 20 }, // Tracking
+        { wch: 15 }, // City
+        { wch: 15 }, // State
+    ];
+    worksheet['!cols'] = wscols;
+
+    // 4. Generate and Trigger Download
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+    
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success("Excel Registry Exported Successfully");
+};
 
   // ── update ────────────────────────────────────────────────────────────────
   const updateOrder = async (orderId, status, trackingNumber) => {
