@@ -9,6 +9,7 @@ import 'dotenv/config';
 import axios from 'axios';
 import rewardTransactionModel from "../models/rewardTranscationModel.js";
 import userRewardModel from "../models/userRewardModel.js";
+import settingsModel from "../models/settingModel.js";
 
 
 const recordRewardActivity = async (userId, userEmail, amount, type, orderId = null) => {
@@ -79,9 +80,22 @@ const options = {
     }
 };
 
-const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
-    // Destructure additional fields: pointsUsed, couponUsed, discountAmount
-    const { address, items, amount, currency, paymentMethod, orderNo, status, date, pointsUsed, couponUsed, discountAmount } = orderData;
+const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null) => {
+    // Destructure orderData
+    const { 
+        address, 
+        items, 
+        amount, 
+        currency, 
+        paymentMethod, 
+        orderNo, 
+        date, 
+        pointsUsed, 
+        couponUsed, 
+        discountAmount,
+        deliveryFee 
+    } = orderData;
+
     const symbol = currency === 'USD' ? '$' : '₹';
     const accentColor = "#BC002D"; 
     const secondaryColor = "#1a1a1a";
@@ -91,8 +105,12 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
     const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const gstAmount = rawSubtotal * 0.05;
     const pbExclusiveDiscount = rawSubtotal * 0.05;
-    const pointsValue = pointsUsed ? pointsUsed / 10 : 0; // Assuming 10 pts = 1 Rupee as per your logic
-    const shippingFee = 100.00; // Fixed as per your template
+    const pointsValue = pointsUsed ? pointsUsed / 10 : 0; 
+
+    // --- PROTOCOL FEE RESOLUTION ---
+    // Priority: 1. Explicitly passed activeFee | 2. Stored deliveryFee | 3. Hard fallback
+    const finalFee = activeFee !== null ? activeFee : (deliveryFee || 0);
+    const displayShipping = Number(finalFee).toFixed(2);
 
     const itemRows = items.map(item => `
         <tr style="border-bottom: 1px solid #eeeeee;">
@@ -118,7 +136,6 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                 <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">The World of Philately</p>
                             </td>
                         </tr>
-                        
                         <tr>
                             <td style="padding: 40px;">
                                 <h2 style="margin: 0 0 15px 0; font-size: 20px;">Order ${trackingNumber ? 'Dispatched' : 'Confirmed'}</h2>
@@ -174,8 +191,8 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                     </tr>` : ''}
 
                                     <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${shippingFee.toFixed(2)}</td>
+                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee (${address.country})</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${displayShipping}</td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 15px 0 5px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Asset Valuation</td>
@@ -200,7 +217,7 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                 </table>
                             </td>
                         </tr>
-                        </table>
+                    </table>
                 </td>
             </tr>
         </table>
@@ -233,8 +250,20 @@ const placeOrder = async (req, res) => {
         const { 
             userId, items, amount, address, billingAddress, 
             currency, pointsUsed, couponUsed, discountAmount, 
-            paymentMethod, status 
+            paymentMethod, status ,deliveryFee
         } = req.body;
+
+
+        const settings = await settingsModel.findOne({}) || { rate: 83, indiaFee: 125, globalFee: 750 };
+        const expectedFee = address.country.toLowerCase() === 'india' 
+            ? settings.indiaFee 
+            : settings.globalFee;
+
+        // Safety Check: If the sent deliveryFee doesn't match our DB records, alert admin
+        if (Number(deliveryFee) !== expectedFee) {
+            console.error(`Valuation Mismatch: Expected ${expectedFee}, received ${deliveryFee}`);
+            // Optional: Hard-reset to the correct fee or block the order
+        }
 
         // 1. BLOCK DOUBLE COUPON USAGE
         if (couponUsed) {
@@ -257,12 +286,14 @@ const placeOrder = async (req, res) => {
             userId,
             items,
             address,
+            deliveryFee,
             billingAddress: billingAddress || address,
             amount,
             pointsUsed: pointsUsed || 0,
             couponUsed: couponUsed || null,
             discountAmount: discountAmount || 0,
             currency: currency || 'INR',
+            exchangeRate: settings.rate,
             paymentMethod: paymentMethod || "COD", 
             payment: false,
             date: Date.now(),
@@ -302,13 +333,16 @@ const placeOrder = async (req, res) => {
         await userModel.findByIdAndUpdate(userId, { $set: { cartData: {} } });
 
         // --- 8. TRIGGER EMAIL NOTIFICATION (THE FIX) ---
+        // --- 8. TRIGGER EMAIL NOTIFICATION (THE FIX) ---
         try {
             const emailSubject = orderData.paymentMethod === 'Cheque' 
                 ? "Order Received - Awaiting Cheque" 
                 : "Order Confirmation";
             
-                const htmlContent = getOrderHtmlTemplate(newOrder);
-
+            // We use the 'expectedFee' we calculated at the top of the controller
+            // Pass 'newOrder' and 'expectedFee' as separate arguments to the template
+            const htmlContent = getOrderHtmlTemplate(newOrder.toObject(), expectedFee);
+        
             await sendEmail(address.email, emailSubject, htmlContent);
             console.log("Acquisition Email Sent to:", address.email);
         } catch (emailError) {

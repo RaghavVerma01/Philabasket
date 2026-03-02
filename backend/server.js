@@ -18,6 +18,7 @@ import feedbackRouter from './routes/feedbackRoute.js'
 import couponRouter from './routes/couponRouter.js'
 import bannerRouter from './routes/bannerRouter.js'
 import headerRouter from './routes/headerRouter.js'
+import adminRouter from './routes/adminRouter.js'
 
 // App Config
 const app = express()
@@ -55,6 +56,7 @@ app.use('/api/feedback', feedbackRouter);
 app.use('/api/coupon', couponRouter);
 app.use('/api/banner',bannerRouter)
 app.use('/api/header', headerRouter);
+app.use('/api/admin',adminRouter)
 
 
 app.get('/',(req,res)=>{

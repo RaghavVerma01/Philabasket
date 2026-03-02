@@ -14,7 +14,7 @@ const PlaceOrder = () => {
     const [method, setMethod] = useState('cod');
     const { 
         navigate, backendUrl, token, cartItems, setCartItems, 
-        getCartAmount, delivery_fee, products, currency, 
+        getCartAmount, getDeliveryFee, products, currency, 
         userData, fetchUserData, formatPrice 
     } = useContext(ShopContext);
     
@@ -47,6 +47,7 @@ const PlaceOrder = () => {
         city: '', state: '', zipcode: '', country: 'India'
     });
 
+    // Fetch Countries for Registry
     useEffect(() => {
         const fetchCountries = async () => {
             try {
@@ -72,6 +73,7 @@ const PlaceOrder = () => {
         }));
     };
 
+    // Auto-fill User Data
     useEffect(() => {
         if (!token) navigate('/login');
         else if (userData) {
@@ -110,10 +112,9 @@ const PlaceOrder = () => {
             finally { setIsVerifying(false); }
         }
     };
+
     const handlePhoneChange = (e) => {
         const value = e.target.value;
-        
-        // Prevent more than 10 digits (common for most regions, adjust to 12 if needed)
         if (value.length <= 10) {
             setFormData({ ...formData, phone: value });
         }
@@ -128,14 +129,12 @@ const PlaceOrder = () => {
                 { 
                     code: couponCode, 
                     amount: getCartAmount(),
-                    userId: userData._id // CRITICAL: Send userId here to check usage history immediately
+                    userId: userData._id 
                 },
                 { headers: { token } }
             );
     
             if (res.data.success) {
-                // The backend should return success:false if already availed, 
-                // but we add an extra guard here just in case.
                 if (res.data.alreadyUsed) {
                     toast.warning("Registry Note: You have already availed this coupon code.");
                     setCouponCode('');
@@ -145,7 +144,6 @@ const PlaceOrder = () => {
                     toast.success(`Coupon Validated: ${res.data.coupon.code}`);
                 }
             } else { 
-                // This is where "Already Availed" or "Expired" messages from backend will now show up
                 toast.error(res.data.message); 
                 setAppliedCoupon(null);
                 setCouponCode('');
@@ -157,24 +155,31 @@ const PlaceOrder = () => {
         }
     };
 
+    // --- FINANCIAL SYNC ---
+    const currentFee = getDeliveryFee(formData.country);
+
     const calculation = useMemo(() => {
         const cartAmount = getCartAmount();
-        const subtotal = cartAmount + delivery_fee;
+        const subtotal = cartAmount + currentFee; 
+        
         let couponVal = 0;
         if (appliedCoupon) {
             couponVal = appliedCoupon.discountType === 'percentage' 
                 ? (cartAmount * appliedCoupon.value) / 100 
                 : appliedCoupon.value;
         }
+
         const rewardDiscount = usePoints ? Math.min(Math.floor(userPoints / 10), subtotal - couponVal) : 0;
         const finalPayable = subtotal - couponVal - rewardDiscount;
+
         return {
             pointsDeducted: rewardDiscount * 10,
             couponDeducted: couponVal,
             rewardDeducted: rewardDiscount,
-            totalPayable: finalPayable
+            totalPayable: finalPayable,
+            feeApplied: currentFee 
         };
-    }, [cartItems, userPoints, usePoints, appliedCoupon, delivery_fee, getCartAmount]);
+    }, [cartItems, userPoints, usePoints, appliedCoupon, currentFee, getCartAmount]);
 
     const onSubmitHandler = async (e) => {
         if (e) e.preventDefault();
@@ -191,10 +196,11 @@ const PlaceOrder = () => {
                 address: formData,
                 billingAddress: sameAsShipping ? formData : billingData,
                 items: orderItems,
-                amount: calculation.totalPayable,
+                deliveryFee: Number(calculation.feeApplied), // Clean number for DB
+                amount: Number(calculation.totalPayable),
                 pointsUsed: Math.round(calculation.pointsDeducted),
                 couponUsed: appliedCoupon ? appliedCoupon.code : null,
-                discountAmount: calculation.couponDeducted,
+                discountAmount: Number(calculation.couponDeducted),
                 phone: `${formData.countryCode}${formData.phone}`,
                 paymentMethod: method === 'cheque' ? 'Cheque' : method === 'bank' ? 'Direct Bank Transfer' : method.toUpperCase(),
                 status: (method === 'cheque' || method === 'bank') ? 'On Hold' : 'Order Placed'
@@ -204,9 +210,9 @@ const PlaceOrder = () => {
             
             if (response.data.success) {
                 setCartItems({});
-                setAppliedCoupon(null); // Force ledger to recalculate to 0 discount
-                setCouponCode('');      // Wipe the input field
-                setUsePoints(false);    // Reset reward point toggle
+                setAppliedCoupon(null);
+                setCouponCode('');      
+                setUsePoints(false);    
                 
                 setShowSuccess(true);
                 fetchUserData();
@@ -223,7 +229,7 @@ const PlaceOrder = () => {
 
     return (
         <div className='relative text-black'>
-            {/* --- MODALS --- */}
+            {/* --- MODALS (Bank & Cheque) --- */}
             {showBankModal && (
                 <div className='fixed inset-0 z-[600] flex items-center justify-center p-6'>
                     <div className='absolute inset-0 bg-black/70 backdrop-blur-md' onClick={() => setShowBankModal(false)}></div>
@@ -276,7 +282,7 @@ const PlaceOrder = () => {
 
             <form onSubmit={onSubmitHandler} className="bg-[#FCF9F4] min-h-screen flex flex-col lg:flex-row justify-center gap-8 xl:gap-12 pt-28 pb-20 px-6 md:px-12 lg:px-20 select-none">
                 
-                {/* COLUMN 1: SHIPPING */}
+                {/* COLUMN 1: SHIPPING & BILLING */}
                 <div className='flex flex-col gap-6 w-full lg:max-w-[420px]'>
                     <Title text1={'SHIPPING'} text2={'REGISTRY'} />
                     
@@ -296,33 +302,26 @@ const PlaceOrder = () => {
                         <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Email Address' />
 
                         <div className='flex flex-col gap-1'>
-    <div className='flex gap-2'>
-        {/* Country Code Display */}
-        <div className='w-16 bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 rounded-sm italic'>
-            {formData.countryCode}
-        </div>
-        
-        {/* Phone Input with dynamic border color based on length */}
-        <input 
-            required 
-            value={formData.phone} 
-            onChange={handlePhoneChange} 
-            className={`flex-1 bg-white border py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm transition-all outline-none
-                ${formData.phone.length === 10 
-                    ? 'border-green-500 focus:ring-1 ring-green-100' 
-                    : 'border-gray-100 focus:border-[#BC002D]'}`} 
-            placeholder='Phone Number' 
-            type="number" 
-        />
-    </div>
-    
-    {/* Real-time status message */}
-    {formData.phone.length > 0 && formData.phone.length < 10 && (
+                            <div className='flex gap-2'>
+                                <div className='w-16 bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 rounded-sm italic'>
+                                    {formData.countryCode}
+                                </div>
+                                <input 
+                                    required 
+                                    value={formData.phone} 
+                                    onChange={handlePhoneChange} 
+                                    className={`flex-1 bg-white border py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm transition-all outline-none
+                                        ${formData.phone.length === 10 ? 'border-green-500' : 'border-gray-100 focus:border-[#BC002D]'}`} 
+                                    placeholder='Phone Number' 
+                                    type="number" 
+                                />
+                            </div>
+                            {formData.phone.length > 0 && formData.phone.length < 10 && (
         <p className='text-[9px] font-bold text-[#BC002D] uppercase tracking-tighter'>
             Entry Incomplete: {10 - formData.phone.length} digits remaining
         </p>
     )}
-</div>
+                        </div>
 
                         <input required value={formData.street} onChange={(e)=>setFormData({...formData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Shipping Street' />
                         
@@ -341,7 +340,7 @@ const PlaceOrder = () => {
                         <div className='flex items-center justify-between mb-4'>
                             <h4 className='text-[10px] font-black uppercase tracking-widest'>Billing Protocol</h4>
                             <div onClick={() => setSameAsShipping(!sameAsShipping)} className='flex items-center gap-2 cursor-pointer group'>
-                                <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all ${sameAsShipping ? 'bg-black border-black' : 'border-gray-300 group-hover:border-black'}`}>
+                                <div className={`w-3.5 h-3.5 border flex items-center justify-center transition-all ${sameAsShipping ? 'bg-black border-black' : 'border-gray-300'}`}>
                                     {sameAsShipping && <CheckCircle size={10} className='text-white' />}
                                 </div>
                                 <span className='text-[9px] font-black uppercase text-gray-400'>Same as Shipping</span>
@@ -354,15 +353,9 @@ const PlaceOrder = () => {
                                     <input required value={billingData.lastName} onChange={(e)=>setBillingData({...billingData, lastName: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs rounded-sm' placeholder='Billing Last Name' />
                                 </div>
                                 <input required onChange={(e)=>setBillingData({...billingData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs rounded-sm' placeholder='Billing Street' />
-                                <div className='grid grid-cols-2 gap-3'>
-                                    <input required onChange={(e)=>setBillingData({...billingData, city: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs rounded-sm' placeholder='City' />
-                                    <input required onChange={(e)=>setBillingData({...billingData, zipcode: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs rounded-sm' placeholder='Zip' />
-                                </div>
                             </div>
                         )}
                     </div>
-
-                    
                 </div>
 
                 {/* COLUMN 2: SPECIMEN OVERVIEW */}
@@ -385,55 +378,40 @@ const PlaceOrder = () => {
                 {/* COLUMN 3: LEDGER SUMMARY */}
                 <div className='flex flex-col gap-6 w-full lg:max-w-[380px]'>
                     <div className='bg-white border border-gray-100 p-6 shadow-sm rounded-sm'>
-                        <CartTotal />
+                        {/* Passes Country to update shipping automatically */}
+                        <CartTotal country={formData.country} />
+                        
                         <div className='mt-6 flex flex-col gap-2'>
-    <div className='flex gap-2'>
-        <input 
-            value={couponCode} 
-            onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
-            placeholder={appliedCoupon ? "DISCOUNT ACTIVE" : "COUPON CODE"} 
-            className={`flex-1 border px-4 py-3 text-[10px] font-black outline-none rounded-sm transition-all
-                ${appliedCoupon ? 'bg-green-50 border-green-500 text-green-700' : 'bg-gray-50 border-gray-100 focus:border-black'}`} 
-            disabled={!!appliedCoupon}
-        />
-        
-        {appliedCoupon ? (
-            <button 
-                type="button" 
-                onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} 
-                className='bg-red-50 text-red-600 border border-red-100 px-5 py-3 text-[9px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all rounded-sm'
-            >
-                Remove
-            </button>
-        ) : (
-            <button 
-                type="button" 
-                onClick={applyCoupon} 
-                className='bg-black text-white px-5 py-3 text-[9px] font-black uppercase tracking-widest hover:bg-[#BC002D] transition-all rounded-sm'
-            >
-                {isApplying ? <Loader2 size={12} className='animate-spin' /> : 'Apply'}
-            </button>
-        )}
-    </div>
-    
-    {appliedCoupon && (
-        <p className='text-[9px] font-black text-green-600 uppercase tracking-tighter ml-1'>
-            • Asset Valuation Adjusted by {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.value}%` : `₹${appliedCoupon.value}`}
-        </p>
-    )}
-</div>
+                            <div className='flex gap-2'>
+                                <input 
+                                    value={couponCode} 
+                                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+                                    placeholder={appliedCoupon ? "DISCOUNT ACTIVE" : "COUPON CODE"} 
+                                    className={`flex-1 border px-4 py-3 text-[10px] font-black outline-none rounded-sm ${appliedCoupon ? 'bg-green-50 border-green-500' : 'bg-gray-50 border-gray-100'}`} 
+                                    disabled={!!appliedCoupon}
+                                />
+                                {appliedCoupon ? (
+                                    <button type="button" onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} className='bg-red-50 text-red-600 border border-red-100 px-5 py-3 text-[9px] font-black uppercase rounded-sm'>Remove</button>
+                                ) : (
+                                    <button type="button" onClick={applyCoupon} className='bg-black text-white px-5 py-3 text-[9px] font-black uppercase rounded-sm'>Apply</button>
+                                )}
+                            </div>
+                        </div>
+
                         <div className='mt-4 flex items-center justify-between p-3 border border-dashed border-[#BC002D]/30 bg-[#BC002D]/5 rounded-sm'>
                             <div className='flex items-center gap-2'>
                                 <input type="checkbox" id="pts" checked={usePoints} onChange={() => setUsePoints(!usePoints)} className='accent-[#BC002D]' />
-                                <label htmlFor="pts" className='text-[9px] font-black text-[#BC002D] uppercase cursor-pointer'>Use Archive Credits ({userPoints} PTS)</label>
+                                <label htmlFor="pts" className='text-[9px] font-black text-[#BC002D] uppercase cursor-pointer'>Use Credits ({userPoints} PTS)</label>
                             </div>
                         </div>
+
                         <div className='mt-6 pt-4 border-t border-gray-100 space-y-2'>
-                            {appliedCoupon && <div className='flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest'><span>Discount ({appliedCoupon.code})</span><span>-₹{calculation.couponDeducted.toFixed(0)}</span></div>}
-                            {usePoints && <div className='flex justify-between text-[10px] font-black text-[#BC002D] uppercase tracking-widest'><span>Credit Redemp.</span><span>-₹{calculation.rewardDeducted.toFixed(0)}</span></div>}
-                            <div className='flex justify-between pt-4 border-t border-black'><p className='text-[10px] font-black uppercase text-gray-400'>Final Asset Valuation</p><p className='text-lg font-black text-[#BC002D]'>₹{calculation.totalPayable.toFixed(2)}</p></div>
+                            {appliedCoupon && <div className='flex justify-between text-[10px] font-black text-green-600 uppercase tracking-widest'><span>Coupon</span><span>-₹{calculation.couponDeducted.toFixed(0)}</span></div>}
+                            {usePoints && <div className='flex justify-between text-[10px] font-black text-[#BC002D] uppercase tracking-widest'><span>Points</span><span>-₹{calculation.rewardDeducted.toFixed(0)}</span></div>}
+                            <div className='flex justify-between pt-4 border-t border-black'><p className='text-[10px] font-black uppercase text-gray-400'>Final Total</p><p className='text-lg font-black text-[#BC002D]'>₹{calculation.totalPayable.toFixed(2)}</p></div>
                         </div>
                     </div>
+
 
                     <div className='flex items-start gap-3 p-4 bg-white border border-gray-100 mt-4 rounded-sm'>
                         <input required type="checkbox" checked={agreedToTerms} onChange={() => setAgreedToTerms(!agreedToTerms)} className='mt-1 accent-black' />
@@ -450,16 +428,16 @@ const PlaceOrder = () => {
                                 {id:'cheque', label:'Cheque Payment', icon:FileText},
                                 {id:'cod', label:'Cash on Delivery', icon:Mail}
                             ].map((m) => (
-                                <div key={m.id} onClick={() => setMethod(m.id)} className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${method === m.id ? 'border-[#BC002D] bg-[#BC002D]/5 shadow-sm' : 'border-gray-100 bg-white opacity-60 hover:opacity-100'}`}>
+                                <div key={m.id} onClick={() => setMethod(m.id)} className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm ${method === m.id ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white opacity-60'}`}>
                                     <div className='flex items-center gap-3'>
                                         <div className={`w-2.5 h-2.5 border rounded-full ${method === m.id ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
-                                        <p className='text-[10px] font-black uppercase tracking-widest'>{m.label}</p>
+                                        <p className='text-[10px] font-black uppercase'>{m.label}</p>
                                     </div>
                                     <m.icon size={14} className={method === m.id ? 'text-[#BC002D]' : 'text-gray-300'} />
                                 </div>
                             ))}
                         </div>
-                        <button type='submit' disabled={loading} className='w-full bg-black text-white py-4 mt-4 font-black text-[11px] uppercase tracking-[0.3em] hover:bg-[#BC002D] shadow-lg transition-all active:scale-[0.98] rounded-sm'>
+                        <button type='submit' disabled={loading} className='w-full bg-black text-white py-4 mt-4 font-black text-[11px] uppercase tracking-[0.3em] hover:bg-[#BC002D] rounded-sm transition-all'>
                             {loading ? <Loader2 className='animate-spin mx-auto' size={16} /> : 'Confirm Acquisition'}
                         </button>
                     </div>
@@ -472,12 +450,8 @@ const PlaceOrder = () => {
                     <div className='absolute inset-0 bg-black/60 backdrop-blur-sm' onClick={() => setShowTerms(false)}></div>
                     <div className='bg-white w-full max-w-lg relative z-10 p-10 shadow-2xl animate-fade-in'>
                         <div className='flex justify-between items-center mb-6 border-b pb-4'><h3 className='font-black uppercase tracking-widest text-xs'>Acquisition Terms</h3><X className='cursor-pointer' onClick={() => setShowTerms(false)} /></div>
-                        <div className='text-[10px] uppercase font-bold text-gray-500 space-y-4 leading-relaxed'>
-                            <p className='text-black'>1. Authenticity: Every specimen is certified.</p>
-                            <p>2. Shipping: PhilaBasket is not liable for data entry errors.</p>
-                            <p>3. Finality: Acquisitions are final once dispatched.</p>
-                        </div>
-                        <button onClick={() => { setAgreedToTerms(true); setShowTerms(false); }} className='w-full mt-8 bg-black text-white py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#BC002D]'>Accept Terms</button>
+                        <p className='text-[10px] uppercase font-bold text-gray-500'>Specimens are certified. Finality applies once dispatched.</p>
+                        <button onClick={() => { setAgreedToTerms(true); setShowTerms(false); }} className='w-full mt-8 bg-black text-white py-4 text-[10px] font-black uppercase tracking-widest'>Accept Terms</button>
                     </div>
                 </div>
             )}

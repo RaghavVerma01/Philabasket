@@ -2,15 +2,17 @@ import React, { useContext } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from './Title';
 
-const CartTotal = () => {
+const CartTotal = ({ country = 'India' }) => {
 
-    const { currency, delivery_fee, getCartAmount, formatPrice } = useContext(ShopContext);
+    // Destructure getDeliveryFee instead of static delivery_fee
+    const { currency, getDeliveryFee, getCartAmount, formatPrice } = useContext(ShopContext);
 
     const subtotal = getCartAmount();
     
-    // Fix to 2 decimal places for precision
+    // Financial Protocol Calculations
     const gstAmount = subtotal * 0.05;
     const philabasketDiscount = subtotal * 0.05; 
+    const currentDeliveryFee = getDeliveryFee(country); // Dynamic fee based on country
     
     const currencySymbol = currency === 'USD' ? '$' : '₹';
 
@@ -53,9 +55,9 @@ const CartTotal = () => {
 
                 {/* --- Shipping --- */}
                 <div className='flex justify-between'>
-                    <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Delivery Fee</p>
+                    <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Registry Shipping Fee ({country})</p>
                     <p className='font-black text-black'>
-                        {currencySymbol} {formatPrice(delivery_fee.toFixed(2))}
+                        {currencySymbol} {formatPrice(currentDeliveryFee.toFixed(2))}
                     </p>
                 </div>
 
@@ -68,7 +70,7 @@ const CartTotal = () => {
                         <p className='text-[8px] text-gray-400 font-bold italic uppercase tracking-tighter'>Verified Archive Valuation</p>
                     </div>
                     <b className='font-black text-[#BC002D] text-lg tracking-tighter'>
-                        {currencySymbol} {subtotal === 0 ? "0.00" : formatPrice((subtotal + gstAmount - philabasketDiscount + delivery_fee).toFixed(2))}
+                        {currencySymbol} {subtotal === 0 ? "0.00" : formatPrice((subtotal + gstAmount - philabasketDiscount + currentDeliveryFee).toFixed(2))}
                     </b>
                 </div>
             </div>

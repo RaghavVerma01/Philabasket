@@ -59,6 +59,9 @@ const navSections = [
   { to: '/banner', icon: Monitor, label: ' Banners Image' },
   
   { to: '/media', icon: ImageIcon, label: 'Media Library' },
+
+  { to: '/setting', icon: ImageIcon, label: 'Delivery & Rate ' },
+
   
   ]
   

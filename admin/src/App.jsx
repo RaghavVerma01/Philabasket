@@ -22,6 +22,7 @@ import AddCoupon from './pages/AddCoupon'
 import Users from './pages/Users'
 import BannerManager from './pages/BannerManager'
 import HeaderManager from './pages/HeaderManager'
+import Settings from './pages/Settings'
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = '$'
 
@@ -62,6 +63,8 @@ const App = () => {
                 <Route path='/users' element={<Users token={token}  />} />
                 <Route path='/banner' element={<BannerManager token={token}  />} />
                 <Route path='/header' element={<HeaderManager token={token}  />} />
+                <Route path='/setting' element={<Settings token={token}  />} />
+
 
 
 
