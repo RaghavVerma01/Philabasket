@@ -108,7 +108,7 @@ const Footer = () => {
                     <Link 
                       to={link.path || "#"}
                       onClick={() => window.scrollTo(0, 0)}
-                      className="text-gray-600  text-[13px] font-medium transition-all duration-300 flex items-center gap-1 group w-fit"
+                      className="text-gray-600  text-[13px] font-medium text-[#2C2E3E] transition-all duration-300 flex items-center gap-1 group w-fit"
                     >
                       {link.label}
                       {link.path && <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-100 transition-all" />}

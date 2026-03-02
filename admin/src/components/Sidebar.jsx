@@ -1,53 +1,99 @@
 import React, { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { assets } from '../assets/assets' // Ensure path is correct for your project
+import { assets } from '../assets/assets'
 import {
   LayoutDashboard, PlusCircle, ClipboardList, Package, FileEdit,
   LibraryBig, MessageSquare, Upload, ImageIcon, Layers, Mail,
   Newspaper, ChevronLeft, ChevronRight, Users, Ticket, Settings2, Monitor
 } from 'lucide-react'
 
+
 const navSections = [
+
   {
-    label: 'Command Center',
-    items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Performance' },
-      { to: '/orders', icon: Package, label: 'Order Registry' },
-      { to: '/export', icon: Upload, label: 'Export Desk' },
-      { to: '/feedback', icon: MessageSquare, label: 'Client Feedback' },
-      { to: '/users', icon: Users, label: 'User Directory' },
-    ]
+  
+  label: 'Command Center',
+  
+  items: [
+  
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Performance' },
+  
+  { to: '/orders', icon: Package, label: 'Order Registry' },
+  
+  { to: '/export', icon: Upload, label: 'Export Desk' },
+  
+  { to: '/feedback', icon: MessageSquare, label: 'Client Feedback' },
+  
+  { to: '/users', icon: Users, label: 'User Directory' },
+  
+  ]
+  
   },
+  
   {
-    label: 'Inventory Protocol',
-    items: [
-      { to: '/list', icon: ClipboardList, label: 'Inventory' },
-      { to: '/add', icon: PlusCircle, label: 'Add New Item' },
-      { to: '/category', icon: Layers, label: 'Category Map' },
-      { to: '/coupon', icon: Ticket, label: 'Coupons' },
-    ]
+  
+  label: 'Inventory Protocol',
+  
+  items: [
+  
+  { to: '/list', icon: ClipboardList, label: 'Inventory' },
+  
+  { to: '/add', icon: PlusCircle, label: 'Add New Item' },
+  
+  { to: '/category', icon: Layers, label: 'Category Map' },
+  
+  { to: '/coupon', icon: Ticket, label: 'Coupons' },
+  
+  ]
+  
   },
+  
   {
-    label: 'Interface Control',
-    items: [
-      { to: '/header', icon: Settings2, label: 'Header Manager' },
-      { to: '/banner', icon: Monitor, label: ' Banners Image' },
-      { to: '/media', icon: ImageIcon, label: 'Media Library' },
-    ]
+  
+  label: 'Interface Control',
+  
+  items: [
+  
+  { to: '/header', icon: Settings2, label: 'Header Manager' },
+  
+  { to: '/banner', icon: Monitor, label: ' Banners Image' },
+  
+  { to: '/media', icon: ImageIcon, label: 'Media Library' },
+  
+  ]
+  
   },
+  
   {
-    label: 'Communications',
-    items: [
-      { to: '/blog', icon: FileEdit, label: 'Write Blog' },
-      { to: '/list-blog', icon: LibraryBig, label: 'Blog Archive' },
-      { to: '/mail', icon: Mail, label: 'Direct Mail' },
-      { to: '/news', icon: Newspaper, label: 'Newsletter' },
-    ]
+  
+  label: 'Communications',
+  
+  items: [
+  
+  { to: '/blog', icon: FileEdit, label: 'Write Blog' },
+  
+  { to: '/list-blog', icon: LibraryBig, label: 'Blog Archive' },
+  
+  { to: '/mail', icon: Mail, label: 'Direct Mail' },
+  
+  { to: '/news', icon: Newspaper, label: 'Newsletter' },
+  
+  ]
+  
   }
-]
+  
+  ]// ... navSections array remains the same ...
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false)
+
+  // Function to force scroll to top on navigation
+  const handleNavigation = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // Use 'auto' for an instant jump
+    });
+  };
 
   return (
     <>
@@ -111,6 +157,7 @@ const Sidebar = () => {
                   <NavLink
                     key={to}
                     to={to}
+                    onClick={handleNavigation} // Trigger scroll to top on click
                     className={({ isActive }) =>
                       `nav-link-item flex items-center gap-4 px-3 py-3 rounded-2xl transition-all duration-300 group
                       ${collapsed ? 'justify-center' : ''}
