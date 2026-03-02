@@ -25,6 +25,8 @@ const navSections = [
       { to: '/orders', icon: Package, label: 'Orders' },
       { to: '/feedback', icon: MessageSquare, label: 'Feedback' },
       { to: '/export', icon: Upload, label: 'Export Desk' },
+      { to: '/users', icon: Upload, label: 'User Profile' },
+
     ]
   },
   {

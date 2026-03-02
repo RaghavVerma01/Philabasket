@@ -242,20 +242,22 @@ const LatestCollection = () => {
                 </div>
 
                 {/* Specimen Content: ProductItem handles its own internal layout */}
-                <div className="flex-grow flex flex-col">
-                    <div className="w-full flex-grow">
-                        <ProductItem 
-                            id={item._id} 
-                            _id={item._id} 
-                            image={item.image} 
-                            name={item.name} 
-                            price={item.price} 
-                            marketPrice={item.marketPrice} 
-                            category={item.category ? item.category[0] : ""} 
-                            isPriorityMode={true} 
-                        />
-                    </div>
-                </div>
+               {/* Specimen Content: ProductItem handles its own internal layout */}
+<div className="flex-grow flex flex-col">
+    <div className="w-full flex-grow">
+        <ProductItem 
+            id={item._id} 
+            _id={item._id} 
+            image={item.image} 
+            name={item.name} 
+            price={item.price} 
+            marketPrice={item.marketPrice} 
+            category={item.category ? item.category[0] : ""} 
+            stock={item.stock} // CRITICAL: Pass the stock value here
+            isPriorityMode={true} 
+        />
+    </div>
+</div>
             </div>
         ))}
     </div>

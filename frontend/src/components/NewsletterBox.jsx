@@ -47,7 +47,7 @@ const NewsletterBox = () => {
           JOIN THE <span className='text-[#BC002D]'>INNER CIRCLE.</span>
         </h2>
         
-        <p className='text-gray-400 max-w-lg mx-auto text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed mb-12'>
+        <p className='text-[#DC5F00] max-w-lg mx-auto text-xs md:text-sm font-bold uppercase tracking-widest leading-relaxed mb-12'>
           Receive priority intelligence on <span className='text-black'>rare acquisitions</span> and private philatelic ledger updates.
         </p>
 
@@ -57,9 +57,9 @@ const NewsletterBox = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               // --------------------------------------------
-              className='w-full bg-[#f8f8f8] border border-gray-100 px-8 py-6 text-black outline-none focus:bg-white focus:border-[#BC002D]/30 transition-all duration-500 placeholder:text-gray-300 text-xs font-bold uppercase tracking-widest' 
+              className='w-full bg-[#f8f8f8] border border-gray-100 px-8 py-6 text-black outline-none focus:bg-white focus:border-[#BC002D]/30 transition-all duration-500 placeholder:text-gray-500 text-xs font-bold uppercase tracking-widest' 
               type="email" 
-              placeholder='ENTER REGISTRY EMAIL' 
+              placeholder='Enter Email Address' 
               required
             />
           <button 

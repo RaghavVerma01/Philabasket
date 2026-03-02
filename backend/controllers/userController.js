@@ -354,6 +354,7 @@ export const getAllUsersData = async (req, res) => {
 };
 
 // Adjust Archive Credits (Reward Points)
+// backend/controllers/userController.js
 export const adjustRewardPoints = async (req, res) => {
     try {
         const { userId, amount, action } = req.body; 
@@ -365,13 +366,13 @@ export const adjustRewardPoints = async (req, res) => {
 
         const updatedUser = await userModel.findByIdAndUpdate(userId, update, { new: true });
         res.json({ success: true, message: "Registry Valuation Updated", newPoints: updatedUser.totalRewardPoints });
-    } catch (error) {
+    } catch (error) { 
         const errorMsg = error.response?.data?.message || "Update Failed";
-    toast.error(errorMsg);
+        toast.error(errorMsg); 
     }
 };
 
-// Export it along with your login/register functions
+
 
 
 export { 

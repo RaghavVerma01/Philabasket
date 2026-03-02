@@ -132,30 +132,31 @@ const Cart = () => {
 
             {/* TOTALS PANEL (Registry Receipt Style) */}
             <div className='w-full lg:w-[400px]'>
-              <div className='p-8 bg-[#FBFBFB] border-t-2 border-[#BC002D] shadow-sm sticky top-32'>
-                <div className='flex items-center gap-3 mb-8'>
-                    <ShieldCheck size={18} className='text-[#BC002D]' />
-                    <p className='text-[10px] font-black uppercase tracking-[0.3em]'>Proceed to Pay</p>
-                </div>
+  {/* REMOVED: sticky and top-32 classes */}
+  <div className='p-8 bg-[#FBFBFB] border-t-2 border-[#BC002D] shadow-sm'>
+    <div className='flex items-center gap-3 mb-8'>
+        <ShieldCheck size={18} className='text-[#BC002D]' />
+        <p className='text-[10px] font-black uppercase tracking-[0.3em]'>Proceed to Pay</p>
+    </div>
 
-                <CartTotal />
-                
-                <button onClick={() => navigate('/place-order')} className='w-full mt-10 bg-black text-white text-[10px] py-5 uppercase tracking-[0.5em] font-black hover:bg-[#BC002D] transition-all rounded-sm shadow-xl active:scale-95'>
-                    Proceed To pay
-                </button>
-                
-                <div className='mt-8 pt-6 border-t border-black/5 flex flex-col gap-3'>
-                    <div className='flex justify-between items-center'>
-                        <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Logistics</span>
-                        <span className='text-[8px] font-black uppercase text-green-600'>Insured</span>
-                    </div>
-                    <div className='flex justify-between items-center'>
-                        <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Ref. Protocol</span>
-                        <span className='text-[8px] font-black uppercase text-gray-900'>PB-77490</span>
-                    </div>
-                </div>
-              </div>
-            </div>
+    <CartTotal />
+    
+    <button onClick={() => navigate('/place-order')} className='w-full mt-10 bg-black text-white text-[10px] py-5 uppercase tracking-[0.5em] font-black hover:bg-[#BC002D] transition-all rounded-sm shadow-xl active:scale-95'>
+        Proceed To pay
+    </button>
+    
+    <div className='mt-8 pt-6 border-t border-black/5 flex flex-col gap-3'>
+        <div className='flex justify-between items-center'>
+            <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Logistics</span>
+            <span className='text-[8px] font-black uppercase text-green-600'>Insured</span>
+        </div>
+        <div className='flex justify-between items-center'>
+            <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Ref. Protocol</span>
+            <span className='text-[8px] font-black uppercase text-gray-900'>PB-77490</span>
+        </div>
+    </div>
+  </div>
+</div>
 
           </div>
         )}

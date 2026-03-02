@@ -2,7 +2,9 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import RelatedProducts from '../components/RelatedProducts';
-import { Heart, Loader2, Minus, Plus, PlayCircle, X, Zap, Globe, CreditCard, Layers, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Loader2, Minus, Plus, PlayCircle, X, Zap, CreditCard, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Database, Globe, Layers, AlertCircle } from 'lucide-react';
+
 import { toast } from 'react-toastify';
 import axios from 'axios';
 
@@ -269,7 +271,7 @@ const Product = () => {
             <div className='flex items-end gap-4 mb-6 pb-6 border-b border-gray-100'>
               <div className='flex items-baseline gap-1.5'>
                 <span className='text-2xl font-serif text-[#BC002D] leading-none'>{valuationSymbol}</span>
-                <p className='text-5xl md:text-6xl font-black text-gray-900 tracking-tighter tabular-nums leading-none'>
+                <p className='text-4xl md:text-4xl font-black text-gray-900 tracking-tighter tabular-nums leading-none'>
                   {String(formatPrice(productData.price * quantity)).replace(/[₹$]/g, '').trim()}
                 </p>
               </div>
@@ -284,27 +286,52 @@ const Product = () => {
             </div>
 
             {/* Condition + Availability */}
-            <div className='grid grid-cols-2 gap-4 mb-6'>
-              <div className='bg-gray-50 rounded-2xl p-4'>
-                <p className='text-[8px] font-black text-gray-400 tracking-widest uppercase mb-1.5'>Condition</p>
-                <p className='text-[11px] font-black text-gray-900'>{productData.condition || 'Mint State'}</p>
-              </div>
-              <div className='bg-gray-50 rounded-2xl p-4'>
-                <p className='text-[8px] font-black text-gray-400 tracking-widest uppercase mb-1.5'>Stock</p>
-                <p className={`text-[11px] font-black ${productData.stock < 5 ? 'text-[#BC002D]' : 'text-green-600'}`}>
-                  {productData.stock > 0 ? `${productData.stock} Specimens` : 'Exhausted'}
-                </p>
-              </div>
-              <div className='bg-gray-50 rounded-2xl p-4'>
-                <p className='text-[8px] font-black text-gray-400 tracking-widest uppercase mb-1.5'>Origin</p>
-                <p className='text-[11px] font-black text-gray-900 capitalize'>{productData.country || INDIA}</p>
-              </div>
-              <div className='bg-gray-50 rounded-2xl p-4'>
-                <p className='text-[8px] font-black text-gray-400 tracking-widest uppercase mb-1.5'>Edition</p>
-                <p className='text-[11px] font-black text-gray-900 '>{productData.producedCount || 'Limited'}</p>
-              </div>
-              
-            </div>
+
+
+
+<div className='grid grid-cols-2 gap-4 mb-6'>
+    {/* CONDITION */}
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            <ShieldCheck size={12} className='text-[#BC002D]' />
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Condition</p>
+        </div>
+        <p className='text-[11px] font-black text-gray-900'>{productData.condition || 'Mint State'}</p>
+    </div>
+
+    {/* STOCK */}
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            {productData.stock > 0 ? (
+                <Database size={12} className='text-[#BC002D]' />
+            ) : (
+                <AlertCircle size={12} className='text-[#BC002D]' />
+            )}
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Stock</p>
+        </div>
+        <p className={`text-[11px] font-black ${productData.stock < 5 ? 'text-[#BC002D]' : 'text-green-600'}`}>
+            {productData.stock > 0 ? `${productData.stock} Specimens` : 'Exhausted / Sold'}
+        </p>
+    </div>
+
+    {/* ORIGIN */}
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            <Globe size={12} className='text-[#BC002D]' />
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Origin</p>
+        </div>
+        <p className='text-[11px] font-black text-gray-900 capitalize'>{productData.country || 'India'}</p>
+    </div>
+
+    {/* PRODUCED COUNT */}
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            <Layers size={12} className='text-[#BC002D]' />
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Produced Count</p>
+        </div>
+        <p className='text-[11px] font-black text-gray-900'>{productData.producedCount || 'Limited Edition'}</p>
+    </div>
+</div>
 
             {/* Specs */}
 

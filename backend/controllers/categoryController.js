@@ -2,13 +2,16 @@ import categoryModel from '../models/categoryModel.js';
 import productModel from '../models/productModel.js'; // Import product model for sync
 
 // 1. ADD CATEGORY
+// 1. ADD CATEGORY
 const addCategory = async (req, res) => {
     try {
-        const { name, group } = req.body;
+        const { name, group, featured, image } = req.body; 
         const category = new categoryModel({ 
             name: name.trim(), 
             group: group?.trim() || 'Independent',
-            productCount: 0 // Initialize at zero for manual adds
+            productCount: 0,
+            featured: featured || false,
+            image: image || "" // Store admin-defined image URL
         });
         await category.save();
         res.json({ success: true, message: "Category Registered" });
@@ -17,29 +20,21 @@ const addCategory = async (req, res) => {
     }
 }
 
-// 2. LIST ALL
-const listCategories = async (req, res) => {
-    try {
-        // Sort by group then name for a cleaner Admin UI
-        const categories = await categoryModel.find({}).sort({ group: 1, name: 1 });
-        res.json({ success: true, categories });
-    } catch (error) {
-        res.json({ success: false, message: error.message });
-    }
-}
-
-// 3. UPDATE
-// 3. UPDATE (Support for both ID and Name lookups)
+// 3. UPDATE (Support for ID, Name, Featured, and Image)
 const updateCategory = async (req, res) => {
     try {
-        const { id, name, group } = req.body;
+        const { id, name, group, featured, image } = req.body;
+
+        const updateData = {};
+        if (name) updateData.name = name;
+        if (group) updateData.group = group;
+        if (featured !== undefined) updateData.featured = featured;
+        if (image !== undefined) updateData.image = image; // Update the image field
 
         if (id) {
-            // Standard update by ID
-            await categoryModel.findByIdAndUpdate(id, { name, group });
+            await categoryModel.findByIdAndUpdate(id, updateData);
         } else if (name) {
-            // Sync update by Name (used by CategoryManager search logic)
-            await categoryModel.findOneAndUpdate({ name: name }, { group: group });
+            await categoryModel.findOneAndUpdate({ name: name }, updateData);
         } else {
             return res.json({ success: false, message: "Identification (ID or Name) required" });
         }
@@ -49,6 +44,38 @@ const updateCategory = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
+
+// 2. LIST ALL
+const listCategories = async (req, res) => {
+    try {
+        // Sort by featured first, then group, then name
+        const categories = await categoryModel.find({}).sort({ featured: -1, group: 1, name: 1 });
+        res.json({ success: true, categories });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+}
+
+// 3. UPDATE (Support for ID, Name, and Featured status)
+// const updateCategory = async (req, res) => {
+//     try {
+//         const { id, name, group, featured } = req.body; // Extract new fields
+
+//         if (id) {
+//             // Standard update by ID, including featured status
+//             await categoryModel.findByIdAndUpdate(id, { name, group, featured });
+//         } else if (name) {
+//             // Sync update by Name - used for toggling featured status in Admin UI
+//             await categoryModel.findOneAndUpdate({ name: name }, { group: group, featured: featured });
+//         } else {
+//             return res.json({ success: false, message: "Identification (ID or Name) required" });
+//         }
+
+//         res.json({ success: true, message: "Architecture Updated" });
+//     } catch (error) {
+//         res.json({ success: false, message: error.message });
+//     }
+// }
 
 // 4. REMOVE
 const removeCategory = async (req, res) => {

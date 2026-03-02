@@ -22,7 +22,7 @@ const OurPolicy = () => {
           <h4 className='text-gray-900 font-black text-[10px] tracking-[0.3em] uppercase mb-3'>
             Verified <span className='text-[#BC002D]'>Provenance</span>
           </h4>
-          <p className='text-gray-400 text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
+          <p className='text-[#DC5F00] text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
             Lifetime guarantee of <br/> authenticity on all specimens.
           </p>
         </div>
@@ -37,7 +37,7 @@ const OurPolicy = () => {
           <h4 className='text-gray-900 font-black text-[10px] tracking-[0.3em] uppercase mb-3'>
             Insured <span className='text-[#BC002D]'>Logistics</span>
           </h4>
-          <p className='text-gray-400 text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
+          <p className='text-[#DC5F00] text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
             White-glove transit to <br/> over 140 global corridors.
           </p>
         </div>
@@ -52,7 +52,7 @@ const OurPolicy = () => {
           <h4 className='text-gray-900 font-black text-[10px] tracking-[0.3em] uppercase mb-3'>
             Expert <span className='text-[#BC002D]'>Curators</span>
           </h4>
-          <p className='text-gray-400 text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
+          <p className='text-[#DC5F00] text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-[200px]'>
             Direct access to dedicated <br/> philatelic guidance.
           </p>
         </div>
