@@ -52,7 +52,7 @@ const Navbar = () => {
     >
         {/* Navigation Link Area */}
         <div className='flex items-center gap-1.5 px-4 py-5 transition-all duration-500'>
-    <p className='text-[11px] font-[800] tracking-[0.25em] text-black group-hover:text-[#BC002D] transition-colors uppercase font-["Nunito",sans-serif]'>
+    <p className='text-[13px] font-[800]  text-black group-hover:text-[#BC002D] transition-colors text-transform: capitalize font-["Nunito",sans-serif]'>
         {menuData.title}
     </p>
     {/* Visual focus underline */}
@@ -138,7 +138,7 @@ const Navbar = () => {
                         <MegaMenu key={index} menuData={tab} />
                     ))}
                     <NavLink to='/updates' className='group flex items-center gap-1.5'>
-                        <p className='text-[10px] font-black tracking-[0.4em] text-gray-900 uppercase'>Updates</p>
+                        <p className='text-[13px] font-[800]  text-black group-hover:text-[#BC002D]  text-transform: capitalize font-["Nunito",sans-serif]'>Updates</p>
                     </NavLink>
                 </nav>
 
