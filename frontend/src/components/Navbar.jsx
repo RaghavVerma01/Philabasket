@@ -99,11 +99,25 @@ const MegaMenu = ({ menuData }) => (
                 
                 {/* LOGO */}
                 <Link to='/' className='flex-shrink-0 group'>
-                    <div className='flex items-center gap-2 md:gap-3 mr-7 group cursor-pointer'>
-                        <img src={assets.logo} className='w-8 md:w-10 lg:w-12 group-hover:rotate-[360deg] transition-transform duration-1000' alt="Logo" />
-                        <img src={assets.logo5} className='w-24 md:w-28 lg:w-32 h-auto' alt="TextLogo" />
-                    </div>
-                </Link>
+    <div 
+        onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}  
+        className='flex items-center gap-2 md:gap-3 mr-7 group cursor-pointer'
+    >
+        {/* Main Icon: Rotates 360 degrees on hover */}
+        <img 
+            src={assets.logo} 
+            className='w-8 md:w-10 lg:w-12 group-hover:rotate-[360deg] transition-transform duration-1000 ease-in-out' 
+            alt="PhilaBasket Icon" 
+        />
+        
+        {/* Text Logo: Subtle scale and opacity shift */}
+        <img 
+            src={assets.logo5} 
+            className='w-24 md:w-28 lg:w-32 h-auto object-contain transition-all duration-500 group-hover:scale-105 group-hover:opacity-90' 
+            alt="PhilaBasket Text" 
+        />
+    </div>
+</Link>
 
                 {/* DYNAMIC DESKTOP NAVIGATION */}
                 <nav className='hidden xl:flex items-center gap-10 mr-5 capita'>

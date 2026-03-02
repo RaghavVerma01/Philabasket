@@ -110,6 +110,14 @@ const PlaceOrder = () => {
             finally { setIsVerifying(false); }
         }
     };
+    const handlePhoneChange = (e) => {
+        const value = e.target.value;
+        
+        // Prevent more than 10 digits (common for most regions, adjust to 12 if needed)
+        if (value.length <= 10) {
+            setFormData({ ...formData, phone: value });
+        }
+    };
 
     const applyCoupon = async () => {
         if (!couponCode) return;
@@ -259,10 +267,34 @@ const PlaceOrder = () => {
 
                         <input required type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Email Address' />
 
-                        <div className='flex gap-2'>
-                            <div className='w-16 bg-gray-100 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 rounded-sm'>{formData.countryCode}</div>
-                            <input required value={formData.phone} onChange={(e)=>setFormData({...formData, phone: e.target.value})} className='flex-1 bg-white border border-gray-100 py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm' placeholder='Phone Number' type="number" />
-                        </div>
+                        <div className='flex flex-col gap-1'>
+    <div className='flex gap-2'>
+        {/* Country Code Display */}
+        <div className='w-16 bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 rounded-sm italic'>
+            {formData.countryCode}
+        </div>
+        
+        {/* Phone Input with dynamic border color based on length */}
+        <input 
+            required 
+            value={formData.phone} 
+            onChange={handlePhoneChange} 
+            className={`flex-1 bg-white border py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm transition-all outline-none
+                ${formData.phone.length === 10 
+                    ? 'border-green-500 focus:ring-1 ring-green-100' 
+                    : 'border-gray-100 focus:border-[#BC002D]'}`} 
+            placeholder='Phone Number' 
+            type="number" 
+        />
+    </div>
+    
+    {/* Real-time status message */}
+    {formData.phone.length > 0 && formData.phone.length < 10 && (
+        <p className='text-[9px] font-bold text-[#BC002D] uppercase tracking-tighter'>
+            Entry Incomplete: {10 - formData.phone.length} digits remaining
+        </p>
+    )}
+</div>
 
                         <input required value={formData.street} onChange={(e)=>setFormData({...formData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Shipping Street' />
                         
@@ -302,10 +334,7 @@ const PlaceOrder = () => {
                         )}
                     </div>
 
-                    <div className='flex items-start gap-3 p-4 bg-white border border-gray-100 mt-4 rounded-sm'>
-                        <input required type="checkbox" checked={agreedToTerms} onChange={() => setAgreedToTerms(!agreedToTerms)} className='mt-1 accent-black' />
-                        <p className='text-[9px] text-gray-400 font-bold uppercase leading-relaxed'>I accept the <span onClick={(e) => {e.stopPropagation(); setShowTerms(true)}} className='text-[#BC002D] cursor-pointer underline'>Acquisition Terms</span>.</p>
-                    </div>
+                    
                 </div>
 
                 {/* COLUMN 2: SPECIMEN OVERVIEW */}
@@ -344,6 +373,11 @@ const PlaceOrder = () => {
                             {usePoints && <div className='flex justify-between text-[10px] font-black text-[#BC002D] uppercase tracking-widest'><span>Credit Redemp.</span><span>-₹{calculation.rewardDeducted.toFixed(0)}</span></div>}
                             <div className='flex justify-between pt-4 border-t border-black'><p className='text-[10px] font-black uppercase text-gray-400'>Final Asset Valuation</p><p className='text-lg font-black text-[#BC002D]'>₹{calculation.totalPayable.toFixed(2)}</p></div>
                         </div>
+                    </div>
+
+                    <div className='flex items-start gap-3 p-4 bg-white border border-gray-100 mt-4 rounded-sm'>
+                        <input required type="checkbox" checked={agreedToTerms} onChange={() => setAgreedToTerms(!agreedToTerms)} className='mt-1 accent-black' />
+                        <p className='text-[9px] text-gray-400 font-bold uppercase leading-relaxed'>I accept the <span onClick={(e) => {e.stopPropagation(); setShowTerms(true)}} className='text-[#BC002D] cursor-pointer underline'>Acquisition Terms</span>.</p>
                     </div>
 
                     <div className='space-y-3'>

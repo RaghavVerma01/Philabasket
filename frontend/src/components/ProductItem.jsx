@@ -108,7 +108,7 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
           <div className='py-4 px-1'>
             <div className='flex flex-col gap-2'>
                 {/* NAME - FULL WIDTH */}
-                <p className='text-[10px] lg:text-[13px] font-semibold tracking-tight text-gray-900 group-hover:text-[#BC002D] transition-colors leading-[1.2] line-clamp-2 min-h-[2.4em] overflow-hidden cursor-pointer w-full' onClick={handleNavigation}>
+                <p className='text-[10px] lg:text-[13px] font-semibold tracking-tight text-gray-900 group-hover:text-[#BC002D] transition-colors leading-[1.2] line-clamp-3 min-h-[2.4em] overflow-hidden cursor-pointer w-full' onClick={handleNavigation}>
                     {name || "Untitled Specimen"}
                 </p>
 
