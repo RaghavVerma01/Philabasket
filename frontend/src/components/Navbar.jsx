@@ -44,29 +44,43 @@ const Navbar = () => {
     // Updated MegaMenu to handle Dynamic JSON Structure
  // Inside your Navbar.jsx, update the MegaMenu helper component:
 
-const MegaMenu = ({ menuData }) => (
-    <div className='group relative flex flex-col items-center gap-1 cursor-pointer '>
-        <div className='flex items-center gap-1.5 px-2 transition-all duration-500'>
-            {/* Changed 'capitalize' or standard text to 'uppercase' below */}
-            <p className='text-[10px] font-black tracking-[0.4em] text-black group-hover:text-[#BC002D] transition-colors uppercase'>
+ const MegaMenu = ({ menuData }) => (
+    <div 
+        className='group relative flex flex-col items-center cursor-pointer'
+        onMouseEnter={() => setHoverType(`Explore ${menuData.title}`)}
+        onMouseLeave={() => setHoverType(null)}
+    >
+        {/* Navigation Link Area */}
+        <div className='flex items-center gap-1.5 px-4 py-5 transition-all duration-500'>
+            <p className='text-[10px] font-[900] tracking-[0.3em] text-black group-hover:text-[#BC002D] text-transform: capitalize transition-colors uppercase font-["Inter",sans-serif]'>
                 {menuData.title}
             </p>
+            {/* Visual focus underline */}
+            <div className='absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-[#BC002D] transition-all duration-300 group-hover:w-1/2 opacity-0 group-hover:opacity-100' />
         </div>
         
-        {/* Dropdown Content */}
-        <div className='absolute top-full left-1/2 -translate-x-1/2 pt-8 hidden group-hover:block z-[110]'>
-            <div className='bg-white border-t-2 border-[#BC002D] p-10 flex gap-16 w-max shadow-2xl rounded-br-[40px]'>
-                {menuData.groups.map((group, idx) => (
-                    <div key={idx} className='flex flex-col min-w-[160px]'>
-                        <h3 className='text-[9px] font-black text-[#BC002D] mb-6 tracking-[0.3em] border-b border-gray-100 pb-3 uppercase'>
+        {/* Dropdown Wrapper:
+            - top-[85%]: Pulls the menu tight to the nav to close the gap.
+            - invisible/opacity: Allows the delay-700 to hold the menu open for seniors.
+        */}
+        <div className='absolute top-[85%] left-1/2 -translate-x-1/2 pt-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300 delay-100 group-hover:delay-0 z-[110]'>
+            
+            {/* INVISIBLE BRIDGE: Fills the gap so the hover never breaks */}
+            <div className='h-4 w-full bg-transparent' />
+
+            <div className='bg-white border-t-2 border-[#BC002D] p-10 flex gap-16 w-max shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-br-[40px]'>
+                {menuData.groups && menuData.groups.map((group, idx) => (
+                    <div key={idx} className='flex flex-col min-w-[180px]'>
+                        <h3 className='text-[10px] font-[900] text-[#BC002D] mb-6 tracking-[0.25em] border-b border-gray-100 pb-3 text-transform: capitalize font-["Inter",sans-serif]'>
                             {group.groupName}
                         </h3>
-                        <div className='flex flex-col gap-4'>
-                            {group.items.map((item, i) => (
+                        <div className='flex flex-col gap-5'>
+                            {group.items && group.items.map((item, i) => (
                                 <Link 
                                     key={i} 
                                     to={`/collection?category=${encodeURIComponent(item)}`} 
-                                    className='text-[10px] text-gray-400 hover:text-[#BC002D] font-bold uppercase tracking-[0.2em] transition-all hover:translate-x-1'
+                                    onClick={() => { setVisible(false); setHoverType(null); }}
+                                    className='text-[11px] text-gray-500 hover:text-[#BC002D] font-bold uppercase tracking-[0.15em] transition-all hover:translate-x-1 font-["Inter",sans-serif]'
                                 >
                                     {item}
                                 </Link>
@@ -95,7 +109,7 @@ const MegaMenu = ({ menuData }) => (
             </div>
 
             {/* --- MAIN NAVIGATION --- */}
-            <div className='flex items-center justify-between py-5 px-[6%] bg-white border-b border-black/[0.03] lg:p-[34px] w-full shadow-sm'>
+            <div className='flex items-center justify-between py-4 px-[6%] bg-white border-b border-black/[0.03] lg:p-[14px] w-full shadow-sm'>
                 
                 {/* LOGO */}
                 <Link to='/' className='flex-shrink-0 group'>

@@ -167,7 +167,7 @@ const LatestCollection = () => {
                                                         className='text-white/80 hover:text-amber-400 text-[10px] font-black tracking-widest uppercase w-full py-3 px-3 hover:bg-white/5 rounded-xl transition-all flex items-center justify-between group'
                                                     >
                                                         <div className='flex items-center gap-2'>
-                                                            <span className='truncate'>{entry.name}</span>
+                                                            <span className='truncate text-transform: capitalize'>{entry.name}</span>
                                                             {/* BRIGHT COUNT: Changed to white/100 */}
                                                             <span className='text-[10px] text-white font-mono font-black'>({entry.totalCount})</span>
                                                         </div>
@@ -176,12 +176,12 @@ const LatestCollection = () => {
                                                             className={`transition-transform duration-300 ${openGroups[entry.name] ? 'rotate-180 text-amber-400' : 'text-white transition-opacity'}`} 
                                                         />
                                                     </button>
-                                                    <div className={`flex flex-col gap-1 ml-4 border-l border-white/10 pl-4 transition-all duration-500 overflow-hidden ${openGroups[entry.name] ? 'max-h-[1000px] mt-2 mb-4 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                                    <div className={`flex flex-col gap-1 ml-4 border-l border-white/10 pl-4 transition-all text-transform: capitalize duration-500 overflow-hidden ${openGroups[entry.name] ? 'max-h-[1000px] mt-2 mb-4 opacity-100' : 'max-h-0 opacity-0'}`}>
                                                         {entry.items.sort((a, b) => a.name.localeCompare(b.name)).map((sub) => (
                                                             <button 
                                                                 key={sub.name} 
                                                                 onClick={() => handleCategoryClick(sub.name)} 
-                                                                className='text-white/70 hover:text-white text-[10px] font-bold py-2.5 flex justify-between uppercase border-b border-white/5 last:border-0'
+                                                                className='text-white/70 hover:text-white text-[10px] font-bold py-2.5 flex justify-between text-transform: capitalize  border-b border-white/5 last:border-0'
                                                             >
                                                                 <span>{sub.name}</span>
                                                                 {/* BRIGHT COUNT */}
@@ -195,7 +195,7 @@ const LatestCollection = () => {
                                                     onClick={() => handleCategoryClick(entry.name)} 
                                                     className='text-white/80 hover:text-amber-400 text-[10px] font-semibold tracking-widest uppercase w-full py-3 px-3 hover:bg-white/5 rounded-xl transition-all flex items-center justify-between group'
                                                 >
-                                                    <span className='truncate'>{entry.name}</span>
+                                                    <span className='truncate text-transform: capitalize'>{entry.name}</span>
                                                     {/* BRIGHT COUNT */}
                                                     <span className='text-[10px] text-white font-mono font-black'>{entry.count}</span>
                                                 </button>

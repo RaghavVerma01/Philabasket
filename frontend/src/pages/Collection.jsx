@@ -18,7 +18,7 @@ const SidebarContent = ({
   setShowFilter 
 }) => (
   <>
-    <div className='flex items-center justify-between mb-6 border-b border-white/10 pb-6'>
+    <div className='flex items-center justify-between mb-6  border-b border-white/10 pb-6'>
       <h3 className='text-white font-black text-[10px] tracking-[0.3em] uppercase'>Registry Index</h3>
       <button onClick={() => setShowFilter(false)} className='lg:hidden text-white/60 p-1 hover:text-white transition-colors'><X size={20}/></button>
     </div>
@@ -43,7 +43,7 @@ const SidebarContent = ({
       )}
     </div>
 
-    <div className='flex flex-col gap-2 overflow-y-auto max-h-[60vh] lg:max-h-[70vh] hide-scrollbar pr-1'>
+    <div className='flex flex-col gap-2 overflow-y-auto max-h-[60vh]  lg:max-h-[70vh] hide-scrollbar pr-1'>
       {unifiedIndex.map((entry) => (
         <div key={entry.name} className='flex flex-col'>
           {entry.type === 'group' ? (
@@ -77,9 +77,9 @@ const SidebarContent = ({
           ) : (
             <button
               onClick={() => handleCategorySelect(entry.name)}
-              className={`flex items-center justify-between py-3 px-4 rounded-xl text-[9px] font-bold uppercase tracking-widest transition-all ${activeCategory === entry.name ? 'bg-white text-[#BC002D]' : 'text-white/80 hover:bg-white/5 hover:text-amber-400'}`}
+              className={`flex items-center justify-between py-3 px-4 rounded-xl text-[9px] text-transform: capitalize font-semibold  tracking-widest transition-all ${activeCategory === entry.name ? 'bg-white text-[#BC002D]' : 'text-white/80 hover:bg-white/5 hover:text-amber-400'}`}
             >
-              <span className='truncate'>{entry.name}</span>
+              <span className='truncate  text-transform: capitalize'>{entry.name}</span>
               <span className={`text-[10px] text-white font-mono font-black ${activeCategory === entry.name ? 'text-[#BC002D]' : 'opacity-80'}`}>{entry.count}</span>
             </button>
           )}
@@ -279,8 +279,8 @@ const Collection = () => {
         </div>
 
         {/* DESKTOP SIDEBAR */}
-        <aside className='hidden lg:block lg:w-[20%] lg:sticky lg:top-10 lg:self-start'>
-          <div className='bg-[#BC002D] p-10 rounded-[40px] shadow-2xl shadow-black/50'>
+        <aside className='hidden lg:block lg:w-[22%] ml-[-5vh] lg:sticky lg:top-10 lg:self-start'>
+          <div className='bg-[#BC002D]  p-5 rounded-[40px] shadow-2xl shadow-black/50'>
             <SidebarContent 
                 unifiedIndex={unifiedIndex}
                 activeCategory={activeCategory}
