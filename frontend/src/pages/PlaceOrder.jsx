@@ -125,15 +125,36 @@ const PlaceOrder = () => {
         try {
             const res = await axios.post(
                 backendUrl + '/api/coupon/validate', 
-                { code: couponCode, amount: getCartAmount() },
+                { 
+                    code: couponCode, 
+                    amount: getCartAmount(),
+                    userId: userData._id // CRITICAL: Send userId here to check usage history immediately
+                },
                 { headers: { token } }
             );
+    
             if (res.data.success) {
-                setAppliedCoupon(res.data.coupon);
-                toast.success(`Coupon Applied: ${res.data.coupon.code}`);
-            } else { toast.error(res.data.message); }
-        } catch (error) { toast.error("Coupon registry offline"); } 
-        finally { setIsApplying(false); }
+                // The backend should return success:false if already availed, 
+                // but we add an extra guard here just in case.
+                if (res.data.alreadyUsed) {
+                    toast.warning("Registry Note: You have already availed this coupon code.");
+                    setCouponCode('');
+                    setAppliedCoupon(null);
+                } else {
+                    setAppliedCoupon(res.data.coupon);
+                    toast.success(`Coupon Validated: ${res.data.coupon.code}`);
+                }
+            } else { 
+                // This is where "Already Availed" or "Expired" messages from backend will now show up
+                toast.error(res.data.message); 
+                setAppliedCoupon(null);
+                setCouponCode('');
+            }
+        } catch (error) { 
+            toast.error(error.response?.data?.message || "Coupon registry offline"); 
+        } finally { 
+            setIsApplying(false); 
+        }
     };
 
     const calculation = useMemo(() => {
@@ -161,10 +182,11 @@ const PlaceOrder = () => {
         if (method === 'cheque' && !agreedToCheque) return setShowChequeModal(true);
         if (method === 'bank' && !agreedToBankTransfer) return setShowBankModal(true);
         if (loading) return;
-
+    
         try {
             setLoading(true);
             const orderItems = products.filter(p => cartItems[p._id] > 0).map(p => ({...p, quantity: cartItems[p._id]}));
+            
             const orderData = {
                 address: formData,
                 billingAddress: sameAsShipping ? formData : billingData,
@@ -177,9 +199,15 @@ const PlaceOrder = () => {
                 paymentMethod: method === 'cheque' ? 'Cheque' : method === 'bank' ? 'Direct Bank Transfer' : method.toUpperCase(),
                 status: (method === 'cheque' || method === 'bank') ? 'On Hold' : 'Order Placed'
             };
+    
             const response = await axios.post(backendUrl + '/api/order/place', orderData, { headers: { token } });
+            
             if (response.data.success) {
                 setCartItems({});
+                setAppliedCoupon(null); // Force ledger to recalculate to 0 discount
+                setCouponCode('');      // Wipe the input field
+                setUsePoints(false);    // Reset reward point toggle
+                
                 setShowSuccess(true);
                 fetchUserData();
                 setTimeout(() => { navigate('/orders'); }, 4000);
@@ -358,10 +386,42 @@ const PlaceOrder = () => {
                 <div className='flex flex-col gap-6 w-full lg:max-w-[380px]'>
                     <div className='bg-white border border-gray-100 p-6 shadow-sm rounded-sm'>
                         <CartTotal />
-                        <div className='mt-6 flex gap-2'>
-                            <input value={couponCode} onChange={(e) => setCouponCode(e.target.value.toUpperCase())} placeholder="COUPON CODE" className='flex-1 border border-gray-100 bg-gray-50 px-4 py-3 text-[10px] font-black outline-none focus:border-black rounded-sm' />
-                            <button type="button" onClick={applyCoupon} className='bg-black text-white px-5 py-3 text-[9px] font-black uppercase tracking-widest hover:bg-[#BC002D] transition-all rounded-sm'>{isApplying ? '...' : 'Apply'}</button>
-                        </div>
+                        <div className='mt-6 flex flex-col gap-2'>
+    <div className='flex gap-2'>
+        <input 
+            value={couponCode} 
+            onChange={(e) => setCouponCode(e.target.value.toUpperCase())} 
+            placeholder={appliedCoupon ? "DISCOUNT ACTIVE" : "COUPON CODE"} 
+            className={`flex-1 border px-4 py-3 text-[10px] font-black outline-none rounded-sm transition-all
+                ${appliedCoupon ? 'bg-green-50 border-green-500 text-green-700' : 'bg-gray-50 border-gray-100 focus:border-black'}`} 
+            disabled={!!appliedCoupon}
+        />
+        
+        {appliedCoupon ? (
+            <button 
+                type="button" 
+                onClick={() => { setAppliedCoupon(null); setCouponCode(''); }} 
+                className='bg-red-50 text-red-600 border border-red-100 px-5 py-3 text-[9px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all rounded-sm'
+            >
+                Remove
+            </button>
+        ) : (
+            <button 
+                type="button" 
+                onClick={applyCoupon} 
+                className='bg-black text-white px-5 py-3 text-[9px] font-black uppercase tracking-widest hover:bg-[#BC002D] transition-all rounded-sm'
+            >
+                {isApplying ? <Loader2 size={12} className='animate-spin' /> : 'Apply'}
+            </button>
+        )}
+    </div>
+    
+    {appliedCoupon && (
+        <p className='text-[9px] font-black text-green-600 uppercase tracking-tighter ml-1'>
+            • Asset Valuation Adjusted by {appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.value}%` : `₹${appliedCoupon.value}`}
+        </p>
+    )}
+</div>
                         <div className='mt-4 flex items-center justify-between p-3 border border-dashed border-[#BC002D]/30 bg-[#BC002D]/5 rounded-sm'>
                             <div className='flex items-center gap-2'>
                                 <input type="checkbox" id="pts" checked={usePoints} onChange={() => setUsePoints(!usePoints)} className='accent-[#BC002D]' />

@@ -80,11 +80,19 @@ const options = {
 };
 
 const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
-    const { address, items, amount, currency, paymentMethod, orderNo, status, date } = orderData;
+    // Destructure additional fields: pointsUsed, couponUsed, discountAmount
+    const { address, items, amount, currency, paymentMethod, orderNo, status, date, pointsUsed, couponUsed, discountAmount } = orderData;
     const symbol = currency === 'USD' ? '$' : '₹';
-    const accentColor = "#BC002D"; // PhilaBasket Brand Red
+    const accentColor = "#BC002D"; 
     const secondaryColor = "#1a1a1a";
     const bgColor = "#FCF9F4";
+
+    // --- LOGIC CALCULATIONS ---
+    const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+    const gstAmount = rawSubtotal * 0.05;
+    const pbExclusiveDiscount = rawSubtotal * 0.05;
+    const pointsValue = pointsUsed ? pointsUsed / 10 : 0; // Assuming 10 pts = 1 Rupee as per your logic
+    const shippingFee = 100.00; // Fixed as per your template
 
     const itemRows = items.map(item => `
         <tr style="border-bottom: 1px solid #eeeeee;">
@@ -93,34 +101,8 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                 <p style="margin: 4px 0 0 0; color: #888; font-size: 11px; text-transform: uppercase;">Specimen ID: ${item._id.toString().slice(-6)}</p>
             </td>
             <td style="padding: 12px 0; text-align: center; color: ${secondaryColor}; font-weight: bold;">x${item.quantity}</td>
-            <td style="padding: 12px 0; text-align: right; color: ${accentColor}; font-weight: bold;">${symbol}${item.price.toLocaleString()}</td>
+            <td style="padding: 12px 0; text-align: right; color: ${accentColor}; font-weight: bold;">${symbol}${item.price.toFixed(2)}</td>
         </tr>`).join('');
-
-    // Dynamic Payment Protocol Section
-    let paymentInstructions = '';
-    if (paymentMethod === 'Direct bank transfer' || paymentMethod === 'Bank Transfer') {
-        paymentInstructions = `
-            <div style="margin-top: 25px; padding: 20px; background-color: #fff; border: 1px dashed ${accentColor}; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: ${accentColor}; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Bank Ledger Protocol</h4>
-                <p style="margin: 5px 0; font-size: 13px;"><strong>A/C Name:</strong> PhilaBasket.com</p>
-                <p style="margin: 5px 0; font-size: 13px;"><strong>Bank:</strong> ICICI Bank</p>
-                <p style="margin: 5px 0; font-size: 13px;"><strong>A/C Number:</strong> 072105001250</p>
-                <p style="margin: 5px 0; font-size: 13px;"><strong>IFSC:</strong> ICIC0000721</p>
-                <p style="margin: 15px 0 0 0; font-size: 11px; color: #666; font-style: italic;">*Please use Order #${orderNo} as payment reference.</p>
-            </div>`;
-    } else if (paymentMethod === 'Cheque') {
-        paymentInstructions = `
-            <div style="margin-top: 25px; padding: 20px; background-color: #fff; border: 1px dashed ${accentColor}; border-radius: 4px;">
-                <h4 style="margin: 0 0 10px 0; color: ${accentColor}; text-transform: uppercase; font-size: 12px; letter-spacing: 1px;">Physical Cheque Protocol</h4>
-                <p style="margin: 5px 0; font-size: 13px;"><strong>Payable to:</strong> PhilaBasket.com</p>
-                <p style="margin: 5px 0; font-size: 11px; color: #444; line-height: 1.6;">
-                    <strong>Mailing Address:</strong><br>
-                    C/O Bhavyansh Prakhar Rastogi<br>
-                    S – 606/607 School Block – 2, Park End Apartment,<br>
-                    ShakarPur - 110092, Delhi, India
-                </p>
-            </div>`;
-    }
 
     return `
     <!DOCTYPE html>
@@ -143,8 +125,8 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                 <p style="font-size: 15px; color: #555; line-height: 1.6;">Hi ${address.firstName},</p>
                                 <p style="font-size: 15px; color: #555; line-height: 1.6;">
                                     ${trackingNumber 
-                                        ? `Your philatelic acquisition has been dispatched from the registry. You can track your specimen using ID: <strong>${trackingNumber}</strong>.` 
-                                        : `We have successfully received your acquisition request. Your specimens are currently being authenticated and prepared for transit.`}
+                                        ? `Your philatelic acquisition has been dispatched. Track ID: <strong>${trackingNumber}</strong>.` 
+                                        : `Your acquisition request has been received. Our curators are currently authenticating your specimens.`}
                                 </p>
 
                                 <table width="100%" style="margin: 25px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 15px 0;">
@@ -165,19 +147,41 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                     <tbody>${itemRows}</tbody>
                                 </table>
 
-                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 10px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 10px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
                                     <tr>
-                                        <td width="70%" style="padding: 5px 0; font-size: 14px; color: #777;">Registry Shipping Fee</td>
-                                        <td align="right" style="padding: 5px 0; font-size: 14px; font-weight: bold;">${symbol}100.00</td>
+                                        <td width="70%" style="padding: 4px 0; font-size: 13px; color: #777;">Asset Subtotal</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${rawSubtotal.toFixed(2)}</td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 10px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Valuation</td>
-                                        <td align="right" style="padding: 10px 0; font-size: 18px; font-weight: 900; color: ${accentColor}; border-top: 2px solid ${secondaryColor};">${symbol}${amount.toLocaleString()}</td>
+                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">GST Protocol (5%)</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${gstAmount.toFixed(2)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">Exclusive PB Discount (5%)</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${pbExclusiveDiscount.toFixed(2)}</td>
+                                    </tr>
+                                    
+                                    ${discountAmount > 0 ? `
+                                    <tr>
+                                        <td style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">Coupon Applied (${couponUsed})</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${discountAmount.toFixed(2)}</td>
+                                    </tr>` : ''}
+
+                                    ${pointsUsed > 0 ? `
+                                    <tr>
+                                        <td style="padding: 4px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">Archive Credit Redemption (${pointsUsed} PTS)</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">- ${symbol}${pointsValue.toFixed(2)}</td>
+                                    </tr>` : ''}
+
+                                    <tr>
+                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee</td>
+                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${shippingFee.toFixed(2)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 15px 0 5px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Asset Valuation</td>
+                                        <td align="right" style="padding: 15px 0 5px 0; font-size: 18px; font-weight: 900; color: ${accentColor}; border-top: 2px solid ${secondaryColor};">${symbol}${amount.toLocaleString()}</td>
                                     </tr>
                                 </table>
-
-                                ${paymentInstructions}
-
                                 <table width="100%" style="margin-top: 30px;">
                                     <tr>
                                         <td width="50%" valign="top">
@@ -189,23 +193,14 @@ const getOrderHtmlTemplate = (orderData, trackingNumber = null) => {
                                             </p>
                                         </td>
                                         <td width="50%" valign="top">
-                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Payment Method</h4>
+                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Payment Protocol</h4>
                                             <p style="margin: 0; font-size: 12px; line-height: 1.5;">${paymentMethod}</p>
                                         </td>
                                     </tr>
                                 </table>
                             </td>
                         </tr>
-
-                        <tr>
-                            <td style="padding: 30px; background-color: #f9f9f9; text-align: center; border-top: 1px solid #eee;">
-                                <p style="margin: 0; font-size: 11px; color: #999; line-height: 1.6;">
-                                    This is a certified acquisition record from the PhilaBasket Registry.<br>
-                                    For inquiries, contact: <strong>admin@philabasket.com</strong>
-                                </p>
-                            </td>
-                        </tr>
-                    </table>
+                        </table>
                 </td>
             </tr>
         </table>

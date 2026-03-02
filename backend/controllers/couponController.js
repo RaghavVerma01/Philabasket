@@ -1,10 +1,14 @@
 import couponModel from "../models/couponModel.js";
 
 // --- FOR USERS: Validate during checkout ---
+import orderModel from "../models/orderModel.js";
+
+
 export const validateCoupon = async (req, res) => {
     try {
-        const { code, amount } = req.body;
-        // Find active coupon with case-insensitive code
+        // userId must be passed from the frontend applyCoupon call
+        const { code, amount, userId } = req.body;
+
         const coupon = await couponModel.findOne({ 
             code: code.toUpperCase(), 
             isActive: true 
@@ -14,12 +18,30 @@ export const validateCoupon = async (req, res) => {
             return res.json({ success: false, message: "Invalid or expired coupon code." });
         }
 
+        // 1. Check Expiry
         if (new Date() > new Date(coupon.expiryDate)) {
             return res.json({ success: false, message: "This coupon has expired." });
         }
 
+        // 2. Check Minimum Order Value
         if (amount < coupon.minAmount) {
             return res.json({ success: false, message: `Minimum amount for this coupon is ₹${coupon.minAmount}` });
+        }
+
+        // 3. NEW: Check if the user has already used this coupon
+        // We look for any completed or placed order by this user with this coupon code
+        if (userId) {
+            const alreadyUsed = await orderModel.findOne({ 
+                userId: userId, 
+                couponUsed: code.toUpperCase() 
+            });
+
+            if (alreadyUsed) {
+                return res.json({ 
+                    success: false, 
+                    message: "Protocol Denied: This coupon has already been availed by your account." 
+                });
+            }
         }
 
         res.json({ success: true, coupon });

@@ -303,7 +303,7 @@ const Collection = () => {
             <div className='flex flex-col gap-1.5 min-w-0'>
               <div className='flex items-center gap-2'>
                 <LayoutGrid size={12} className='text-gray-400 flex-shrink-0' />
-                <p className='text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-gray-400 whitespace-nowrap'>
+                <p className='text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[#6A7EFC] whitespace-nowrap'>
                   <span className='text-black font-mono'>{totalFound}</span> Specimens
                 </p>
               </div>
