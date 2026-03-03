@@ -567,9 +567,58 @@ const getAdminDashboardStats = async (req, res) => {
 
 const allOrders = async (req, res) => {
     try {
-        const orders = await orderModel.find({}).populate('userId', 'name email totalRewardPoints referralCount referralCode').lean(); 
-        res.json({ success: true, orders });
-    } catch (error) { res.json({ success: false, message: error.message }); }
+        const { page = 1, limit = 10, status, sort } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        // 1. Build Dynamic Filter Query
+        let query = {};
+        if (status && status !== "ALL") {
+            query.status = status;
+        }
+
+        // 2. Build Sort Logic
+        let sortOrder = { date: -1 }; // Default: Newest first
+        if (sort === 'DATE_ASC') sortOrder = { date: 1 };
+        if (sort === 'AMOUNT')   sortOrder = { amount: -1 };
+
+        // 3. Parallel Execution for Speed
+        const [orders, totalOrdersCount, statsData] = await Promise.all([
+            orderModel.find(query)
+                .populate('userId', 'name email orderNo totalRewardPoints referralCount referralCode')
+                .sort(sortOrder)
+                .skip(skip)
+                .limit(parseInt(limit))
+                .lean(),
+            orderModel.countDocuments(query), // Count reflects current filter
+            orderModel.aggregate([
+                {
+                    $group: {
+                        _id: "$status",
+                        count: { $sum: 1 },
+                        revenue: { $sum: { $cond: [{ $ne: ["$status", "Cancelled"] }, "$amount", 0] } }
+                    }
+                }
+            ])
+        ]);
+
+        // Format stats for the frontend dashboard
+        const stats = {
+            total: await orderModel.countDocuments({}), // Absolute total for badge
+            revenue: statsData.reduce((acc, curr) => acc + curr.revenue, 0),
+            ...statsData.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {})
+        };
+
+        res.json({ 
+            success: true, 
+            orders, 
+            totalOrders: totalOrdersCount, 
+            stats,
+            totalPages: Math.ceil(totalOrdersCount / parseInt(limit)) 
+        });
+    } catch (error) { 
+        console.error("Order List Error:", error);
+        res.json({ success: false, message: error.message }); 
+    }
 };
 
 const userOrders = async (req, res) => {
@@ -598,6 +647,27 @@ const placeOrderRazorpay = async (req, res) => {
 const placeOrderStripe = async (req, res) => {
 };
 
+export const singleOrder = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+        
+        // Find order and populate the userId field with specific profile data
+        const order = await orderModel.findById(orderId)
+            .populate('userId', 'name email totalRewardPoints referralCount referralCode')
+            .lean();
+
+        if (!order) {
+            return res.json({ success: false, message: "Order not found in Registry" });
+        }
+
+        res.json({ success: true, order });
+    } catch (error) {
+        console.error("Single Order Fetch Error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// Don't forget to export it!
 
 
 

@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary"
+import mongoose from "mongoose";
 import productModel from "../models/productModel.js"
 import csv from 'csv-parser';
 import streamifier from 'streamifier';
@@ -362,7 +363,7 @@ const listProducts = async (req, res) => {
         // countDocuments(query) now accurately reflects the current tab (Active or Trash)
         const [products, total] = await Promise.all([
             productModel.find(query)
-                .select('name price marketPrice image category country year stock date bestseller description youtubeUrl isActive isLatest newArrival producedCount')
+                .select('name price marketPrice image category country condition year stock date bestseller description youtubeUrl isActive isLatest newArrival producedCount')
                 .sort(sortOrder)
                 .skip(skip)
                 .limit(limit)
@@ -648,52 +649,68 @@ const updateProduct = async (req, res) => {
     try {
         const { id, ...updateData } = req.body;
 
-        // 1. Fetch the OLD record first to compare status
         const oldProduct = await productModel.findById(id).lean();
-        if (!oldProduct) {
-            return res.json({ success: false, message: "Specimen not found in registry" });
-        }
+        if (!oldProduct) return res.json({ success: false, message: "Specimen not found" });
 
-        // 2. Strict Boolean Sanitization
-        if (updateData.isLatest !== undefined) {
-            updateData.isLatest = updateData.isLatest === true || updateData.isLatest === 'true';
-        }
-        if (updateData.isActive !== undefined) {
-            updateData.isActive = updateData.isActive === true || updateData.isActive === 'true';
-        }
-        if (updateData.bestseller !== undefined) {
-            updateData.bestseller = updateData.bestseller === true || updateData.bestseller === 'true';
-        }
-        if (updateData.newArrival !== undefined) {
-            updateData.newArrival = updateData.newArrival === true || updateData.newArrival === 'true';
-        }
-
-        // 3. Numerical Normalization
-        if (updateData.price) updateData.price = Number(updateData.price);
-        if (updateData.marketPrice) updateData.marketPrice = Number(updateData.marketPrice);
-        if (updateData.producedCount) updateData.producedCount = Number(updateData.producedCount);
-        if (updateData.stock) updateData.stock = Number(updateData.stock);
-
-        // 4. Recalculate Reward Points if price has changed
-        if (updateData.price) {
-            updateData.rewardPoints = Math.floor(updateData.price * 0.10);
-        }
-
-        // 5. Sync Category Counts if Visibility (isActive) changes
-        if (updateData.isActive !== undefined) {
-            const newStatus = updateData.isActive; // Already sanitized to boolean above
+        // --- IMAGE REGISTRY RESOLUTION ---
+        if (updateData.image && Array.isArray(updateData.image)) {
+            const resolvedMedia = await mediaModel.find({
+                originalName: { $in: updateData.image }
+            });
             
-            // Only update counts if the status is actually flipping
-            if (oldProduct.isActive !== newStatus) {
-                const countChange = newStatus ? 1 : -1;
-                await categoryModel.updateMany(
-                    { name: { $in: oldProduct.category } },
-                    { $inc: { productCount: countChange } }
-                );
+            const finalImageUrls = updateData.image.map(name => {
+                if (name.startsWith('http')) return name;
+                const found = resolvedMedia.find(m => m.originalName === name);
+                return found ? found.imageUrl : null;
+            }).filter(url => url !== null);
+
+            updateData.image = finalImageUrls;
+        }
+
+        // --- CATEGORY DELTA SYNC ---
+        if (updateData.category && Array.isArray(updateData.category)) {
+            const added = updateData.category.filter(x => !oldProduct.category.includes(x));
+            const removed = oldProduct.category.filter(x => !updateData.category.includes(x));
+
+            if (added.length > 0) {
+                await categoryModel.updateMany({ name: { $in: added } }, { $inc: { productCount: 1 } });
+            }
+            if (removed.length > 0) {
+                await categoryModel.updateMany({ name: { $in: removed } }, { $inc: { productCount: -1 } });
             }
         }
 
-        // 6. Perform the actual update
+        // --- NEW: Philatelic & Inventory Normalization ---
+        if (updateData.price) {
+            updateData.price = Number(updateData.price);
+            updateData.rewardPoints = Math.floor(updateData.price * 0.10);
+        }
+        
+        if (updateData.stock !== undefined) {
+            updateData.stock = Number(updateData.stock);
+        }
+
+        if (updateData.producedCount !== undefined) {
+            updateData.producedCount = Number(updateData.producedCount);
+        }
+
+        if (updateData.year !== undefined) {
+            updateData.year = Number(updateData.year);
+        }
+
+        if (updateData.country) {
+            // Trim and maintain consistent casing if needed
+            updateData.country = updateData.country.trim();
+        }
+
+        // Ensure boolean fields are correctly handled if sent from form data
+        ['bestseller', 'newArrival', 'isActive'].forEach(field => {
+            if (updateData[field] !== undefined) {
+                updateData[field] = updateData[field] === true || updateData[field] === 'true';
+            }
+        });
+
+        // --- DATABASE UPDATE ---
         const updatedProduct = await productModel.findByIdAndUpdate(
             id, 
             { $set: updateData }, 
@@ -702,12 +719,12 @@ const updateProduct = async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: "Registry Record Synchronized", 
+            message: "Registry Record Updated Successfully", 
             product: updatedProduct 
         });
 
     } catch (error) {
-        console.error("Update Product Error:", error);
+        console.error("Update Error:", error);
         res.json({ success: false, message: error.message });
     }
 };

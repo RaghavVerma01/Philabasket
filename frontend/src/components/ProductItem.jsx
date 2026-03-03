@@ -23,7 +23,9 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
   const optimizedImage = useMemo(() => {
     const rawUrl = image && image[0] ? image[0] : "";
     if (!rawUrl || !rawUrl.includes('cloudinary')) return rawUrl;
-    const watermarkTransform = 'l_Logo-5_go95bd,fl_relative,w_0.5,c_scale,o_70,a_-45';
+
+    //
+    const watermarkTransform = 'l_Logo-5_go95bd,fl_relative,w_0.7,c_scale,o_90,a_-45';
     if (rawUrl.includes('f_auto,q_auto')) {
         return rawUrl.replace('/f_auto,q_auto/', `/f_auto,q_auto,${watermarkTransform}/`);
     }

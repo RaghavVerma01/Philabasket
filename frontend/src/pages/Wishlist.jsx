@@ -44,7 +44,7 @@ const Wishlist = () => {
                         {/* --- PRODUCT CONTENT --- */}
                         <div className='flex-grow relative'>
                             {/* --- REMOVE ACTION (Overlay) --- */}
-                            <button 
+                            {/* <button 
                                 onClick={() => {
                                     toggleWishlist(item._id);
                                     toast.info("Specimen removed from archive");
@@ -53,7 +53,7 @@ const Wishlist = () => {
                                 title="Purge from Archive"
                             >
                                 <Trash2 size={14} />
-                            </button>
+                            </button> */}
 
                             <ProductItem 
                                 id={item._id} 

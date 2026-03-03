@@ -176,10 +176,171 @@ const CategoryManager = ({ token }) => {
                 </div>
 
                 {activeTab === 'add' && (
-                    <div className='bg-white rounded-3xl border shadow-sm p-8 mb-8'>
-                        <form onSubmit={handleQuickAdd} className='flex gap-3 max-w-lg'>
-                            <input type='text' value={quickAddName} onChange={(e) => setQuickAddName(e.target.value)} placeholder='Category Name...' className='flex-1 px-5 py-3.5 bg-gray-50 border rounded-xl text-sm outline-none' />
-                            <button type='submit' className='px-6 py-3.5 bg-gray-900 text-white rounded-xl text-sm font-bold'>Add</button>
+                    <div className='bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden mb-8'>
+                        <div className='px-8 py-6 border-b border-gray-100'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-9 h-9 bg-gray-900 rounded-xl flex items-center justify-center'>
+                                    <Plus size={18} className='text-white' />
+                                </div>
+                                <div>
+                                    <h2 className='text-base font-bold text-gray-900'>Add New Category</h2>
+                                    <p className='text-xs text-gray-400 mt-0.5'>New categories start as ungrouped and can be organized later</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='px-8 py-8'>
+                            <form onSubmit={handleQuickAdd} className='flex gap-3 max-w-lg'>
+                                <div className='flex-1 relative'>
+                                    <input
+                                        type='text'
+                                        value={quickAddName}
+                                        onChange={(e) => setQuickAddName(e.target.value)}
+                                        placeholder='e.g. Electronics, Footwear, Books...'
+                                        className='w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-gray-900 focus:bg-white transition-all'
+                                    />
+                                </div>
+                                <button
+                                    type='submit'
+                                    disabled={!quickAddName.trim()}
+                                    className='px-6 py-3.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-[#BC002D] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 whitespace-nowrap'
+                                >
+                                    <Plus size={16} />
+                                    Add Category
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* ─── GROUP CATEGORIES PANEL ─── */}
+                {activeTab === 'group' && (
+                    <div className='bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden mb-8'>
+                        <div className='px-8 py-6 border-b border-gray-100'>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-9 h-9 bg-[#BC002D] rounded-xl flex items-center justify-center'>
+                                    <Layers size={18} className='text-white' />
+                                </div>
+                                <div>
+                                    <h2 className='text-base font-bold text-gray-900'>Group Categories</h2>
+                                    <p className='text-xs text-gray-400 mt-0.5'>Select ungrouped categories and assign them to a group</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <form onSubmit={onSubmitGrouping} className='p-8 space-y-8'>
+
+                            {/* STEP 1 */}
+                            <div>
+                                <div className='flex items-center gap-3 mb-4'>
+                                    <div className='w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center'>
+                                        <span className='text-[10px] font-black text-gray-500'>1</span>
+                                    </div>
+                                    <p className='text-xs font-bold text-gray-500 uppercase tracking-widest'>Choose or Create a Group</p>
+                                </div>
+
+                                <div className='flex gap-2 mb-3'>
+                                    <button
+                                        type='button'
+                                        onClick={() => setIsCreatingNewGroup(false)}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${!isCreatingNewGroup ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                    >
+                                        Existing Group
+                                    </button>
+                                    <button
+                                        type='button'
+                                        onClick={() => setIsCreatingNewGroup(true)}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${isCreatingNewGroup ? 'bg-[#BC002D] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                                    >
+                                        + New Group
+                                    </button>
+                                </div>
+
+                                {isCreatingNewGroup ? (
+                                    <input
+                                        autoFocus
+                                        value={newGroupName}
+                                        onChange={(e) => setNewGroupName(e.target.value)}
+                                        className='w-full max-w-sm px-5 py-3.5 bg-red-50 border border-red-200 rounded-xl text-sm font-medium outline-none focus:border-[#BC002D] transition-all'
+                                        placeholder='New group name...'
+                                    />
+                                ) : (
+                                    <div className='relative max-w-sm'>
+                                        <select
+                                            value={selectedGroup}
+                                            onChange={(e) => setSelectedGroup(e.target.value)}
+                                            className='w-full px-5 py-3.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none appearance-none cursor-pointer focus:border-gray-900 transition-all'
+                                        >
+                                            <option value=''>Select a group...</option>
+                                            {existingGroups.map((g, i) => <option key={i} value={g}>{g}</option>)}
+                                        </select>
+                                        <ChevronRight size={14} className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none' />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* STEP 2 */}
+                            <div>
+                                <div className='flex items-center justify-between mb-4'>
+                                    <div className='flex items-center gap-3'>
+                                        <div className='w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center'>
+                                            <span className='text-[10px] font-black text-gray-500'>2</span>
+                                        </div>
+                                        <p className='text-xs font-bold text-gray-500 uppercase tracking-widest'>Select Ungrouped Categories</p>
+                                    </div>
+                                    {selectedChildren.length > 0 && (
+                                        <span className='text-xs font-bold text-[#BC002D]'>{selectedChildren.length} selected</span>
+                                    )}
+                                </div>
+
+                                <div className='relative mb-3 max-w-sm'>
+                                    <Search size={13} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+                                    <input
+                                        type='text'
+                                        value={childSearch}
+                                        onChange={(e) => setChildSearch(e.target.value)}
+                                        placeholder='Filter ungrouped categories...'
+                                        className='w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-gray-900 transition-all'
+                                    />
+                                </div>
+
+                                <div className='bg-gray-50 border border-gray-200 rounded-2xl p-4 min-h-[100px] max-h-[180px] overflow-y-auto custom-scrollbar'>
+                                    {availableToMap.length === 0 ? (
+                                        <div className='h-full flex flex-col items-center justify-center py-6 text-gray-300'>
+                                            <FolderTree size={28} className='mb-2' />
+                                            <p className='text-xs font-bold'>No ungrouped categories found</p>
+                                        </div>
+                                    ) : (
+                                        <div className='flex flex-wrap gap-2'>
+                                            {availableToMap.map(cat => (
+                                                <button
+                                                    key={cat._id}
+                                                    type='button'
+                                                    onClick={() => toggleChildSelection(cat.name)}
+                                                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 border
+                                                        ${selectedChildren.includes(cat.name)
+                                                            ? 'bg-gray-900 text-white border-gray-900 shadow-md'
+                                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400 hover:text-gray-900'}`}
+                                                >
+                                                    {selectedChildren.includes(cat.name) && <Check size={11} />}
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Submit */}
+                            <div className='pt-2'>
+                                <button
+                                    type='submit'
+                                    disabled={loading}
+                                    className='flex items-center gap-3 px-8 py-4 bg-gray-900 text-white rounded-2xl text-sm font-bold hover:bg-[#BC002D] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md active:scale-[0.98]'
+                                >
+                                    {loading ? <RefreshCw className='animate-spin' size={16} /> : <ArrowRight size={16} />}
+                                    {loading ? 'Saving...' : `Assign to Group${selectedChildren.length > 0 ? ` (${selectedChildren.length})` : ''}`}
+                                </button>
+                            </div>
                         </form>
                     </div>
                 )}

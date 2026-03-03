@@ -7,7 +7,7 @@ import loginimf from './login.jpeg'
 import gandhiji from './gandhiji.jpg'
 import vidhan from './vidhan.jpeg'
 import pandit from './panditnehru.jpeg'
-import baldin from './baldin.jpeg'
+// import baldin from './baldin.jpeg'
 import bal from './bal.jpg'
 import bal69 from './bal69.jpeg'
 import wide from './wide.jpg'
@@ -67,7 +67,7 @@ export const assets = {
     gandhiji,
     vidhan,
     pandit,
-    baldin,
+    // baldin,
     bal,
     bal69,
     wide,thapper,mem,member,widemiss,logo5,banner009,og

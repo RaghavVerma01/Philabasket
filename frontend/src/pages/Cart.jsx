@@ -3,10 +3,11 @@ import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
 import { Link } from 'react-router-dom';
-import { Heart, Trash2, Plus, Minus, ShieldCheck } from 'lucide-react';
+import { Heart, Trash2, Plus, Minus, ShieldCheck, Star, X ,Globe,Landmark} from 'lucide-react';
 
 const Cart = () => {
-  const { products, cartItems, updateQuantity, navigate, formatPrice, toggleWishlist, wishlist ,currency} = useContext(ShopContext);
+  // Added userData to context imports
+  const { products, cartItems, updateQuantity, navigate, formatPrice, toggleWishlist, wishlist, currency, userData } = useContext(ShopContext);
   const [cartData, setCartData] = useState([]);
   const valuationSymbol = currency === 'USD' ? '$' : '₹';
 
@@ -25,146 +26,213 @@ const Cart = () => {
     }
   }, [cartItems, products]);
 
+  // Handler to move item to wishlist when clicking "X"
+  const handleRemoveAndWishlist = (id) => {
+    if (!wishlist.includes(id)) {
+      toggleWishlist(id);
+    }
+    updateQuantity(id, 0);
+  };
+
   return (
-    <div className='bg-white min-h-screen pt-24 pb-20 px-6 md:px-16 lg:px-24 text-black select-none animate-fade-in'>
-      
-      {/* HEADER SECTION */}
-      <div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6'>
-          <div className='max-w-2xl'>
-              <div className='flex items-center gap-4 mb-4'>
-                  <span className='h-[1.5px] w-12 bg-[#BC002D]'></span>
-                  <p className='text-[10px] tracking-[0.6em] text-[#BC002D] uppercase font-black'>Acquisition Pending</p>
-              </div>
-              <h2 className='text-5xl md:text-6xl font-bold text-gray-900 tracking-tighter leading-none uppercase'>
-                  MY <span className='text-[#BC002D]'>Cart.</span>
-              </h2>
-          </div>
-          <p className='text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-4 py-2 rounded-full border border-gray-100'>
-             {cartData.length} Specimens in Session
-          </p>
-      </div>
+    <div className='bg-white min-h-screen pt-4 pb-20 px-4 md:px-10 lg:px-16 text-black select-none animate-fade-in'>
 
-      <div className='max-w-6xl mx-auto'>
-        {cartData.length === 0 ? (
-          /* --- THEMED EMPTY VAULT STATE --- */
-          <div className='flex flex-col items-center justify-center py-32'>
-            <div className='relative mb-8'>
-              <div className='w-24 h-24 border border-black/5 rounded-full flex items-center justify-center bg-gray-50'>
-                 <img src={assets.logo} className='w-10 opacity-10 grayscale' alt="" />
-              </div>
-            </div>
-            <h2 className='text-3xl font-bold text-gray-900 tracking-tighter uppercase mb-2'>Vault Empty</h2>
-            <p className='text-[10px] text-gray-400 uppercase tracking-[0.3em] font-black mb-10'>No registry records found for acquisition</p>
-            <Link to='/collection' className='bg-black text-white px-12 py-5 text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#BC002D] transition-all rounded-sm'>
-              Explore Archive
-            </Link>
-          </div>
-        ) : (
-          /* --- ACTIVE CART ITEMS --- */
-          <div className='flex flex-col lg:flex-row gap-16'>
-            
-            <div className='flex-1 space-y-3'>
-                {cartData.map((item, index) => {
-                const productData = products.find((product) => product._id === item._id);
-                if (!productData) return null;
-
-                return (
-                    <div key={index} className='p-4 border border-black/5 bg-white flex items-center gap-6 rounded-sm transition-all hover:border-[#BC002D]/20 group'>
-                        {/* Image Frame */}
-                        <div className='w-20 sm:w-28 aspect-square bg-[#F9F9F9] p-3 flex items-center justify-center border border-black/5'>
-                            <img className='max-w-full max-h-full object-contain drop-shadow-md' src={productData.image[0]} alt="" />
-                        </div>
-                        
-                        {/* Info Section */}
-                        <div className='flex-1'>
-                            <div className='flex justify-between items-start mb-2'>
-                                <div>
-                                    <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-widest mb-1'>{productData.country}</p>
-                                    <h3 className='text-sm sm:text-base font-bold text-gray-900 leading-tight uppercase'>{productData.name}</h3>
-                                </div>
-                                <div className='flex flex-col items-end'>
-                                    {/* Market Price / Strike-through (Optional) */}
-    {productData.marketPrice > productData.price && (
-        <p className='text-[10px] lg:text-[12px] font-bold text-gray-400 tabular-nums line-through decoration-[#BC002D]/40 mb-1'>
-            <span className='mr-0.5'>{valuationSymbol}</span>
-            {formatPrice(productData.marketPrice)}
+      {/* REWARDS BANNER - Now displays dynamic user points */}
+      <div className='mb-6 bg-[#BC002D] text-white px-6 py-3 flex items-center gap-3 rounded-sm shadow-sm'>
+        <Star size={14} className='fill-white text-white flex-shrink-0 animate-pulse' />
+        <p className='text-[10px] font-black uppercase tracking-[0.25em]'>
+          Registry Status: You have <span className='underline decoration-white/40 underline-offset-4'>{(userData?.totalRewardPoints || 0).toLocaleString()}</span> points earned
         </p>
-    )}
-
-    {/* Main Price Display */}
-    <p className='text-sm sm:text-xl font-black text-gray-900 tabular-nums leading-none'>
-        <span className='text-[10px] mr-1 text-[#BC002D] font-black'>{valuationSymbol}</span>
-        {formatPrice(productData.price)}
-    </p>
-                                </div>
-                            </div>
-
-                            {/* Actions bar */}
-                            <div className='flex items-center justify-between mt-4 pt-4 border-t border-black/[0.03]'>
-                                <div className='flex items-center gap-3 bg-gray-50 p-1 rounded-sm'>
-                                    <button onClick={() => item.quantity > 1 && updateQuantity(item._id, item.quantity - 1)} className='p-1.5 hover:bg-white rounded-sm transition-all'><Minus size={12}/></button>
-                                    <span className='text-xs font-black w-6 text-center'>{item.quantity}</span>
-                                    <button onClick={() => updateQuantity(item._id, item.quantity + 1)} className='p-1.5 hover:bg-white rounded-sm transition-all'><Plus size={12}/></button>
-                                </div>
-
-                                <div className='flex items-center gap-4'>
-                                    <button 
-                                        onClick={() => { toggleWishlist(item._id); updateQuantity(item._id, 0); }}
-                                        className={`flex items-center gap-2 text-[8px] font-black uppercase tracking-widest transition-all ${wishlist.includes(item._id) ? 'text-[#BC002D]' : 'text-gray-400 hover:text-[#BC002D]'}`}
-                                    >
-                                        <Heart size={14} className={wishlist.includes(item._id) ? 'fill-[#BC002D]' : ''} />
-                                        <span className='hidden sm:inline'>Move to Wishlist</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => updateQuantity(item._id, 0)}
-                                        className='flex items-center gap-2 text-[8px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-all'
-                                    >
-                                        <Trash2 size={14} />
-                                        <span className='hidden sm:inline'>Remove </span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-                })}
-            </div>
-
-            {/* TOTALS PANEL (Registry Receipt Style) */}
-            <div className='w-full lg:w-[400px]'>
-  {/* REMOVED: sticky and top-32 classes */}
-  <div className='p-8 bg-[#FBFBFB] border-t-2 border-[#BC002D] shadow-sm'>
-    <div className='flex items-center gap-3 mb-8'>
-        <ShieldCheck size={18} className='text-[#BC002D]' />
-        <p className='text-[10px] font-black uppercase tracking-[0.3em]'>Proceed to Pay</p>
-    </div>
-
-    <CartTotal />
-    
-    <button onClick={() => navigate('/place-order')} className='w-full mt-10 bg-black text-white text-[10px] py-5 uppercase tracking-[0.5em] font-black hover:bg-[#BC002D] transition-all rounded-sm shadow-xl active:scale-95'>
-        Proceed To pay
-    </button>
-    
-    <div className='mt-8 pt-6 border-t border-black/5 flex flex-col gap-3'>
-        <div className='flex justify-between items-center'>
-            <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Logistics</span>
-            <span className='text-[8px] font-black uppercase text-green-600'>Insured</span>
-        </div>
-        <div className='flex justify-between items-center'>
-            <span className='text-[8px] font-bold text-gray-400 uppercase tracking-widest'>Ref. Protocol</span>
-            <span className='text-[8px] font-black uppercase text-gray-900'>PB-77490</span>
-        </div>
-    </div>
-  </div>
-</div>
-
-          </div>
-        )}
+        <button 
+          onClick={() => navigate('/rewards')}
+          className='ml-auto text-[9px] font-black uppercase tracking-widest border border-white/40 px-4 py-1.5 hover:bg-white hover:text-[#BC002D] transition-all rounded-sm whitespace-nowrap'
+        >
+          Rewards
+        </button>
       </div>
+
+      {/* HEADER */}
+      <div className='flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4'>
+        <div>
+          <div className='flex items-center gap-3 mb-2'>
+            <span className='h-[1.5px] w-8 bg-[#BC002D]'></span>
+            <p className='text-[9px] tracking-[0.5em] text-[#BC002D] uppercase font-black'>Acquisition Pending</p>
+          </div>
+          <h2 className='text-4xl md:text-5xl font-bold text-gray-900 tracking-tighter leading-none uppercase italic'>
+            MY <span className='text-[#BC002D]'>Cart.</span>
+          </h2>
+        </div>
+        <div className='border-l-2 border-[#BC002D] bg-gray-50 px-5 py-3'>
+          <p className='text-[10px] font-black text-black uppercase tracking-[0.2em]'>
+            {cartData.length} <span className='text-[#BC002D]'>Records</span> in Session
+          </p>
+        </div>
+      </div>
+
+      {cartData.length === 0 ? (
+        /* EMPTY STATE */
+        <div className='flex flex-col items-center justify-center py-32 border border-dashed border-gray-200'>
+          <div className='w-20 h-20 border border-black/5 flex items-center justify-center bg-gray-50 mb-6'>
+            <img src={assets.logo} className='w-10 opacity-10 grayscale' alt="" />
+          </div>
+          <h2 className='text-3xl font-bold text-gray-900 tracking-tighter uppercase mb-2'>Cart Empty</h2>
+          <p className='text-[9px] text-black/40 uppercase tracking-[0.3em] font-black mb-10'>No Stamps  found </p>
+          <Link to='/collection' className='bg-black text-white px-12 py-4 text-[9px] font-black uppercase tracking-[0.4em] hover:bg-[#BC002D] transition-all'>
+            Explore Archive
+          </Link>
+        </div>
+      ) : (
+        <div className='flex flex-col xl:flex-row gap-10'>
+
+          {/* TABLE SECTION */}
+          <div className='flex-1 overflow-x-auto custom-scrollbar'>
+            <table className='w-full border-collapse' style={{ minWidth: '650px' }}>
+              <thead>
+                <tr className='border-b-2 border-black'>
+                  <th className='text-left pb-4 text-[9px] font-black uppercase tracking-[0.35em] text-black w-[50%]'>Specimen Details</th>
+                  <th className='text-right pb-4 text-[9px] font-black uppercase tracking-[0.35em] text-black'>Valuation</th>
+                  <th className='text-center pb-4 text-[9px] font-black uppercase tracking-[0.35em] text-black'>Qty</th>
+                  <th className='text-right pb-4 text-[9px] font-black uppercase tracking-[0.35em] text-black'>Statement</th>
+                </tr>
+              </thead>
+
+              <tbody className='divide-y divide-black/5'>
+                {cartData.map((item, index) => {
+                  const productData = products.find((product) => product._id === item._id);
+                  if (!productData) return null;
+                  const subtotal = productData.price * item.quantity;
+
+                  return (
+                    <tr key={index} className='hover:bg-gray-50/50 transition-colors group'>
+                      {/* PRODUCT CELL */}
+                      <td className='py-6 pr-4'>
+                        <div className='flex items-center gap-5'>
+                          {/* Updated: Move to wishlist on click */}
+                          <button
+                            onClick={() => handleRemoveAndWishlist(item._id)}
+                            className='w-6 h-6 border border-black/10 flex items-center justify-center text-black/30 hover:bg-[#BC002D] hover:border-[#BC002D] hover:text-white transition-all flex-shrink-0 rounded-full'
+                            title='Move to Wishlist & Remove'
+                          >
+                            <X size={12} />
+                          </button>
+                          {/* Image */}
+                          <div className='w-16 h-16 bg-[#F9F9F9] border border-black/5 flex items-center justify-center flex-shrink-0 p-1 group-hover:border-black/20 transition-all'>
+                            <img className='max-w-full max-h-full object-contain mix-blend-multiply' src={productData.image[0]} alt="" />
+                          </div>
+                          {/* Name & meta */}
+                          <div>
+                            <div className='flex items-center gap-2 mb-1'>
+                                <Globe size={10} className='text-[#BC002D]' />
+                                <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-widest'>{productData.country}</p>
+                            </div>
+                            <p className='text-[12px] font-bold text-gray-900 leading-snug uppercase max-w-xs'>{productData.name}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* PRICE CELL */}
+                      <td className='py-6 text-right align-middle'>
+                        <div className='flex flex-col items-end'>
+                          {productData.marketPrice > productData.price && (
+                            <p className='text-[10px] font-bold text-black/20 line-through tabular-nums'>
+                              {valuationSymbol}{formatPrice(productData.marketPrice)}
+                            </p>
+                          )}
+                          <p className='text-[14px] font-black text-black tabular-nums'>
+                            <span className='text-[10px] text-[#BC002D] mr-0.5 font-mono'>{valuationSymbol}</span>{formatPrice(productData.price)}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* QUANTITY CELL */}
+                      <td className='py-6 align-middle'>
+                        <div className='flex items-center justify-center'>
+                          <div className='flex border border-black/10 bg-white rounded-sm overflow-hidden'>
+                            <button
+                                onClick={() => item.quantity > 1 && updateQuantity(item._id, item.quantity - 1)}
+                                className='w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-all text-black'
+                            >
+                                <Minus size={10} />
+                            </button>
+                            <div className='w-10 h-8 border-x border-black/5 flex items-center justify-center bg-gray-50/50'>
+                                <span className='text-[11px] font-black text-black tabular-nums'>{item.quantity}</span>
+                            </div>
+                            <button
+                                onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                                className='w-8 h-8 flex items-center justify-center hover:bg-gray-100 transition-all text-black'
+                            >
+                                <Plus size={10} />
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* SUBTOTAL CELL */}
+                      <td className='py-6 text-right align-middle'>
+                        <p className='text-[14px] font-black text-black tabular-nums'>
+                          <span className='text-[10px] text-[#BC002D] mr-0.5 font-mono'>{valuationSymbol}</span>{formatPrice(subtotal)}
+                        </p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* CONTINUE SHOPPING */}
+            <div className='mt-8 pt-6 border-t border-black/5 flex justify-between items-center'>
+              <Link
+                to='/collection'
+                className='text-[10px] font-black uppercase tracking-[0.3em] text-black hover:text-[#BC002D] transition-all flex items-center gap-3 group'
+              >
+                <span className='text-[#BC002D] transition-transform group-hover:-translate-x-1'>←</span> Continue Browsing Archive
+              </Link>
+              <div className='flex items-center gap-2 opacity-30'>
+                 <ShieldCheck size={14} />
+                 <span className='text-[8px] font-black uppercase tracking-widest'>End-to-End Encryption</span>
+              </div>
+            </div>
+          </div>
+
+          {/* TOTALS PANEL */}
+          <div className='w-full xl:w-[380px] flex-shrink-0'>
+            <div className='bg-[#FBFBFB] p-8 border border-black/5 rounded-sm shadow-sm'>
+              <div className='flex items-center gap-3 mb-8 pb-4 border-b border-black/10'>
+                <Landmark size={15} className='text-[#BC002D]' />
+                <p className='text-[10px] font-black uppercase tracking-[0.35em] text-black'>Ledger Summary</p>
+              </div>
+
+              <CartTotal />
+
+              <button
+                onClick={() => navigate('/place-order')}
+                className='w-full mt-8 bg-black text-white text-[10px] py-4 uppercase tracking-[0.5em] font-black hover:bg-[#BC002D] transition-all active:scale-95 shadow-lg shadow-black/10'
+              >
+                Proceed to Pay
+              </button>
+
+              <div className='mt-8 pt-6 border-t border-black/10 space-y-4'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-[8px] font-bold text-black/30 uppercase tracking-[0.2em]'>Protocol Status</span>
+                  <span className='text-[8px] font-black uppercase text-green-600 px-2 py-0.5 bg-green-50'>Verified</span>
+                </div>
+                {/* <div className='flex justify-between items-center'>
+                  <span className='text-[8px] font-bold text-black/30 uppercase tracking-[0.2em]'>Auth Code</span>
+                  <span className='text-[9px] font-mono font-black uppercase text-black'>SEC-8842-P</span>
+                </div> */}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .animate-fade-in { animation: fadeIn 0.8s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #BC002D; }
+        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
       `}} />
     </div>
   );

@@ -41,19 +41,35 @@ const LatestCollection = () => {
 
     const unifiedIndex = useMemo(() => {
         if (!dbCategories.length) return [];
+        
         const groupsMap = {};
         const independentList = [];
+        const term = searchTerm.toLowerCase().trim();
 
+        // Helper: Converts "INDIA" or "india" -> "India"
+        const normalize = (str) => {
+            if (!str) return "";
+            return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        };
+
+        // 1. Filter based on raw data
         const filtered = dbCategories.filter(cat => 
-            cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+            cat.name.toLowerCase().includes(term) || 
+            (cat.group && cat.group.toLowerCase().includes(term))
         );
 
+        // 2. Build the structured list with normalized names
         filtered.forEach(cat => {
-            const item = { name: cat.name, count: cat.productCount || 0 };
-            if (!cat.group || ['General', 'Independent', 'none', ''].includes(cat.group.trim())) {
+            const normalizedName = normalize(cat.name);
+            const item = { name: normalizedName, count: cat.productCount || 0 };
+            
+            const groupName = cat.group ? cat.group.trim() : "";
+            const isIndependent = !groupName || ['general', 'independent', 'none', ''].includes(groupName.toLowerCase());
+
+            if (isIndependent) {
                 independentList.push({ ...item, type: 'independent' });
             } else {
-                const gName = cat.group.trim();
+                const gName = normalize(groupName);
                 if (!groupsMap[gName]) {
                     groupsMap[gName] = { name: gName, type: 'group', items: [], totalCount: 0 };
                 }
@@ -62,6 +78,7 @@ const LatestCollection = () => {
             }
         });
 
+        // 3. Combine and sort
         const combined = [...Object.values(groupsMap), ...independentList];
         return combined.sort((a, b) => a.name.localeCompare(b.name));
     }, [dbCategories, searchTerm]);

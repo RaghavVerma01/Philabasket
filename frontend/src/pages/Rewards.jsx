@@ -1,9 +1,11 @@
 import React, { useContext, useEffect, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import { Trophy, History, Zap, Wallet, ArrowUpRight, ArrowDownLeft, Ticket, Loader2, Star, TrendingUp, BarChart3 } from 'lucide-react';
 import axios from 'axios';
 
 const Rewards = () => {
+    const navigate = useNavigate();
     const { userPoints, currency, token, backendUrl } = useContext(ShopContext);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);

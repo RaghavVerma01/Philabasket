@@ -21,7 +21,9 @@ const Product = () => {
 
   const getWatermarkedUrl = (url) => {
     if (!url || !url.includes('cloudinary')) return url;
-    const watermarkTransform = 'l_Logo-5_tagline_yaxuag,fl_relative,w_0.4,c_scale,o_70,a_-45';
+
+    //w->width,0->opacity , a--->angle 
+    const watermarkTransform = 'l_Logo-5_tagline_yaxuag,fl_relative,w_0.7,c_scale,o_80,a_-45';
     return url.includes('f_auto,q_auto')
       ? url.replace('/f_auto,q_auto/', `/f_auto,q_auto,${watermarkTransform}/`)
       : url.replace('/upload/', `/upload/f_auto,q_auto,${watermarkTransform}/`);
@@ -36,21 +38,29 @@ const Product = () => {
   };
 
   const fetchProductData = useCallback(async () => {
-    let item = products.find((item) => item._id === productId);
-    if (item) {
-      setProductData(item);
-    } else {
-      try {
-        const response = await axios.get(`${backendUrl}/api/product/single`, { params: { productId } });
-        if (response.data.success) {
-          setProductData(response.data.product);
+    try {
+      // 1. Always attempt to get the freshest data from the Registry first
+      const response = await axios.get(`${backendUrl}/api/product/single`, { 
+        params: { productId } 
+      });
+  
+      if (response.data.success) {
+        setProductData(response.data.product);
+      } else {
+        // 2. If API fails, check local context as a fallback
+        let item = products.find((item) => item._id === productId);
+        if (item) {
+          setProductData(item);
         } else {
-          toast.error("Specimen not found");
+          toast.error("Specimen not found in Registry");
           navigate('/collection');
         }
-      } catch (error) {
-        console.error("Archive Sync Error:", error);
       }
+    } catch (error) {
+      console.error("Archive Sync Error:", error);
+      // Fallback if the server is unreachable
+      let item = products.find((item) => item._id === productId);
+      if (item) setProductData(item);
     }
   }, [productId, products, backendUrl, navigate]);
 
@@ -291,13 +301,17 @@ const Product = () => {
 
 <div className='grid grid-cols-2 gap-4 mb-6'>
     {/* CONDITION */}
-    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
-        <div className='flex items-center gap-2 mb-1.5'>
-            <ShieldCheck size={12} className='text-[#BC002D]' />
-            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Condition</p>
-        </div>
-        <p className='text-[11px] font-black text-gray-900'>{productData.condition || 'Mint State'}</p>
+    {/* CONDITION BLOCK */}
+<div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+    <div className='flex items-center gap-2 mb-1.5'>
+        <ShieldCheck size={12} className='text-[#BC002D]' />
+        <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Condition</p>
     </div>
+    {/* FIX: Bind strictly to the database value */}
+    <p className='text-[11px] font-black text-gray-900'>
+      {productData.condition}
+    </p>
+</div>
 
     {/* STOCK */}
     <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
@@ -338,11 +352,16 @@ const Product = () => {
 
             {/* Description */}
             <div className='mb-8'>
-              <p className='text-[9px] font-black text-[#BC002D] tracking-[0.3em] uppercase mb-3'>Description</p>
-              <p className='text-[13px] text-gray-800 leading-relaxed font-medium '>
-                {productData.description}
-              </p>
-            </div>
+  <p className='text-[9px] font-black text-[#BC002D] tracking-[0.3em] uppercase mb-3'>Description</p>
+  <p className='text-[13px] text-gray-800 leading-relaxed font-medium'>
+    {productData.description.split('\n').map((line, index) => (
+      <React.Fragment key={index}>
+        {line}
+        <br />
+      </React.Fragment>
+    ))}
+  </p>
+</div>
 
 
             

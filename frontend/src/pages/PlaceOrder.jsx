@@ -26,7 +26,7 @@ const PlaceOrder = () => {
 
     const [countries, setCountries] = useState([]);
     const [showTerms, setShowTerms] = useState(false);
-    const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [agreedToTerms, setAgreedToTerms] = useState(true);
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
     const [isApplying, setIsApplying] = useState(false);
@@ -44,7 +44,7 @@ const PlaceOrder = () => {
 
     const [billingData, setBillingData] = useState({
         firstName: '', lastName: '', email: '', street: '', 
-        city: '', state: '', zipcode: '', country: 'India'
+        city: '', state: '', zipcode: '',phone: '', country: 'India'
     });
 
     // Fetch Countries for Registry
@@ -62,6 +62,62 @@ const PlaceOrder = () => {
         };
         fetchCountries();
     }, []);
+
+// --- BILLING HANDLERS ---
+// --- UPDATED BILLING HANDLERS ---
+    
+    // // 1. Handle Billing Country Change (Updates Billing Dial Code)
+    // const handleBillingCountryChange = (e) => {
+    //     const countryName = e.target.value;
+    //     const selected = countries.find(c => c.name === countryName);
+    //     setBillingData(prev => ({ 
+    //         ...prev, 
+    //         country: countryName, 
+    //         // We store a local countryCode for billing to keep it independent
+    //         countryCode: selected ? selected.dial : prev.countryCode 
+    //     }));
+    // };
+
+    // 2. Handle Billing Phone
+    const handleBillingPhoneChange = (e) => {
+        const value = e.target.value || "";
+        if (value.length <= 10) {
+            setBillingData(prev => ({ ...prev, phone: value }));
+        }
+    };
+
+    // 3. Handle Billing Pincode (Auto-fills City/State)
+   // 1. Handle Billing Country Change (Mandatory & Dynamic Dial Code)
+const handleBillingCountryChange = (e) => {
+    const countryName = e.target.value;
+    const selected = countries.find(c => c.name === countryName);
+    setBillingData(prev => ({ 
+        ...prev, 
+        country: countryName, 
+        countryCode: selected ? selected.dial : prev.countryCode 
+    }));
+};
+
+// 2. Handle Billing Pincode (Auto-fills City/State for Billing)
+const handleBillingPincodeChange = async (e) => {
+    const pin = e.target.value;
+        setBillingData(prev => ({ ...prev, zipcode: pin }));
+        if (pin.length === 6 && billingData.country === 'India') {
+            setIsVerifying(true);
+            try {
+                const response = await axios.get(`https://api.postalpincode.in/pincode/${pin}`);
+                if (response.data[0].Status === "Success") {
+                    const data = response.data[0].PostOffice[0];
+                    setBillingData(prev => ({ ...prev, city: data.District, state: data.State }));
+                    toast.success(`Registry Verified: ${data.District}`);
+                }
+            } catch (error) { toast.error("Pincode verification failed"); } 
+            finally { setIsVerifying(false); }
+        }
+    };
+
+
+
 
     const handleCountryChange = (e) => {
         const countryName = e.target.value;
@@ -275,7 +331,7 @@ const PlaceOrder = () => {
             {showSuccess && (
                 <div className='fixed inset-0 z-[1000] bg-white flex flex-col items-center justify-center animate-fade-in'>
                     <div className='w-20 h-20 mb-6 border-2 border-[#BC002D] flex items-center justify-center rounded-full animate-bounce'><img src={assets.logo} className='w-10 brightness-0' alt="" /></div>
-                    <h2 className='text-[10px] tracking-[0.4em] uppercase text-[#BC002D] font-black'>Acquisition Secured</h2>
+                    <h2 className='text-[10px] tracking-[0.4em] uppercase text-[#BC002D] font-black'>Order Successful</h2>
                     <h1 className='text-3xl mt-4 italic'>Welcome to the Archive.</h1>
                 </div>
             )}
@@ -347,14 +403,79 @@ const PlaceOrder = () => {
                             </div>
                         </div>
                         {!sameAsShipping && (
-                            <div className='space-y-3 animate-fade-in'>
-                                <div className='grid grid-cols-2 gap-3'>
-                                    <input required value={billingData.firstName} onChange={(e)=>setBillingData({...billingData, firstName: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs rounded-sm' placeholder='Billing First Name' />
-                                    <input required value={billingData.lastName} onChange={(e)=>setBillingData({...billingData, lastName: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs rounded-sm' placeholder='Billing Last Name' />
-                                </div>
-                                <input required onChange={(e)=>setBillingData({...billingData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs rounded-sm' placeholder='Billing Street' />
-                            </div>
-                        )}
+    <div className='space-y-4 animate-fade-in'>
+        <div className='space-y-1.5'>
+            <p className='text-[9px] font-black uppercase text-gray-400 ml-1'>Billing Region</p>
+            <select 
+                required 
+                value={billingData.country} 
+                onChange={handleBillingCountryChange} 
+                className='w-full bg-white border border-gray-100 py-3.5 px-4 text-xs outline-none focus:border-[#BC002D] rounded-sm'
+            >
+                {countries.map(c => <option key={c.code} value={c.name}>{c.name}</option>)}
+            </select>
+        </div>
+
+        <div className='grid grid-cols-2 gap-3'>
+            <input required value={billingData.firstName} onChange={(e)=>setBillingData({...billingData, firstName: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm' placeholder='First Name' />
+            <input required value={billingData.lastName} onChange={(e)=>setBillingData({...billingData, lastName: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm' placeholder='Last Name' />
+        </div>
+
+        <input required type="email" value={billingData.email} onChange={(e) => setBillingData({ ...billingData, email: e.target.value })} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Email Address' />
+
+        <div className='flex flex-col gap-1'>
+            <div className='flex gap-2'>
+                <div className='w-16 bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400 rounded-sm italic'>
+                    {billingData.countryCode || formData.countryCode} 
+                </div>
+                <input 
+                    required 
+                    value={billingData.phone} 
+                    onChange={handleBillingPhoneChange} 
+                    className={`flex-1 bg-white border py-3.5 px-4 text-xs placeholder-gray-400 rounded-sm transition-all outline-none
+                        ${(billingData.phone || '').length === 10 ? 'border-green-500' : 'border-gray-100 focus:border-[#BC002D]'}`} 
+                    placeholder='Billing Phone Number' 
+                    type="number" 
+                />
+            </div>
+            {(billingData.phone || '').length > 0 && (billingData.phone || '').length < 10 && (
+                <p className='text-[9px] font-bold text-[#BC002D] uppercase tracking-tighter'>
+                    Entry Incomplete: {10 - billingData.phone.length} digits remaining
+                </p>
+            )}
+        </div>
+
+        <input required value={billingData.street} onChange={(e)=>setBillingData({...billingData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Billing Street' />
+        
+        <div className='grid grid-cols-2 gap-3'>
+            <div className='relative'>
+                <input 
+                    required 
+                    value={billingData.zipcode} 
+                    onChange={handleBillingPincodeChange} 
+                    className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs font-mono placeholder-gray-400 rounded-sm' 
+                    placeholder='Billing Pincode' 
+                />
+            </div>
+            {/* These values must be tied to billingData for suggestions to appear */}
+            <input 
+                required 
+                value={billingData.city} 
+                readOnly 
+                className='bg-gray-50 border border-gray-100 py-3.5 px-4 text-xs text-gray-500 rounded-sm' 
+                placeholder='City' 
+            />
+        </div>
+        <input 
+            required 
+            value={billingData.state} 
+            readOnly 
+            className='bg-gray-50 border border-gray-100 py-3.5 px-4 w-full text-xs text-gray-500 rounded-sm' 
+            placeholder='State' 
+        />
+    </div>
+)}
+
                     </div>
                 </div>
 
@@ -450,7 +571,35 @@ const PlaceOrder = () => {
                     <div className='absolute inset-0 bg-black/60 backdrop-blur-sm' onClick={() => setShowTerms(false)}></div>
                     <div className='bg-white w-full max-w-lg relative z-10 p-10 shadow-2xl animate-fade-in'>
                         <div className='flex justify-between items-center mb-6 border-b pb-4'><h3 className='font-black uppercase tracking-widest text-xs'>Acquisition Terms</h3><X className='cursor-pointer' onClick={() => setShowTerms(false)} /></div>
-                        <p className='text-[10px] uppercase font-bold text-gray-500'>Specimens are certified. Finality applies once dispatched.</p>
+                        <p className='text-[10px] font-semibold text-gray-500 leading-relaxed'>
+    <strong className='text-black'># Product Condition:</strong><br /><br />
+    
+    All images on the website are referral – due to multiple quantity listing we cannot change images of thousands of items every time. 
+    Hence, the block of stamps having a margin in the image may have a different side margin or no margin at all. 
+    Similarly, traffic lights in blocks of stamps or single stamps may be present in the image but not in the item delivered. 
+    All images are only referral except for the items listed in the errors/oddities category.<br /><br />
+
+    <strong className='text-black'># The condition of the stamps may be defined as follows:</strong><br /><br />
+    
+    <strong>MNH</strong> – Mint Never Hinged<br />
+    <strong>MLH</strong> – Mint Lightly Hinged<br />
+    <strong>MH</strong> – Mint Hinged (Heavy Hinge Mark)<br />
+    <strong>MM</strong> – Mounted Mint (Stamp is unused but stuck on paper)<br /><br />
+
+    For all <strong>Mint Never Hinged</strong> stamps, please understand that all stamps are in excellent condition from the year 1990 onwards (white gum, no marks/spots).<br /><br />
+    
+    Stamps for the period <strong>1957-1988</strong> are mixed in condition (white to light yellow) due to the tropicalization of gum in India's climate and older printing technology. Stamps <strong>before 1957</strong> may be completely tropicalized.<br /><br />
+
+    Regarding <strong>FDC (First Day Covers)</strong>, the cancellation on the stamp, the position of the cancellation, and the stamps themselves may differ from the image due to multiple quantity listings. Many cancellations are hand-stamped in philatelic bureaus, which may result in slight smudging; these are general conditions and not major damage.<br /><br />
+
+    We strive to provide the best condition possible. If you are not satisfied, there is always an <strong>option for a refund</strong>.<br /><br />
+
+    <strong className='text-black'># EXCHANGE:</strong><br /><br />
+    
+    If you bought an item by mistake and want an exchange, you must intimate us via email at <strong>Admin@philabasket.com</strong> within 24 hours of receiving the materials. 
+    Additional shipping charges shall be borne by the buyer. The exchanged material will be sent after we receive the original item. 
+    Any difference in amount shall be settled and communicated via email.
+</p>
                         <button onClick={() => { setAgreedToTerms(true); setShowTerms(false); }} className='w-full mt-8 bg-black text-white py-4 text-[10px] font-black uppercase tracking-widest'>Accept Terms</button>
                     </div>
                 </div>

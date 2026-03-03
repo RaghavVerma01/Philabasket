@@ -72,53 +72,46 @@ const Updates = () => {
             </div>
 
             {/* --- UPDATES GRID --- */}
-            <div className='max-w-7xl mx-auto'>
-                {loading ? (
-                    <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-12'>
-                        {[...Array(10)].map((_, i) => (
-                            <div key={i} className='aspect-[3/4] bg-gray-50 animate-pulse rounded-br-[60px]'></div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-12'>
-                        {recentProducts.map((item) => {
-                            // Check if created and updated are within 1 minute (to count as "New")
-                            const createdTime = new Date(item.createdAt).getTime();
-                            const updatedTime = new Date(item.updatedAt).getTime();
-                            const isNew = Math.abs(updatedTime - createdTime) < 60000;
+           {/* --- UPDATES GRID --- */}
+<div className='max-w-7xl mx-auto'>
+    {loading ? (
+        <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-12'>
+            {[...Array(10)].map((_, i) => (
+                <div key={i} className='aspect-[3/4] bg-gray-50 animate-pulse rounded-br-[60px]'></div>
+            ))}
+        </div>
+    ) : (
+        <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-12'>
+            {/* Filter to only show items with stock > 0 */}
+            {recentProducts
+                .filter(item => item.stock > 0) 
+                .map((item) => {
+                    const createdTime = new Date(item.createdAt).getTime();
+                    const updatedTime = new Date(item.updatedAt).getTime();
+                    const isNew = Math.abs(updatedTime - createdTime) < 60000;
 
-                            return (
-                                <div key={item._id} className='group flex flex-col'>
-                                    {/* Badge Area */}
-                                    <div className='flex items-center justify-between mb-3 px-1'>
-                                        <div className='flex items-center gap-1.5'>
-                                            <div className={`w-1.5 h-1.5 rounded-full ${isNew ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></div>
-                                            <span className='text-[8px] font-black uppercase tracking-widest text-gray-500'>
-                                                {isNew ? 'Newly Added' : 'Restocked'}
-                                            </span>
-                                        </div>
-                                        <span className='text-[8px] font-mono text-gray-300'>{getTimeAgo(item.updatedAt)}</span>
-                                    </div>
-
-                                    {/* The Card */}
-                                    <div className='relative'>
-                                        <ProductItem {...item} />
-                                        
-                                        {/* Hover Overlay for specific update info */}
-                                        {/* <div className='absolute inset-0 bg-[#BC002D]/90 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-br-[40px] md:rounded-br-[60px] z-20 flex flex-col items-center justify-center p-6 text-center pointer-events-none'>
-                                            <p className='text-white text-[10px] font-black uppercase tracking-[0.3em] mb-2'>Status</p>
-                                            <p className='text-white/80 text-[11px] font-medium italic leading-relaxed'>
-                                                {isNew ? 'Specimen officially cataloged into the global archive.' : 'Stock availability and market valuation adjusted.'}
-                                            </p>
-                                            <div className='mt-6 w-8 h-[1px] bg-white/30'></div>
-                                        </div> */}
-                                    </div>
+                    return (
+                        <div key={item._id} className='group flex flex-col'>
+                            {/* ... (Rest of your mapping code remains the same) */}
+                            <div className='flex items-center justify-between mb-3 px-1'>
+                                <div className='flex items-center gap-1.5'>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isNew ? 'bg-green-50 animate-pulse' : 'bg-amber-500'}`}></div>
+                                    <span className='text-[8px] font-black uppercase tracking-widest text-gray-500'>
+                                        {isNew ? 'Newly Added' : 'Restocked'}
+                                    </span>
                                 </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+                                <span className='text-[8px] font-mono text-gray-300'>{getTimeAgo(item.updatedAt)}</span>
+                            </div>
+
+                            <div className='relative'>
+                                <ProductItem {...item} />
+                            </div>
+                        </div>
+                    );
+                })}
+        </div>
+    )}
+</div>
 
             {/* Empty State */}
             {!loading && recentProducts.length === 0 && (
