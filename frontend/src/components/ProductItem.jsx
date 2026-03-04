@@ -136,7 +136,7 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
                             className='col-span-2 flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-400 rounded-xl cursor-not-allowed border border-gray-200'
                         >
                             <Ban size={13} />
-                            <span className='text-[9px] font-black uppercase tracking-widest'>Archived / Sold Out</span>
+                            <span className='text-[9px] font-black uppercase tracking-widest'>Sold Out</span>
                         </button>
                     ) : (
                         /* ACTIVE STATE */
