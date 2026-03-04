@@ -361,6 +361,9 @@ const Product = () => {
       </React.Fragment>
     ))}
   </p>
+  {/* <p className='text-[13px] text-gray-800 leading-relaxed font-medium'>
+    Please Note that due to multiple listing we can not specify the place of cancellation ,also the position of stamp on FDC and Cancellation may differ from the image .Kindly treat the image as reference only not actual product 
+  </p> */}
 </div>
 
 

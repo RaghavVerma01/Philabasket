@@ -452,9 +452,32 @@ const List = ({ token }) => {
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Year</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.year} onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}/></div>
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Produced Count</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.producedCount} onChange={(e) => setEditFormData({ ...editFormData, producedCount: e.target.value })}/></div>
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Stock</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.stock} onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}/></div>
+                      
 
 
                     </div>
+
+                    <div className='space-y-1 col-span-2'>
+    <label className='text-[9px] font-bold text-gray-400 uppercase ml-1 tracking-widest'>
+        Catalogue Description
+    </label>
+    <textarea 
+        rows={6}
+        className='w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium outline-none focus:border-gray-400 focus:bg-white transition-all resize-none leading-relaxed custom-scrollbar' 
+        placeholder="Enter detailed philatelic notes, historical context, or condition specifics..."
+        value={editFormData.description} 
+        onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+    />
+    <div className='flex justify-between px-1'>
+        <p className='text-[8px] text-gray-300 uppercase font-bold tracking-tighter'>
+            Supports multiple paragraphs and line breaks
+        </p>
+        <p className='text-[8px] text-gray-300 uppercase font-mono'>
+            {editFormData.description?.length || 0} Characters
+        </p>
+    </div>
+</div>
+
                   </div>
 
                   <div className='space-y-4'>
