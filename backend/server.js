@@ -30,7 +30,7 @@ connectCloudinary()
 // middlewares
 app.use(express.json())
 app.use(cors({
-    origin: ['https://philabasket-frontend.vercel.app', 'http://localhost:5173','http://localhost:5174','https://philabasket-admin.vercel.app'],
+    origin: ['https://philabasket-frontend.vercel.app', 'http://localhost:5173','http://localhost:5174','https://philabasket-admin.vercel.app','https://new.philabasket.in'],
     credentials: true
 }))
 
