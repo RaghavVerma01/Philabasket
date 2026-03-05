@@ -7,6 +7,10 @@ import { OAuth2Client } from 'google-auth-library';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
 import orderModel from "../models/orderModel.js";
+// backend/controllers/userController.js
+import userRewardModel from "../models/userRewardModel.js";
+
+
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const createToken = (id) => {
@@ -340,38 +344,106 @@ const listUsers = async (req, res) => {
     }
 }
 
+// controllers/userController.js
+
 export const getAllUsersData = async (req, res) => {
     try {
-        // Fetch users and populate their virtual 'orders' field
-        const users = await userModel.find({})
-            .populate('orders')
-            .sort({ createdAt: -1 });
+        const { page = 1, limit = 10, search = "" } = req.query;
+        const skip = (page - 1) * limit;
 
-        res.json({ success: true, users });
+        // Build search query
+        const query = search ? {
+            $or: [
+                { name: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ]
+        } : {};
+
+        const totalUsers = await userModel.countDocuments(query);
+        const users = await userModel.find(query)
+            .select('-password') 
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        res.json({ 
+            success: true, 
+            users, 
+            totalPages: Math.ceil(totalUsers / limit),
+            currentPage: parseInt(page)
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+// NEW: Separate API for User Details (Call this only when clicking a user)
+export const getSingleUserDetail = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await userModel.findById(userId).populate('orders');
+        res.json({ success: true, user });
     } catch (error) {
         res.json({ success: false, message: error.message });
     }
 };
 
 // Adjust Archive Credits (Reward Points)
-// backend/controllers/userController.js
+
+
 export const adjustRewardPoints = async (req, res) => {
     try {
-        const { userId, amount, action } = req.body; 
-        
-        let update = {};
-        if (action === 'add') update = { $inc: { totalRewardPoints: Math.abs(amount) } };
-        else if (action === 'subtract') update = { $inc: { totalRewardPoints: -Math.abs(amount) } };
-        else if (action === 'overwrite') update = { $set: { totalRewardPoints: amount } };
+        const { userId, amount, action } = req.body;
+        const numAmount = Number(amount);
 
-        const updatedUser = await userModel.findByIdAndUpdate(userId, update, { new: true });
-        res.json({ success: true, message: "Registry Valuation Updated", newPoints: updatedUser.totalRewardPoints });
-    } catch (error) { 
-        const errorMsg = error.response?.data?.message || "Update Failed";
-        toast.error(errorMsg); 
+        // 1. Fetch user to get current points and email
+        const user = await userModel.findById(userId);
+        if (!user) return res.json({ success: false, message: "Collector not found" });
+
+        let finalPoints = user.totalRewardPoints;
+        let pointsChange = 0;
+
+        // 2. Calculate point difference based on action
+        if (action === 'add') {
+            finalPoints += numAmount;
+            pointsChange = numAmount;
+        } else if (action === 'subtract') {
+            finalPoints = Math.max(0, finalPoints - numAmount);
+            pointsChange = -numAmount;
+        } else if (action === 'overwrite') {
+            pointsChange = numAmount - finalPoints;
+            finalPoints = numAmount;
+        }
+
+        // 3. Update User Table
+        user.totalRewardPoints = finalPoints;
+        await user.save();
+
+        // 4. Create Transaction Record in UserReward (Audit Log)
+        const transaction = new userRewardModel({
+            email: user.email,
+            name: `Registry Adjustment (${action.toUpperCase()})`,
+            description: `Manual adjustment by Archive Administrator.`,
+            discountValue: 0, // No monetary coupon created
+            discountCode: `ADJ-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            pointsUsed: pointsChange, // Stored as positive for deductions, negative for additions in your schema
+            status: 'used', // Marked as used so it doesn't appear as an active coupon
+            createdAt: new Date()
+        });
+
+        await transaction.save();
+
+        res.json({ 
+            success: true, 
+            message: `Registry updated. Balance: ${finalPoints} PTS`,
+            newBalance: finalPoints
+        });
+
+    } catch (error) {
+        console.error("Adjustment Error:", error);
+        res.json({ success: false, message: error.message });
     }
 };
-
 
 
 

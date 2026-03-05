@@ -13,6 +13,7 @@ const orderSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
 
     deliveryFee: { type: Number, required: true, default: 0 },
+    allowInvoice: { type: Boolean, default: false },
 
     address: { type: Object, required: true },
     status: { type: String, required: true, default:'Order Placed' },

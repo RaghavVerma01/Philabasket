@@ -57,7 +57,20 @@ const productSchema = new mongoose.Schema({
     
     // Updated: Boolean flags for shop logic
     bestseller: { type: Boolean, default: false, index: true },
-    newArrival: { type: Boolean, default: false, index: true }, // Added newArrival
+    newArrival: { type: Boolean, default: false, index: true }, 
+    releaseDate: { 
+        type: String, 
+        required: true, 
+        validate: {
+            validator: function(v) {
+                // Regex to enforce DD/MM/YYYY format
+                return /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid date format! Use DD/MM/YYYY.`
+        },
+        index: true 
+    },
+    // Added newArrival
 
     date: { 
         type: Number, 

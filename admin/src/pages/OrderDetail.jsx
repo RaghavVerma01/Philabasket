@@ -30,6 +30,8 @@ const OrderDetail = ({ token }) => {
   const [loading, setLoading] = useState(!location.state?.orderData);
   const [trackingId, setTrackingId] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [allowInvoice, setAllowInvoice] = useState(false);
+const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -39,6 +41,7 @@ const OrderDetail = ({ token }) => {
         if (response.data.success) {
             setOrder(response.data.order);
             setTrackingId(response.data.order.trackingNumber || '');
+            setAllowInvoice(response.data.order.allowInvoice || false);
         }
       } catch (err) { 
           console.error("API Fetch error:", err);
@@ -47,6 +50,33 @@ const OrderDetail = ({ token }) => {
     };
     if (token) fetchOrder();
   }, [orderId, token]);
+
+  const toggleInvoice = async () => {
+    // Determine the action message based on current state
+    const action = allowInvoice ? "RESTRICT" : "RELEASE";
+    const message = `Are you sure you want to ${action} the invoice for Order #${order.orderNo}?`;
+
+    // Show confirmation popup
+    if (!window.confirm(message)) return;
+
+    setIsInvoiceUpdating(true);
+    try {
+        const response = await axios.post(backendUrl + '/api/order/update-invoice', {
+            orderId,
+            status: !allowInvoice
+        }, { headers: { token } });
+
+        if (response.data.success) {
+            setAllowInvoice(!allowInvoice);
+            toast.success(allowInvoice ? "Invoice access revoked" : "Invoice released to collector");
+        }
+    } catch (err) {
+        toast.error("Registry update failed");
+        console.error(err);
+    } finally {
+        setIsInvoiceUpdating(false);
+    }
+};
 
   const updateTracking = async () => {
     if (!trackingId) return toast.error("Please enter a Tracking ID");
@@ -110,6 +140,42 @@ const OrderDetail = ({ token }) => {
           </button>
           <span style={styles.topBarRef}>REF: {order.orderNo || order._id}</span>
         </div>
+
+        {/* --- INVOICE CONTROL CARD --- */}
+<div style={styles.card}>
+    <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>Document Control</span>
+        <Save size={15} style={{ color: '#64748b' }} />
+    </div>
+    <div style={styles.cardBody}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Allow Invoice Download</p>
+                <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>Enable for user to download PDF</p>
+            </div>
+            <button 
+                onClick={toggleInvoice}
+                disabled={isInvoiceUpdating}
+                style={{
+                    padding: '8px 16px',
+                    borderRadius: '4px',
+                    fontSize: '10px',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    border: '1px solid',
+                    backgroundColor: allowInvoice ? '#f0fdf4' : '#fef2f2',
+                    borderColor: allowInvoice ? '#bbf7d0' : '#fecaca',
+                    color: allowInvoice ? '#166534' : '#991b1b'
+                }}
+            >
+                {isInvoiceUpdating ? 'Updating...' : (allowInvoice ? 'ENABLED' : 'DISABLED')}
+            </button>
+        </div>
+    </div>
+</div>
 
         {/* Page Header */}
         <div style={styles.pageHeader}>

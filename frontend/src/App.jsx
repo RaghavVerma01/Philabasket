@@ -83,7 +83,7 @@ const App = () => {
           <Route path='/blog/:blogId' element={<BlogContent />} />
         </Routes>
       </Suspense>
-      <UtilityBar/>
+      {/* <UtilityBar/> */}
       <Footer />
       <ChatBot/>
     </div>

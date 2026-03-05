@@ -60,6 +60,7 @@ const Orders = () => {
     setSubmitting(true);
     const formData = new FormData();
     formData.append("orderId", currentOrder._id);
+    formData.append("orderNo", currentOrder.orderNo);
     formData.append("text", feedbackText);
     formData.append("rating", rating);
     if (feedbackImage) formData.append("image", feedbackImage);
@@ -141,6 +142,7 @@ const Orders = () => {
       // --- ITEMS TABLE LOGIC (MATCHING SCREENSHOT) ---
       let totalBaseAmount = 0;
       let totalGSTAmount = 0;
+      
 
       const tableRows = (order.items || []).map((item, index) => {
           // Per screenshot: item.price is the Base Rate (Excl.)
@@ -226,6 +228,25 @@ const Orders = () => {
       toast.error("Invoice generation failed.");
   }
 };
+
+const [submittedOrderIds, setSubmittedOrderIds] = useState([]);
+
+const fetchFeedbackStatus = useCallback(async () => {
+    try {
+        const response = await axios.get(`${backendUrl}/api/feedback/user-feedback`, { 
+            headers: { token } 
+        });
+        if (response.data.success) {
+            setSubmittedOrderIds(response.data.feedbacks);
+        }
+    } catch (error) {
+        console.error("Feedback Status Error:", error);
+    }
+}, [backendUrl, token]);
+
+useEffect(() => {
+    if (token) fetchFeedbackStatus();
+}, [token, fetchFeedbackStatus]);
 
   const cancelOrder = async (orderId) => {
     if (!window.confirm("Are you sure you want to terminate this acquisition protocol?")) return;
@@ -348,6 +369,7 @@ const Orders = () => {
           <div className='bg-white w-full max-w-lg relative z-10 p-8 rounded-sm shadow-2xl animate-fade-in'>
              <div className='flex justify-between items-center mb-6'>
                 <h3 className='font-black uppercase tracking-widest text-sm'>Consignment Feedback</h3>
+                <p className='text-[10px] font-bold text-[#BC002D]'>REGISTRY ID: #{currentOrder?.orderNo}</p>
                 <X className='cursor-pointer' onClick={() => setShowFeedbackModal(false)} />
              </div>
              <form onSubmit={handleFeedbackSubmit} className='flex flex-col gap-6'>
@@ -360,6 +382,54 @@ const Orders = () => {
                         </button>
                       ))}
                    </div>
+
+
+                   {/* --- IMAGE UPLOAD SECTION --- */}
+<div className='flex flex-col gap-3'>
+    <p className='text-[10px] font-black uppercase tracking-widest text-gray-400'>Upload Specimen Photo (Optional)</p>
+    <div className='flex items-center gap-4'>
+        <label className='flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-[#BC002D] transition-colors'>
+            {feedbackImage ? (
+                <div className='relative w-full h-full p-1'>
+                    <img 
+                        src={URL.createObjectURL(feedbackImage)} 
+                        alt="Preview" 
+                        className='w-full h-full object-cover rounded-md' 
+                    />
+                    <div className='absolute -top-2 -right-2 bg-black text-white rounded-full p-0.5' onClick={(e) => { e.preventDefault(); setFeedbackImage(null); }}>
+                        <X size={12} />
+                    </div>
+                </div>
+            ) : (
+                <div className='flex flex-col items-center justify-center'>
+                    <Camera size={20} className='text-gray-300' />
+                    <span className='text-[8px] font-bold text-gray-400 mt-1'>ADD PHOTO</span>
+                </div>
+            )}
+            <input 
+                type="file" 
+                accept="image/*" 
+                className='hidden' 
+                onChange={(e) => setFeedbackImage(e.target.files[0])} 
+            />
+        </label>
+        
+        {feedbackImage && (
+            <p className='text-[10px] font-bold text-green-600 uppercase italic'>
+                Specimen Image Ready for Sync
+            </p>
+        )}
+    </div>
+</div>
+
+{/* <textarea 
+    className='w-full border border-gray-100 p-4 text-xs outline-none focus:border-[#BC002D]' 
+    rows="3" 
+    placeholder="Describe quality..." 
+    value={feedbackText} 
+    onChange={(e) => setFeedbackText(e.target.value)}
+></textarea> */}
+
                 </div>
                 <textarea className='w-full border border-gray-100 p-4 text-xs outline-none focus:border-[#BC002D]' rows="4" placeholder="Describe quality..." value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)}></textarea>
                 <button type="submit" disabled={submitting} className='bg-black text-white py-4 text-[10px] font-black uppercase tracking-widest hover:bg-[#BC002D] transition-all disabled:bg-gray-400'>
@@ -386,8 +456,41 @@ const Orders = () => {
                         <button onClick={() => { setSelectedOrderInfo(order); setShowPaymentInfo(true); }} className='flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 hover:underline'><Landmark size={14} /> Payment Info</button>
                     )}
                     {order.status === 'Order Placed' && <button onClick={() => cancelOrder(order._id)} className='text-[10px] font-black uppercase text-red-500 hover:bg-red-50 px-3 py-2'>Cancel Order</button>}
-                    <button onClick={() => { setCurrentOrder(order); setShowFeedbackModal(true); }} className='flex items-center gap-2 text-[10px] font-black uppercase text-gray-400'><MessageSquare size={14} /> Feedback</button>
-                    <button onClick={() => downloadInvoice(order)} className='flex items-center gap-2 text-[10px] font-black uppercase text-[#BC002D]'><Download size={14} /> Invoice</button>
+                    
+                    
+                    {/* <button onClick={() => { setCurrentOrder(order); setShowFeedbackModal(true); }} className='flex items-center gap-2 text-[10px] font-black uppercase text-gray-400'><MessageSquare size={14} /> Feedback</button> */}
+                    {submittedOrderIds.includes(order._id) ? (
+    <div className='flex items-center gap-2 text-[10px] font-black uppercase text-green-600 cursor-default py-2 px-3 bg-green-50 rounded-sm'>
+        <PackageCheck size={14} /> 
+        Feedback Recieved
+    </div>
+) : (
+    <button 
+        onClick={() => { setCurrentOrder(order); setShowFeedbackModal(true); }} 
+        className='flex items-center gap-2 text-[10px] font-black uppercase text-gray-400 hover:text-[#BC002D] transition-colors'
+    >
+        <MessageSquare size={14} /> 
+        Feedback
+    </button>
+)}
+                    {/* <button onClick={() => downloadInvoice(order)} className='flex items-center gap-2 text-[10px] font-black uppercase text-[#BC002D]'><Download size={14} /> Invoice</button> */}
+                    {order.allowInvoice ? (
+        <button 
+            onClick={() => downloadInvoice(order)} 
+            className='flex items-center gap-2 text-[10px] font-black uppercase text-[#BC002D] hover:opacity-80 transition-all'
+        >
+            <Download size={14} /> 
+            Invoice
+        </button>
+    ) : (
+        <div 
+            className='flex items-center gap-2 text-[10px] font-black uppercase text-gray-300 cursor-not-allowed'
+            title="Invoice will be available once the consignment is verified by the admin."
+        >
+            {/* <Download size={14} /> 
+            Invoice Pending */}
+        </div>
+    )}
                 </div>
               </div>
               <div className='flex flex-col gap-6'>

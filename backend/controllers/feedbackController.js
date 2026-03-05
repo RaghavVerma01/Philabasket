@@ -7,37 +7,47 @@ import { v2 as cloudinary } from "cloudinary";
 
 // Inside feedbackController.js -> addFeedback function
 // controllers/feedbackController.js
+// controllers/feedbackController.js
+
+import streamifier from 'streamifier';
+
 const addFeedback = async (req, res) => {
     try {
-        // req.body now contains orderId, text, and the userId added by authUser
-        const { orderId, text, rating, userId } = req.body;
+        const { orderId, orderNo, text, rating, userId } = req.body;
 
-        console.log("Archive Sync - Received User ID:", userId);
-
-        if (!userId) {
-            return res.json({ success: false, message: "Authentication failed. ID not found." });
+        // 1. One-Feedback-Per-Order Validation
+        const existingFeedback = await feedbackModel.findOne({ orderId });
+        if (existingFeedback) {
+            return res.json({ success: false, message: "Feedback already exists for this order." });
         }
 
-        // Search the User collection
-        const user = await userModel.findById(userId);
-        
-        if (!user) {
-            return res.json({ success: false, message: "User record not found in database." });
-        }
-
+        // 2. Stream Upload Logic for Memory Storage
         let imageUrl = "";
-        if (req.file) {
-            const uploadResponse = await cloudinary.uploader.upload(req.file.path, {
-                resource_type: "image",
-                folder: "feedback_specimens"
+        
+        const uploadToCloudinary = (buffer) => {
+            return new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: "feedback_specimens" },
+                    (error, result) => {
+                        if (result) resolve(result.secure_url);
+                        else reject(error);
+                    }
+                );
+                streamifier.createReadStream(buffer).pipe(stream);
             });
-            imageUrl = uploadResponse.secure_url;
+        };
+
+        if (req.file) {
+            imageUrl = await uploadToCloudinary(req.file.buffer);
         }
 
+        // 3. Save to Registry
+        const user = await userModel.findById(userId);
         const feedbackData = new feedbackModel({
             userId,
-            userName: user.name, // Will correctly pick up "Parth Singh"
+            userName: user?.name || "Anonymous Collector",
             orderId,
+            orderNo,
             text: text || "",
             image: imageUrl,
             rating: Number(rating) || 5,
@@ -48,7 +58,7 @@ const addFeedback = async (req, res) => {
         res.json({ success: true, message: "Feedback archived successfully" });
 
     } catch (error) {
-        console.error("Feedback Error:", error);
+        console.error("Archive Sync Error:", error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -82,4 +92,50 @@ const listAllFeedback = async (req, res) => {
     }
 };
 
-export { addFeedback, toggleFeaturedFeedback, getFeaturedFeedback ,listAllFeedback};
+const getUserFeedbacks = async (req, res) => {
+    try {
+        const { userId } = req.body; // Injected by your authUser middleware
+        
+        // We only need the orderId to handle the frontend button state
+        const feedbacks = await feedbackModel.find({ userId }).select('orderId');
+        
+        res.json({ 
+            success: true, 
+            feedbacks: feedbacks.map(f => f.orderId) // Return an array of IDs
+        });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+const updateFeedback = async (req, res) => {
+    try {
+        // feedbackId identifies the document, the rest are fields to update
+        const { feedbackId, text, rating, isFeatured } = req.body;
+
+        const updatedFeedback = await feedbackModel.findByIdAndUpdate(
+            feedbackId,
+            { 
+                text: text || "", 
+                rating: Number(rating) || 5, 
+                isFeatured: isFeatured // Toggle visibility for home page
+            },
+            { new: true, runValidators: true } // Returns the updated document
+        );
+
+        if (!updatedFeedback) {
+            return res.json({ success: false, message: "Feedback record not found in registry." });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Consignment feedback modified successfully", 
+            data: updatedFeedback 
+        });
+    } catch (error) {
+        console.error("Admin Update Error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export { addFeedback, toggleFeaturedFeedback, getFeaturedFeedback ,listAllFeedback,getUserFeedbacks,updateFeedback};

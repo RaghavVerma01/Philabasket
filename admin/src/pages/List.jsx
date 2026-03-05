@@ -242,6 +242,7 @@ const filteredMedia = useMemo(() => {
         ...item,
         description: item.description || "",
         youtubeUrl: item.youtubeUrl || "",
+        releaseDate: item.releaseDate || "",
         isLatest: item.isLatest || false,
         isActive: item.isActive !== undefined ? item.isActive : true,
         bestseller: item.bestseller || false,
@@ -475,7 +476,16 @@ const filteredMedia = useMemo(() => {
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Year</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.year} onChange={(e) => setEditFormData({ ...editFormData, year: e.target.value })}/></div>
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Produced Count</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.producedCount} onChange={(e) => setEditFormData({ ...editFormData, producedCount: e.target.value })}/></div>
                       <div className='space-y-1'><label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Stock</label><input type="number" className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none' value={editFormData.stock} onChange={(e) => setEditFormData({ ...editFormData, stock: e.target.value })}/></div>
-                      
+                      <div className='space-y-1'>
+    <label className='text-[9px] font-bold text-gray-400 uppercase ml-1'>Release Date (DD/MM/YYYY)</label>
+    <input 
+      type="text" 
+      placeholder="DD/MM/YYYY"
+      className='w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-bold outline-none focus:border-blue-400' 
+      value={editFormData.releaseDate} 
+      onChange={(e) => setEditFormData({ ...editFormData, releaseDate: e.target.value })}
+    />
+  </div>
 
 
                     </div>

@@ -108,8 +108,8 @@ const Rewards = () => {
                                 <p className='text-sm font-black text-green-600'>+{stats.gained}</p>
                             </div>
                             <div className='flex justify-between items-center'>
-                                <p className='text-[10px] font-bold text-gray-700 uppercase'>Swapped for Coupons</p>
-                                <p className='text-sm font-black text-gray-900'>-{stats.used}</p>
+                                <p className='text-[10px] font-bold text-gray-700 uppercase'>Reedemption and Vouchers</p>
+                                <p className='text-sm font-black text-gray-900'>{stats.used}</p>
                             </div>
                             <div className='h-[1px] bg-gray-200 w-full my-2'></div>
                             <div className='flex justify-between items-center'>
@@ -161,7 +161,7 @@ const Rewards = () => {
 
                                         <div className='text-right'>
                                             <p className={`text-sm font-black tabular-nums ${!item.isNegative ? 'text-green-600' : 'text-gray-900'}`}>
-                                                {item.isNegative ? '-' : '+'}{item.amount}
+                                                {item.amount} Points
                                             </p>
                                             {item.status && (
                                                 <span className={`text-[7px] font-black px-2 py-0.5 rounded-full uppercase ${

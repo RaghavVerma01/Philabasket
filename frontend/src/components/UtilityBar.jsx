@@ -34,7 +34,7 @@ const UtilityBar = () => {
     if (filterOpen) return null;
 
     return (
-        <div className='fixed bottom-20 left-6 z-[400] select-none flex flex-col items-start'>
+        <div className='hidden lg:flex fixed bottom-20 left-6 z-[400] select-none flex-col items-start'>
 
             {/* DETAIL PANEL (REWARDS) */}
             {!isCollapsed && isExpanded && (

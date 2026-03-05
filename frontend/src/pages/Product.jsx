@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShopContext } from '../context/ShopContext';
 import RelatedProducts from '../components/RelatedProducts';
-import { Heart, Loader2, Minus, Plus, PlayCircle, X, Zap, CreditCard, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, Loader2, Minus, Plus, PlayCircle, X, Zap, CreditCard, ShoppingBag, ChevronLeft, ChevronRight ,Calendar,Tag} from 'lucide-react';
 import { ShieldCheck, Database, Globe, Layers, AlertCircle } from 'lucide-react';
 
 import { toast } from 'react-toastify';
@@ -344,6 +344,34 @@ const Product = () => {
             <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Produced Count</p>
         </div>
         <p className='text-[11px] font-black text-gray-900'>{productData.producedCount || 'Limited Edition'}</p>
+    </div>
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            <Calendar size={12} className='text-[#BC002D]' />
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Release Date</p>
+        </div>
+        <p className='text-[11px] font-black text-gray-900'>
+            {productData.releaseDate || 'Historical Issue'}
+        </p>
+    </div>
+
+    {/* TOP CATEGORIES */}
+    <div className='bg-gray-50 rounded-2xl p-4 transition-all hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-100'>
+        <div className='flex items-center gap-2 mb-1.5'>
+            <Tag size={12} className='text-[#BC002D]' />
+            <p className='text-[8px] font-black text-[#BC002D] tracking-widest uppercase'>Classifications</p>
+        </div>
+        <div className='flex flex-wrap gap-1'>
+            {productData.category && productData.category.length > 0 ? (
+                productData.category.slice(0, 3).map((cat, index) => (
+                    <span key={index} className='text-[10px] font-black text-gray-900 bg-gray-200/50 px-1.5 py-0.5 rounded-md capitalize'>
+                        {cat}
+                    </span>
+                ))
+            ) : (
+                <p className='text-[11px] font-black text-gray-900'>General</p>
+            )}
+        </div>
     </div>
 </div>
 

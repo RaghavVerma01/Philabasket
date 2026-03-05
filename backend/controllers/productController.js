@@ -182,6 +182,12 @@ const bulkAddProducts = async (req, res) => {
                 const mPrice = Number(String(row.marketPrice || 0).replace(/[^0-9.]/g, '')) || 0;
                 const rowPrice = Number(String(row.price || 0).replace(/[^0-9.]/g, ''));
                 const finalPrice = rowPrice || mPrice;
+                const cleanDate = (val) => {
+                    const raw = clean(val);
+                    // Basic check: if it's 10 chars and has slashes, keep it. 
+                    // Otherwise, default to a placeholder or empty string to trigger your schema validator
+                    return /^\d{2}\/\d{2}\/\d{4}$/.test(raw) ? raw : "01/01/" + (row.year || "2026");
+                };
 
                 stamps.push({
                     name: nameTrimmed,
@@ -190,6 +196,7 @@ const bulkAddProducts = async (req, res) => {
                     price: finalPrice,
                     image: productImages,
                     youtubeUrl: clean(row.youtubeUrl),
+                    releaseDate: cleanDate(row.releaseDate),
                     category: parsedCategory,
                     year: Number(row.year) || 0,
                     country: clean(row.country) || "India",
@@ -363,7 +370,7 @@ const listProducts = async (req, res) => {
         // countDocuments(query) now accurately reflects the current tab (Active or Trash)
         const [products, total] = await Promise.all([
             productModel.find(query)
-                .select('name price marketPrice image category country condition year stock date bestseller description youtubeUrl isActive isLatest newArrival producedCount')
+                .select('name price marketPrice image category country condition year stock date bestseller description youtubeUrl releaseDate isActive isLatest newArrival producedCount')
                 .sort(sortOrder)
                 .skip(skip)
                 .limit(limit)
@@ -402,7 +409,7 @@ const addProduct = async (req, res) => {
     try {
         const { 
             name, description, price, marketPrice, category, 
-            year, condition, country, stock, producedCount,
+            year, condition, country, stock, producedCount,releaseDate,
             bestseller, newArrival, imageName 
         } = req.body;
 
@@ -441,6 +448,7 @@ const addProduct = async (req, res) => {
             // STRICT BOOLEAN CHECK: Defaults to false unless string "true" is passed
             bestseller: bestseller === "true", 
             newArrival: newArrival === "true", // New Field
+            releaseDate: releaseDate || "",
             image: imagesUrl,
             date: Date.now()
         });
@@ -688,6 +696,19 @@ const updateProduct = async (req, res) => {
         
         if (updateData.stock !== undefined) {
             updateData.stock = Number(updateData.stock);
+        }
+        if (updateData.releaseDate) {
+            // Trim whitespace to avoid regex validation errors
+            updateData.releaseDate = updateData.releaseDate.trim();
+            
+            // Optional: Basic server-side check before hitting the DB validator
+            const dateRegex = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+            if (!dateRegex.test(updateData.releaseDate)) {
+                return res.json({ 
+                    success: false, 
+                    message: "Invalid date format. Please use DD/MM/YYYY." 
+                });
+            }
         }
 
         if (updateData.producedCount !== undefined) {

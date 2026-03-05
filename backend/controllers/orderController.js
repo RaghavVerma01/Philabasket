@@ -669,6 +669,16 @@ export const singleOrder = async (req, res) => {
 
 // Don't forget to export it!
 
+const updateInvoiceStatus = async (req, res) => {
+    try {
+        const { orderId, status } = req.body;
+        await orderModel.findByIdAndUpdate(orderId, { allowInvoice: status });
+        res.json({ success: true, message: "Invoice visibility updated" });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
 
 
 
@@ -744,4 +754,4 @@ export  const syncLegacyOrderDetails = async (req, res) => {
 
 
 
-export { verifyRazorpay, verifyStripe, placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getAdminDashboardStats, getDetailedAnalytics, updateStock, cancelOrder };
+export { verifyRazorpay, updateInvoiceStatus,verifyStripe, placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, getAdminDashboardStats, getDetailedAnalytics, updateStock, cancelOrder };
