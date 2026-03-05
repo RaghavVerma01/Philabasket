@@ -151,50 +151,53 @@ const Navbar = () => {
 
                 {/* UTILITIES (Desktop) */}
                 <div className='flex items-center gap-4 lg:gap-6'>
-                    
-                    {/* POINTS & CURRENCY TOGGLE (Desktop Only) */}
-                    {/* <div className='hidden lg:flex items-center gap-4 bg-gray-50 px-4 py-2 rounded-full border border-gray-100'>
-                        <div className='flex items-center gap-2 border-r border-gray-200 pr-3 cursor-pointer' onClick={() => navigate('/rewards')}>
-                            <Gift size={14} className='text-[#BC002D]' />
-                            <p className='text-[10px] font-black text-gray-900'>{userPoints || 0} <span className='text-[8px] text-gray-400'>PTS</span></p>
-                        </div>
-                        <div className='flex items-center gap-1'>
-                            {['INR', 'USD'].map((curr) => (
-                                <button key={curr} onClick={() => toggleCurrency(curr)} className={`text-[9px] font-black px-2 py-0.5 rounded-md transition-all ${currency === curr ? 'bg-black text-white' : 'text-gray-400'}`}>{curr}</button>
-                            ))}
-                        </div>
-                    </div> */}
 
-                    <div className='group relative flex flex-col items-center'>
-                        <Search onClick={() => { setShowSearch(true); navigate('/collection') }} size={18} className='cursor-pointer text-gray-400 hover:text-[#BC002D]' />
-                        <div className='absolute top-8 scale-0 transition-all rounded bg-black px-2 py-1 text-[7px] font-black text-white group-hover:scale-100 uppercase tracking-widest z-[100]'>Search</div>
-                    </div>
-                    
-                    <Link to='/wishlist' className='relative hidden md:block group flex flex-col items-center'>
-                        <Heart size={18} className={wishlist.length > 0 ? 'fill-[#BC002D] text-[#BC002D]' : 'text-gray-400 hover:text-[#BC002D]'} />
-                        {wishlist.length > 0 && <span className='absolute -top-2 -right-2 bg-black text-white text-[7px] w-4 h-4 rounded-full flex items-center justify-center font-black'>{wishlist.length}</span>}
-                    </Link>
+    {/* SEARCH ICON (Already working) */}
+    <div className='group relative flex flex-col items-center'>
+        <Search onClick={() => { setShowSearch(true); navigate('/collection') ; window.scroll(0,0) }} size={18} className='cursor-pointer text-gray-400 hover:text-[#BC002D]' />
+        <div className='absolute top-8 scale-0 transition-all rounded bg-black px-2 py-1 text-[7px] font-black text-white group-hover:scale-100 uppercase tracking-widest z-[100]'>Search</div>
+    </div>
+    
+    {/* WISHLIST ICON - Tooltip added */}
+    <Link to='/wishlist' onClick={()=>{window.scroll(0,0)}} className='relative hidden md:block group flex flex-col items-center'>
+        <Heart size={18} className={wishlist.length > 0 ? 'fill-[#BC002D] text-[#BC002D]' : 'text-gray-400 hover:text-[#BC002D]'} />
+        {wishlist.length > 0 && <span className='absolute -top-2 -right-2 bg-black text-white text-[7px] w-4 h-4 rounded-full flex items-center justify-center font-black'>{wishlist.length}</span>}
+        <div className='absolute top-8 scale-0 transition-all rounded bg-black px-2 py-1 text-[7px] font-black text-white group-hover:scale-100 uppercase tracking-widest z-[100]'>Wishlist</div>
+    </Link>
 
-                    <div className='group relative hidden md:block'>
-                        <User onClick={() => token ? null : navigate('/login')} size={18} className='cursor-pointer text-gray-400 hover:text-black' />
-                        {token && (
-                            <div className='group-hover:block hidden absolute right-0 pt-5 w-48 z-[110]'>
-                                <div className='bg-white border-t-2 border-[#BC002D] p-5 shadow-2xl rounded-br-[30px]'>
-                                    <p onClick={() => navigate('/profile')} className='text-[9px] font-black text-gray-400 cursor-pointer hover:text-[#BC002D] mb-4 uppercase flex items-center gap-2'><User size={12} /> Account</p>
-                                    <p onClick={() => navigate('/orders')} className='text-[9px] font-black text-gray-400 cursor-pointer hover:text-[#BC002D] mb-4 uppercase flex items-center gap-2'><Package size={12} /> My Orders</p>
-                                    <p onClick={logout} className='text-[9px] text-[#BC002D] cursor-pointer font-black uppercase flex items-center gap-2'><LogOut size={12} /> Sign Out</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-
-                    <Link to='/cart' className='relative group flex flex-col items-center'>
-                        <div className='bg-black p-2 rounded-sm hover:bg-[#BC002D] transition-all'><ShoppingBag size={16} className='text-white' /></div>
-                        <p className='absolute -right-1.5 -top-1.5 w-4 h-4 text-[8px] flex items-center justify-center bg-[#BC002D] text-white rounded-full font-black'>{getCartCount()}</p>
-                    </Link>
-
-                    <Menu onClick={() => setVisible(true)} size={22} className='cursor-pointer xl:hidden text-gray-900' /> 
+    {/* USER ICON - Added group and tooltip for Login case */}
+    <div className='group relative hidden md:block flex flex-col items-center'>
+        <User onClick={() => token ? null : navigate('/login')} size={18} className='cursor-pointer text-gray-400 hover:text-black' />
+        {!token && (
+            <div className='absolute top-8 scale-0 transition-all rounded bg-black px-2 py-1 text-[7px] font-black text-white group-hover:scale-100 uppercase tracking-widest z-[100]'>Login</div>
+        )}
+        {token && (
+            <div className='group-hover:block hidden absolute right-0 pt-5 w-48 z-[110]'>
+                <div className='bg-white border-t-2 border-[#BC002D] p-5 shadow-2xl rounded-br-[30px]'>
+                    <p onClick={() => navigate('/profile')} className='text-[9px] font-black text-gray-400 cursor-pointer hover:text-[#BC002D] mb-4 uppercase flex items-center gap-2'><User size={12} /> Account</p>
+                    <p onClick={() => navigate('/orders')} className='text-[9px] font-black text-gray-400 cursor-pointer hover:text-[#BC002D] mb-4 uppercase flex items-center gap-2'><Package size={12} /> My Orders</p>
+                    <p onClick={logout} className='text-[9px] text-[#BC002D] cursor-pointer font-black uppercase flex items-center gap-2'><LogOut size={12} /> Sign Out</p>
                 </div>
+            </div>
+        )}
+    </div>
+
+    {/* CART ICON - Updated to use setShowSideCart(true) and tooltip added */}
+    <div 
+        onClick={() => {navigate('/cart')
+            window.scroll(0,0)
+        }} 
+        className='relative group flex flex-col items-center cursor-pointer'
+    >
+        <div className='bg-black p-2 rounded-sm hover:bg-[#BC002D] transition-all'>
+            <ShoppingBag size={16} className='text-white' />
+        </div>
+        <p className='absolute -right-1.5 -top-1.5 w-4 h-4 text-[8px] flex items-center justify-center bg-[#BC002D] text-white rounded-full font-black'>{getCartCount()}</p>
+        <div className='absolute top-10 scale-0 transition-all rounded bg-black px-2 py-1 text-[7px] font-black text-white group-hover:scale-100 uppercase tracking-widest z-[100]'>Cart</div>
+    </div>
+
+    <Menu onClick={() => setVisible(true)} size={22} className='cursor-pointer xl:hidden text-gray-900' /> 
+</div>
             </div>
 
             {/* --- MOBILE DRAWER --- */}
