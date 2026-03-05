@@ -52,7 +52,7 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
     e.stopPropagation(); 
     if (isOutOfStock) return; // Prevention logic
     addToCart(productId, 1);
-    toast.success("Added to Registry", { position: "bottom-right", autoClose: 1500 });
+    // toast.success("Added to Registry", { position: "bottom-right", autoClose: 1500 });
   };
 
   const handleBuyNow = async (e) => {

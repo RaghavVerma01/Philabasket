@@ -12,6 +12,10 @@ import UtilityBar from './components/UtilityBar';
 import ChatBot from './components/ChatBot';
 import Updates from './pages/Update';
 import RewardHistory from './pages/RewardHistory';
+// import PrivacyPolicy from './pages/Legal';
+import Legal from './pages/Legal';
+import FaceValueSubscription from './pages/FaceValusSubscription';
+import SideCart from './components/SideCart';
 // import Rewards from './pages/Rewards';
 const Rewards=lazy(()=>import('./pages/Rewards'))
 
@@ -43,6 +47,8 @@ const App = () => {
       {/* Navbar and SearchBar are now part of the main bundle for instant interaction */}
       <Navbar />
       <SearchBar />
+      <SideCart/>
+
 
       <Suspense fallback={
         <div className='h-[60vh] flex flex-col items-center justify-center bg-[#0a0a0a] text-[#BC002D]'>
@@ -76,6 +82,10 @@ const App = () => {
           <Route path='/ship' element={<Shipping/>} />
           <Route path='/updates' element={<Updates/>} />
           <Route path='/history' element={<RewardHistory/>}/>
+          <Route path='/privacy' element={<Legal />} />
+          <Route path='/membership' element={<FaceValueSubscription />} />
+
+
 
 
 

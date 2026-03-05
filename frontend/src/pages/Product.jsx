@@ -75,6 +75,15 @@ const Product = () => {
   const hasVideo = productData && productData.youtubeUrl;
   const totalMedia = allImages.length + (hasVideo ? 1 : 0);
   const isVideoActive = hasVideo && activeIndex === allImages.length;
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0, show: false });
+
+const handleMouseMove = (e) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    // Calculate percentage position of mouse relative to image
+    const x = ((e.pageX - left - window.scrollX) / width) * 100;
+    const y = ((e.pageY - top - window.scrollY) / height) * 100;
+    setZoomPos({ x, y, show: true });
+};
 
   const goTo = (index) => {
     setActiveIndex(index);
@@ -184,20 +193,48 @@ const Product = () => {
                     <p className='text-[10px] font-black text-white/60 uppercase tracking-widest'>Play Archive Film</p>
                   </div>
                 ) : (
-                  <>
-                    {!isMainLoaded && (
-                      <div className='absolute inset-0 flex items-center justify-center'>
-                        <div className='w-8 h-8 border-2 border-[#BC002D]/30 border-t-[#BC002D] rounded-full animate-spin'></div>
-                      </div>
-                    )}
-                    <img
-                      key={allImages[activeIndex]}
-                      onLoad={() => setIsMainLoaded(true)}
-                      className={`max-w-full max-h-full w-full h-full object-contain drop-shadow-xl transition-all duration-700 ${isMainLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.97]'}`}
-                      src={allImages[activeIndex]}
-                      alt={productData.name}
-                    />
-                  </>
+                  
+
+// ... inside your return/render block
+
+<div 
+    className="relative w-full h-full overflow-hidden cursor-zoom-in group"
+    onMouseMove={handleMouseMove}
+    onMouseLeave={() => setZoomPos({ ...zoomPos, show: false })}
+>
+    {!isMainLoaded && (
+        <div className='absolute inset-0 flex items-center justify-center'>
+            <div className='w-8 h-8 border-2 border-[#BC002D]/30 border-t-[#BC002D] rounded-full animate-spin'></div>
+        </div>
+    )}
+    
+    <img
+        key={allImages[activeIndex]}
+        onLoad={() => setIsMainLoaded(true)}
+        className={`max-w-full max-h-full w-full h-full object-contain drop-shadow-xl transition-all duration-700 ${isMainLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-[0.97]'}`}
+        src={allImages[activeIndex]}
+        alt={productData.name}
+    />
+
+    {/* MAGNIFIER LENS */}
+    {isMainLoaded && zoomPos.show && (
+        <div 
+            className="pointer-events-none absolute hidden lg:block border-2 border-white/50 shadow-2xl rounded-full"
+            style={{
+                width: '200px',
+                height: '200px',
+                left: `${zoomPos.x}%`,
+                top: `${zoomPos.y}%`,
+                transform: 'translate(-50%, -50%)',
+                backgroundImage: `url(${allImages[activeIndex]})`,
+                backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
+                backgroundSize: '600%', // Adjust this for zoom level (e.g., 400% = 4x zoom)
+                backgroundRepeat: 'no-repeat',
+                zIndex: 20
+            }}
+        />
+    )}
+</div>
                 )}
 
                 <span className='absolute top-4 left-4 w-5 h-5 border-t-2 border-l-2 border-[#BC002D]/10 rounded-tl-lg pointer-events-none'></span>

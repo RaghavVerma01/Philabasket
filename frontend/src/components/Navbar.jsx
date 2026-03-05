@@ -287,34 +287,60 @@ const Navbar = () => {
 
                             {/* Dynamic Categories */}
                             <div className='space-y-4'>
-                                <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-[0.6em] mb-4'>Categories</p>
-                                {headerData.navMenu.map((menu, idx) => (
-                                    <div key={idx} className='border-b border-gray-100 pb-2'>
-                                        <div onClick={() => setExpandedMenu(expandedMenu === idx ? null : idx)} className='flex items-center justify-between py-2 cursor-pointer'>
-                                            <p className='text-xl font-bold tracking-tighter text-gray-900 capitalize'>{menu.title}</p>
-                                            <ChevronRight size={18} className={`transition-transform duration-300 ${expandedMenu === idx ? 'rotate-90 text-[#BC002D]' : ''}`} />
-                                        </div>
-                                        {expandedMenu === idx && (
-                                            <div className='mt-4 space-y-4 pl-2'>
-                                                {menu.groups.map((group, gIdx) => (
-                                                    <div key={gIdx}>
-                                                        {group.groupName && <p className='text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2'>{group.groupName}</p>}
-                                                        <div className='flex flex-col gap-3'>
-                                                            {group.items.map((item, iIdx) => (
-                                                                <Link key={iIdx} to={`/collection?category=${encodeURIComponent(item)}`} onClick={() => setVisible(false)} className='text-[13px] font-bold text-gray-600'>{item}</Link>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+    <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-[0.6em] mb-4'>Categories</p>
+
+    {/* --- NEW: TOP-LEVEL UPDATES LINK --- */}
+    
+
+    {/* --- EXISTING DYNAMIC CATEGORIES --- */}
+    {headerData.navMenu.map((menu, idx) => (
+        <div key={idx} className='border-b border-gray-100 pb-2'>
+            <div onClick={() => setExpandedMenu(expandedMenu === idx ? null : idx)} className='flex items-center justify-between py-2 cursor-pointer'>
+                <p className='text-xl font-bold tracking-tighter text-gray-900 capitalize'>{menu.title}</p>
+                <ChevronRight size={18} className={`transition-transform duration-300 ${expandedMenu === idx ? 'rotate-90 text-[#BC002D]' : 'text-[#BC002D]'}`} />
+            </div>
+            
+            {expandedMenu === idx && (
+                <div className='mt-4 space-y-4 pl-2 animate-in fade-in slide-in-from-top-2 duration-300'>
+                    {menu.groups.map((group, gIdx) => (
+                        <div key={gIdx}>
+                            {group.groupName && <p className='text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2'>{group.groupName}</p>}
+                            <div className='flex flex-col gap-3'>
+                                {group.items.map((item, iIdx) => (
+                                    <Link key={iIdx} to={`/collection?category=${encodeURIComponent(item)}`} onClick={() => setVisible(false)} className='text-[13px] font-bold text-gray-600 hover:text-[#BC002D] transition-colors'>{item}</Link>
                                 ))}
                             </div>
                         </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    ))}
+    <div className='border-b border-gray-100 pb-2'>
+        <div 
+            onClick={() => {
+                navigate('/updates');
+                setVisible(false);
+            }} 
+            className='flex items-center justify-between py-2 cursor-pointer group'
+        >
+            <p className='text-xl font-bold tracking-tighter text-gray-900 capitalize group-hover:text-[#BC002D] transition-colors'>
+                Updates
+            </p>
+            <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2">
+                    {/* <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#BC002D] opacity-75"></span> */}
+                    {/* <span className="relative inline-flex rounded-full h-2 w-2 bg-[#BC002D]"></span> */}
+                </span>
+                <ChevronRight size={18} className="text-[#BC002D]" />
+            </div>
+        </div>
+    </div>
+</div>
+                        </div>
 
                         <div className='p-8'>
-                            <button onClick={() => {toggleCurrency(currency === 'INR' ? 'USD' : 'INR')}} className='w-full mb-3 py-3 border border-gray-200 rounded-xl text-[9px] font-black uppercase tracking-widest'>Switch to {currency === 'INR' ? 'USD' : 'INR'}</button>
+                            <button onClick={() => {toggleCurrency(currency === 'INR' ? 'USD' : 'INR')}} className='w-full mb-3 py-3 border border-gray-200 rounded-xl text-[9px] text-black uppercase tracking-widest'>Switch to {currency === 'INR' ? 'USD' : 'INR'}</button>
                             {token ? (
                                 <button onClick={() => {logout(); setVisible(false)}} className='w-full py-5 bg-gray-900 text-white text-[11px] font-black uppercase tracking-[0.4em] rounded-xl flex items-center justify-center gap-2'><LogOut size={14}/> Logout</button>
                             ) : (

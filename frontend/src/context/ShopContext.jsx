@@ -28,14 +28,51 @@ const ShopContextProvider = (props) => {
     const [userPoints, setUserPoints] = useState(0);
     const [cartItems, setCartItems] = useState({});
     const [wishlist, setWishlist] = useState([]);
+    const [showSideCart, setShowSideCart] = useState(false);
+
+
+
+
+    // Add this inside your ShopContextProvider
+const fetchLiveExchangeRate = async () => {
+    try {
+        // You can get a free API key at exchangerate-api.com
+        // For public testing, we'll use their open endpoint
+        const response = await axios.get('https://open.er-api.com/v6/latest/USD');
+        
+        if (response.data && response.data.rates && response.data.rates.INR) {
+            const liveRate = response.data.rates.INR;
+            setExchangeRate(Number(liveRate));
+            console.log(`Registry Protocol: Live USD/INR Rate synced at ${liveRate}`);
+        }
+    } catch (error) {
+        console.error("External Exchange API offline: Falling back to Admin Settings.");
+        // If live API fails, we fall back to your database admin settings
+        fetchAdminSettings();
+    }
+};
+
+// Update your Startup Logic
+useEffect(() => {
+    getProductsData();
+    fetchLiveExchangeRate(); // Sync live rates on load
+    
+    const storedToken = localStorage.getItem('token');
+    if (storedToken) {
+        setToken(storedToken);
+        fetchUserData(storedToken);
+        getUserCart(storedToken);
+        getWishlistData(storedToken);
+    }
+}, []);
 
     // --- FETCH ADMIN SETTINGS FROM DATABASE ---
     const fetchAdminSettings = async () => {
         try {
             const response = await axios.get(backendUrl + '/api/admin/settings');
             if (response.data.success) {
-                const { rate, indiaFee, globalFee } = response.data.settings;
-                setExchangeRate(Number(rate));
+                const { indiaFee, globalFee } = response.data.settings;
+                // setExchangeRate(Number(rate));
                 setDeliveryFees({ 
                     india: Number(indiaFee), 
                     global: Number(globalFee) 
@@ -136,6 +173,7 @@ const ShopContextProvider = (props) => {
         }
     
         setCartItems(cartData);
+        setShowSideCart(true);
     
         if (token) {
             try {
@@ -229,7 +267,8 @@ const ShopContextProvider = (props) => {
         getCartCount, updateQuantity, getCartAmount, 
         navigate, backendUrl, setToken, token,
         userPoints, setUserPoints, userData, fetchUserData,
-        toggleWishlist, wishlist, getWishlistData 
+        toggleWishlist, wishlist, getWishlistData ,showSideCart, 
+        setShowSideCart
     };
 
     return (

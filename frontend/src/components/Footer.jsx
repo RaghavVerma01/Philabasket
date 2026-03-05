@@ -1,7 +1,7 @@
 import React from 'react'
 import { assets } from '../assets/assets'
 import { Link } from 'react-router-dom'
-import { ShieldCheck, Lock, Globe, ArrowUpRight } from 'lucide-react'
+import { ShieldCheck, Lock, Globe, ArrowUpRight,MapPin,Phone,Mail } from 'lucide-react'
 
 const Footer = () => {
   return (
@@ -72,52 +72,54 @@ const Footer = () => {
 
           {/* Navigation Columns */}
           {[
-            {
-              title: 'Registry index',
-              links: [
-                {label: 'Membership referral', path: '/referral'}, 
-                {label: 'Collector rewards', path: '/rewards'}, 
-                {label: 'Archive blogs', path: '/blogs'}
-              ]
-            },
-            {
-              title: 'Curator support',
-              links: [
-                {label: 'Contact us', path: '/about'}, 
-                {label: 'Shipping policy', path: '/ship'}, 
-                {label: 'Terms and condition', path: '/terms'}, 
-                {label: 'Frequently asked questions', path: '/faq'}
-              ]
-            },
-            {
-              title:"Contact info",
-              links: [
-                {label:"New Delhi, 110092 India"},
-                {label:"Phone: +91 9999167799"},
-                {label:"Email: admin@philabasket.com"}
-              ]
-            }
-          ].map((column, idx) => (
-            <div key={idx} className="lg:ml-auto">
-              <h4 className="text-[#BC002D] text-[12px] font-bold tracking-tight mb-8">
-                {column.title}
-              </h4>
-              <ul className="flex flex-col gap-4">
-                {column.links.map((link, lIdx) => (
-                  <li key={lIdx}>
-                    <Link 
-                      to={link.path || "#"}
-                      onClick={() => window.scrollTo(0, 0)}
-                      className="text-gray-600  text-[13px] font-medium text-[#2C2E3E] transition-all duration-300 flex items-center gap-1 group w-fit"
-                    >
-                      {link.label}
-                      {link.path && <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-100 transition-all" />}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+  {
+    title: 'Registry index',
+    links: [
+      { label: 'Membership ', path: '/membership' },
+      
+      { label: 'Referral', path: '/referral' },
+      { label: 'Rewards', path: '/rewards' },
+      { label: 'Archive blogs', path: '/blogs' },
+      { label: 'Shipping policy', path: '/ship' },
+      { label: 'Terms and condition', path: '/terms' },
+      { label: 'Privacy Policy', path: '/privacy' }, // Fixed safe path
+      { label: 'Frequently asked questions', path: '/faq' },
+      // { label: 'About the Archive', path: '/about' },
+    ]
+  },
+  {
+    title: "Official Contact",
+    links: [
+      { label: "New Delhi, 110092 India", icon: <MapPin size={12} /> },
+      { label: "+91 9999167799", path: "tel:+919999167799", icon: <Phone size={12} /> },
+      { label: "admin@philabasket.com", path: "mailto:admin@philabasket.com", icon: <Mail size={12} /> }
+    ]
+  }
+].map((column, idx) => (
+  <div key={idx} className="lg:ml-auto">
+    <h4 className="text-[#BC002D] text-[11px] font-black uppercase tracking-[0.2em] mb-8">
+      {column.title}
+    </h4>
+    <ul className="flex flex-col gap-3">
+      {column.links.map((link, lIdx) => (
+        <li key={lIdx}>
+          <Link
+            to={link.path || "#"}
+            onClick={() => window.scrollTo(0, 0)}
+            className="text-gray-600 hover:text-[#BC002D] text-[13px] font-medium transition-all duration-300 flex items-center gap-2 group w-fit"
+          >
+            {/* Show icon for contact info, otherwise show arrow on hover for registry links */}
+            {link.icon && <span className="text-gray-400">{link.icon}</span>}
+            {link.label}
+            {link.path && !link.icon && (
+              <ArrowUpRight size={10} className="opacity-0 group-hover:opacity-100 transition-all translate-y-0.5" />
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+))}
         </div>
 
         {/* Separator */}
@@ -126,27 +128,11 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div className="flex flex-col items-center md:items-start gap-2">
-            <div className='flex items-center gap-2'>
-               <Globe size={12} className="text-[#BC002D]" />
-               <p className="text-gray-900 text-[12px] font-bold">
-                 Verified Global Archive
-               </p>
-            </div>
             <p className="text-gray-400 text-[11px] font-medium">
               © 2026 PhilaBasket Sovereign. All rights reserved.
             </p>
           </div>
           
-          <div className="flex gap-8">
-            {['Privacy', 'Terms', 'Security'].map((legal) => (
-              <span 
-                key={legal}
-                className="text-[12px] font-semibold text-gray-900 hover:text-white transition-colors cursor-pointer"
-              >
-                {legal}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </footer>
