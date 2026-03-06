@@ -6,7 +6,7 @@ import {
   Search, Trash2, Edit3, X, Image as ImageIcon, Video, 
   Layers, Tag, Save, Eye, Youtube, Pin, Power, PowerOff, 
   EyeOff, Star, Zap, Filter, ChevronLeft, ChevronRight, 
-  RotateCcw, AlertTriangle, Package, Folder, FileText,CheckCircle,Plus,ChevronDown,CreditCard
+  RotateCcw, AlertTriangle, Package, Folder, FileText,CheckCircle,Plus,ChevronDown,CreditCard,Award
 } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 80;
@@ -249,6 +249,7 @@ const filteredMedia = useMemo(() => {
         newArrival: item.newArrival || false,
         producedCount: item.producedCount || 0,
         condition: item.condition || "Used",
+        isFeatured: item.isFeatured || false, // Add this line
         category: item.category || []
     });
     setIsModalOpen(true);
@@ -264,6 +265,7 @@ const filteredMedia = useMemo(() => {
         marketPrice: Number(editFormData.marketPrice),
         stock: Number(editFormData.stock),
         producedCount: Number(editFormData.producedCount),
+        isFeatured: editFormData.isFeatured, // Ensure it's passed in the payload
       }, { headers: { token } });
   
       if (res.data.success) {
@@ -347,6 +349,18 @@ const filteredMedia = useMemo(() => {
         </button>
       </div>
 
+      {/* Inside the cmd-bar div, alongside Best and New actions */}
+<div className='flex bg-white/5 p-1 rounded-xl border border-white/10 gap-1'>
+  <button onClick={() => bulkAttribute('isFeatured', true)}
+    className='flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all'>
+    <Power size={10} fill="white"/> + Feature
+  </button>
+  <button onClick={() => bulkAttribute('isFeatured', false)}
+    className='flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-indigo-400 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all'>
+    <X size={10}/> − Feature
+  </button>
+</div>
+
       <div className='w-px h-8 bg-white/10 mx-1'/>
 
       {/* Bulk move to trash */}
@@ -398,6 +412,11 @@ const filteredMedia = useMemo(() => {
                                           <Zap size={8} className="fill-blue-700"/> New
                                       </span>
                                   )}
+                                  {item.isFeatured && (
+    <span className="flex items-center gap-0.5 bg-indigo-100 text-indigo-700 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">
+        <Award size={8} className="fill-indigo-700"/> Featured
+    </span>
+)}
                               </div>
                               
                               <p className='text-[10px] text-gray-400 font-semibold uppercase tracking-wide'>
@@ -641,6 +660,18 @@ const filteredMedia = useMemo(() => {
         <div className='flex justify-between'><span className='text-[8px] font-black uppercase text-gray-400'>New</span><Zap size={12} className={editFormData.newArrival ? "text-blue-500 fill-blue-500" : "text-gray-200"}/></div>
         <span className={`text-[10px] font-black uppercase ${editFormData.newArrival ? "text-blue-600" : "text-gray-400"}`}>{editFormData.newArrival ? "Active" : "Off"}</span>
       </button>
+
+      {/* Inside the modal, under Registry Attributes grid */}
+<button type="button" onClick={() => setEditFormData({ ...editFormData, isFeatured: !editFormData.isFeatured })}
+  className={`flex flex-col gap-1 p-3 border-2 rounded-2xl text-left transition-all col-span-2 ${editFormData.isFeatured ? "bg-indigo-50 border-indigo-300" : "bg-gray-50 border-gray-100"}`}>
+  <div className='flex justify-between'>
+    <span className='text-[8px] font-black uppercase text-gray-400'>Featured Specimen</span>
+    <Award size={12} className={editFormData.isFeatured ? "text-indigo-500 fill-indigo-500" : "text-gray-200"}/>
+  </div>
+  <span className={`text-[10px] font-black uppercase ${editFormData.isFeatured ? "text-indigo-600" : "text-gray-400"}`}>
+    {editFormData.isFeatured ? "Promoted in Archive" : "Standard Listing"}
+  </span>
+</button>
     </div>
 
     {/* Condition Registry */}

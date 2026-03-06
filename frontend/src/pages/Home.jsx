@@ -7,9 +7,10 @@ import OurPolicy from '../components/OurPolicy'
 import NewsletterBox from '../components/NewsletterBox'
 import NewHero from '../components/NewHero'
 import Banner from '../components/Banner'
-import FeaturedCategories from '../components/FeaturedCategory'
+// import FeaturedCategories from '../components/FeaturedCategory'
 import Testimonials from '../components/Testimonila'
 import StampCategoryScroll from '../components/StampCategoryScroll'
+import FeaturedProducts from '../components/FeaturedProducts'
 
 const Home = () => {
   const latestCollectionRef = useRef(null);
@@ -24,7 +25,7 @@ const Home = () => {
 
       <StampCategoryScroll/>
 
-      <FeaturedCategories/>
+      <FeaturedProducts/>
 
       {/* 2. THE DISCOVERY: What is new in the archive today */}
       <div ref={latestCollectionRef}>

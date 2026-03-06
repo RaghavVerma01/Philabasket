@@ -259,9 +259,9 @@ const LatestCollection = () => {
                     </div>
                     <button 
                         onClick={() => navigate('/collection')}
-                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 hover:text-[#BC002D] hover:border-[#BC002D] transition-all'
+                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 text-[#BC002D] hover:border-[#BC002D] transition-all'
                     >
-                        Explore Global Archive <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
+                        Explore All Products <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
                     </button>
                 </div>
         

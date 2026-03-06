@@ -312,6 +312,7 @@ const listProducts = async (req, res) => {
             includeHidden, 
             onlyHidden, // New parameter for Trash view
             bestseller, 
+            isFeatured,
             newArrival 
         } = req.query;
         
@@ -337,6 +338,7 @@ const listProducts = async (req, res) => {
         if (newArrival === 'true') {
             query.newArrival = true;
         }
+        if (isFeatured === 'true') query.isFeatured = true;
 
         // --- 2. LAYERED FILTERS (Search & Categories) ---
         if (search) {
@@ -370,7 +372,7 @@ const listProducts = async (req, res) => {
         // countDocuments(query) now accurately reflects the current tab (Active or Trash)
         const [products, total] = await Promise.all([
             productModel.find(query)
-                .select('name price marketPrice image category country condition year stock date bestseller description youtubeUrl releaseDate isActive isLatest newArrival producedCount')
+                .select('name price marketPrice image category country condition year stock date bestseller description youtubeUrl releaseDate isActive isLatest newArrival producedCount isFeatured')
                 .sort(sortOrder)
                 .skip(skip)
                 .limit(limit)
@@ -410,7 +412,7 @@ const addProduct = async (req, res) => {
         const { 
             name, description, price, marketPrice, category, 
             year, condition, country, stock, producedCount,releaseDate,
-            bestseller, newArrival, imageName 
+            bestseller, newArrival, imageName ,isFeatured
         } = req.body;
 
         let imagesUrl = [];
@@ -446,7 +448,8 @@ const addProduct = async (req, res) => {
             country,
             stock: Number(stock),
             // STRICT BOOLEAN CHECK: Defaults to false unless string "true" is passed
-            bestseller: bestseller === "true", 
+            bestseller: bestseller === "true",
+            isFeatured: isFeatured === "true", 
             newArrival: newArrival === "true", // New Field
             releaseDate: releaseDate || "",
             image: imagesUrl,
@@ -473,39 +476,58 @@ export const bulkUpdateAttributes = async (req, res) => {
     try {
         const { ids, field, value } = req.body;
 
-        const allowedFields = ['bestseller', 'newArrival', 'isActive', 'isLatest'];
+        // 1. Unified Permission List: Added 'isFeatured' to allowed fields
+        const allowedFields = ['bestseller', 'newArrival', 'isActive', 'isLatest', 'isFeatured'];
         if (!allowedFields.includes(field)) {
-            return res.json({ success: false, message: "Invalid attribute update" });
+            return res.json({ success: false, message: "Invalid attribute update protocol" });
         }
 
-        // --- NEW: Sync counts if field is isActive ---
+        // 2. Automated Category Sync: Logic for isActive updates
         if (field === 'isActive') {
-            const affectedProducts = await productModel.find({ _id: { $in: ids } }, 'category isActive').lean();
+            // Fetch affected specimens to calculate category deltas
+            const affectedProducts = await productModel.find(
+                { _id: { $in: ids } }, 
+                'category isActive'
+            ).lean();
+
             const categoryFreqMap = new Map();
 
             affectedProducts.forEach(p => {
+                // Only count items where the status is actually changing
                 if (p.isActive !== value && p.category) {
-                    p.category.forEach(cat => categoryFreqMap.set(cat, (categoryFreqMap.get(cat) || 0) + 1));
+                    p.category.forEach(cat => {
+                        categoryFreqMap.set(cat, (categoryFreqMap.get(cat) || 0) + 1);
+                    });
                 }
             });
 
+            // Prepare High-Performance Bulk Write Operations
             const categoryOps = Array.from(categoryFreqMap).map(([name, count]) => ({
                 updateOne: {
                     filter: { name },
+                    // Increment if activating, decrement if deactivating
                     update: { $inc: { productCount: value ? count : -count } }
                 }
             }));
 
-            if (categoryOps.length > 0) await categoryModel.bulkWrite(categoryOps);
+            if (categoryOps.length > 0) {
+                await categoryModel.bulkWrite(categoryOps);
+            }
         }
 
-        await productModel.updateMany(
+        // 3. Registry Execution: Update all selected IDs in a single call
+        const updateResult = await productModel.updateMany(
             { _id: { $in: ids } },
             { $set: { [field]: value } }
         );
 
-        res.json({ success: true, message: `Registry updated: ${field} set to ${value}` });
+        res.json({ 
+            success: true, 
+            message: `Registry updated: ${field} set to ${value} for ${updateResult.modifiedCount} specimens.` 
+        });
+
     } catch (error) {
+        console.error("Bulk Update Protocol Failure:", error);
         res.json({ success: false, message: error.message });
     }
 };
@@ -725,7 +747,7 @@ const updateProduct = async (req, res) => {
         }
 
         // Ensure boolean fields are correctly handled if sent from form data
-        ['bestseller', 'newArrival', 'isActive'].forEach(field => {
+        ['bestseller', 'newArrival', 'isActive','isFeatured'].forEach(field => {
             if (updateData[field] !== undefined) {
                 updateData[field] = updateData[field] === true || updateData[field] === 'true';
             }
