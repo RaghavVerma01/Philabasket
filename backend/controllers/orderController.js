@@ -431,7 +431,7 @@ const updateSoldCount = async (items) => {
 
 const updateStatus = async (req, res) => {
     try {
-        const { orderId, status, trackingNumber } = req.body;
+        const { orderId, status, trackingNumber ,shippedDate } = req.body;
         
         // Populate userId to get the user's current Tier
         const currentOrder = await orderModel.findById(orderId).populate('userId');
@@ -442,6 +442,7 @@ const updateStatus = async (req, res) => {
         let finalStatus = (trackingNumber && (status === 'Order Placed' || status === 'Packing')) ? 'Shipped' : status;
         const updateFields = { status: finalStatus };
         if (trackingNumber) updateFields.trackingNumber = trackingNumber;
+        if (shippedDate) updateFields.shippedDate = shippedDate;
 
         // --- UPDATED REWARD LOGIC: TIER BASED MULTIPLIER ---
         if (finalStatus === 'Delivered' && currentOrder.status !== 'Delivered') {
@@ -492,6 +493,8 @@ const updateStatus = async (req, res) => {
                 getOrderHtmlTemplate(currentOrder, null, trackingNumber) 
             );
         }
+
+        if (shippedDate) updateFields.shippedDate = shippedDate;
 
         res.json({ success: true, message: "Status Updated", currentStatus: finalStatus });
 

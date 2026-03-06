@@ -177,46 +177,57 @@ const Orders = () => {
       });
 
       // --- TOTALS & SUBSIDY SECTION ---
-      const finalY = doc.lastAutoTable.finalY + 10;
-      
-      const userCountry = (addr.country || "India").trim().toLowerCase();
-      const isIndia = userCountry === 'india';
-      
-      // Fetch dynamic fee from order object
-      const shippingCharge = order.deliveryFee !== undefined ? Number(order.deliveryFee) : (isIndia ? 125 : 750); 
-      
-      const couponDiscount = Number(order.discountAmount || 0);
-      const pointsDiscount = Number(order.pointsUsed || 0) / 10;
-      const finalPayable = Number(order.amount || 0);
+      // --- TOTALS & SUBSIDY SECTION ---
+const finalY = doc.lastAutoTable.finalY + 10;
 
-      autoTable(doc, {
-          startY: finalY,
-          margin: { left: 110 }, 
-          tableWidth: 85,
-          theme: 'plain', 
-          styles: { fontSize: 8, cellPadding: 2 },
-          body: [
-              ['Sub-Total (Base Items)', `Rs. ${totalBaseAmount.toFixed(2)}`],
-              ['IGST (5%)', `Rs. ${totalGSTAmount.toFixed(2)}`],
-              [`Shipping Charge (${isIndia ? 'Domestic' : 'Global'})`, `Rs. ${shippingCharge.toFixed(2)}`],
-              // Negative subsidy to cancel out the GST
-              [{ 
-                  content: 'Exclusive GST Subsidy (Shop Discount)', 
-                  styles: { textColor: [0, 128, 0], fontStyle: 'italic' } 
-              }, `Rs. -${totalGSTAmount.toFixed(2)}`],
-              [`Coupon Discount [${order.couponUsed || 'N/A'}]`, `Rs. -${couponDiscount.toFixed(2)}`],
-              [`Archive Credit [${order.pointsUsed || 0} PTS]`, `Rs. -${pointsDiscount.toFixed(2)}`],
-              [{ 
-                  content: 'Final Payable Amount', 
-                  styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45], borderTop: [0.1, 188, 0, 45] } 
-              }, 
-              { 
-                  content: `Rs. ${finalPayable.toFixed(2)}`, 
-                  styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45], borderTop: [0.1, 188, 0, 45] } 
-              }]
-          ],
-          columnStyles: { 1: { halign: 'right' } }
-      });
+const userCountry = (addr.country || "India").trim().toLowerCase();
+const isIndia = userCountry === 'india';
+
+// 1. DYNAMIC FREE SHIPPING LOGIC
+// Check if Sub-Total (Inclusive of GST) is > 4999
+const itemTotalInclGst = totalBaseAmount + totalGSTAmount;
+let shippingCharge = order.deliveryFee !== undefined ? Number(order.deliveryFee) : (isIndia ? 125 : 750);
+
+// If domestic order and items total > 4999, set shipping to 0
+if (isIndia && itemTotalInclGst > 4999) {
+    shippingCharge = 0;
+}
+
+const couponDiscount = Number(order.discountAmount || 0);
+const pointsDiscount = Number(order.pointsUsed || 0) / 10;
+const finalPayable = Number(order.amount || 0);
+
+autoTable(doc, {
+    startY: finalY,
+    margin: { left: 105 }, // Slightly adjusted for label space
+    tableWidth: 90,
+    theme: 'plain', 
+    styles: { fontSize: 8, cellPadding: 2 },
+    body: [
+        ['Sub-Total (Base Items)', `Rs. ${totalBaseAmount.toFixed(2)}`],
+        ['IGST (5%)', `Rs. ${totalGSTAmount.toFixed(2)}`],
+        [
+            `Shipping Charge (${isIndia ? 'Domestic' : 'Global'})`, 
+            shippingCharge === 0 ? 'FREE' : `Rs. ${shippingCharge.toFixed(2)}`
+        ],
+        // Negative subsidy to cancel out the GST
+        [{ 
+            content: 'Exclusive GST Subsidy (Shop Discount)', 
+            styles: { textColor: [0, 128, 0], fontStyle: 'italic' } 
+        }, `Rs. -${totalGSTAmount.toFixed(2)}`],
+        [`Coupon Discount [${order.couponUsed || 'N/A'}]`, `Rs. -${couponDiscount.toFixed(2)}`],
+        [`Archive Credit [${order.pointsUsed || 0} PTS]`, `Rs. -${pointsDiscount.toFixed(2)}`],
+        [{ 
+            content: 'Final Payable Amount', 
+            styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45], borderTop: [0.1, 188, 0, 45] } 
+        }, 
+        { 
+            content: `Rs. ${finalPayable.toFixed(2)}`, 
+            styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45], borderTop: [0.1, 188, 0, 45] } 
+        }]
+    ],
+    columnStyles: { 1: { halign: 'right' } }
+});
 
       // --- FOOTER ---
       const summaryY = doc.lastAutoTable.finalY + 15;

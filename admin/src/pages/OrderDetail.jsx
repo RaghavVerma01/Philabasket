@@ -32,6 +32,8 @@ const OrderDetail = ({ token }) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [allowInvoice, setAllowInvoice] = useState(false);
 const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
+const [shippedDate, setShippedDate] = useState('');
+const [orderStatus, setOrderStatus] = useState('');
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -42,6 +44,10 @@ const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
             setOrder(response.data.order);
             setTrackingId(response.data.order.trackingNumber || '');
             setAllowInvoice(response.data.order.allowInvoice || false);
+            setOrderStatus(response.data.order.status);
+            if (response.data.order.shippedDate) {
+              setShippedDate(new Date(response.data.order.shippedDate).toISOString().split('T')[0]);
+            }
         }
       } catch (err) { 
           console.error("API Fetch error:", err);
@@ -78,23 +84,40 @@ const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
     }
 };
 
-  const updateTracking = async () => {
-    if (!trackingId) return toast.error("Please enter a Tracking ID");
-    setIsUpdating(true);
-    try {
-        const response = await axios.post(backendUrl + '/api/order/status', {
-            orderId,
-            status: order.status,
-            trackingNumber: trackingId
-        }, { headers: { token } });
-        if (response.data.success) {
-            toast.success("Tracking ID updated successfully");
-            setOrder(prev => ({ ...prev, trackingNumber: trackingId }));
-        }
-    } catch (err) {
-        toast.error("Update failed");
-    } finally { setIsUpdating(false); }
-  };
+const updateTracking = async () => {
+  // 1. Logic Change: Don't block if trackingId is empty, 
+  // unless you are specifically moving to "Shipped" status.
+  if (orderStatus === 'Shipped' && !trackingId) {
+      return toast.error("Tracking ID is required for Shipped status");
+  }
+
+  setIsUpdating(true);
+  try {
+      const response = await axios.post(backendUrl + '/api/order/status', {
+          orderId,
+          status: orderStatus, // FIXED: Use the new state from your dropdown
+          trackingNumber: trackingId,
+          shippedDate: shippedDate ? new Date(shippedDate).getTime() : null
+      }, { headers: { token } });
+
+      if (response.data.success) {
+          toast.success("Registry updated successfully");
+          
+          // 2. Sync Local State
+          setOrder(prev => ({ 
+              ...prev, 
+              trackingNumber: trackingId,
+              status: orderStatus, // Now correctly reflects the dropdown choice
+              shippedDate: shippedDate ? new Date(shippedDate).getTime() : prev.shippedDate 
+          }));
+      }
+  } catch (err) {
+      console.error(err);
+      toast.error("Update failed");
+  } finally { 
+      setIsUpdating(false); 
+  }
+};
 
   const copyAddress = (addr) => {
     if (!addr) return;
@@ -291,30 +314,60 @@ const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
           <div style={styles.rightCol}>
 
             {/* Tracking */}
-            <div style={styles.card}>
-              <div style={styles.cardHeader}>
-                <span style={styles.cardTitle}>Shipment Tracking</span>
-                <Truck size={15} style={{ color: '#64748b' }} />
-              </div>
-              <div style={styles.cardBody}>
-                <label style={styles.inputLabel}>Tracking ID</label>
-                <div style={styles.inputWrap}>
-                  <Hash size={14} style={styles.inputIcon} />
-                  <input
-                    value={trackingId}
-                    onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
-                    placeholder="Enter tracking number"
-                    style={styles.input}
-                  />
-                </div>
-                <button onClick={updateTracking} disabled={isUpdating} className="btn-save" style={styles.saveBtn}>
-                  {isUpdating
-                    ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Updating…</>
-                    : <><Save size={13} /> Save Tracking ID</>
-                  }
-                </button>
-              </div>
-            </div>
+            {/* Tracking Card */}
+{/* Shipment Tracking Card */}
+<div style={styles.card}>
+  <div style={styles.cardHeader}>
+    <span style={styles.cardTitle}>Logistics & Status</span>
+    <Truck size={15} style={{ color: '#64748b' }} />
+  </div>
+  <div style={styles.cardBody}>
+    
+    {/* --- STATUS SELECTOR --- */}
+    <label style={styles.inputLabel}>Order Status</label>
+    <div style={styles.inputWrap}>
+      <PackageCheck size={14} style={styles.inputIcon} />
+      <select
+        value={orderStatus}
+        onChange={(e) => setOrderStatus(e.target.value)}
+        style={{ ...styles.input, paddingLeft: '36px', appearance: 'none', cursor: 'pointer' }}
+      >
+        {Object.keys(STATUS_CONFIG).map((status) => (
+          <option key={status} value={status}>{status}</option>
+        ))}
+      </select>
+    </div>
+
+    <label style={{ ...styles.inputLabel, marginTop: '8px' }}>Tracking ID</label>
+    <div style={styles.inputWrap}>
+      <Hash size={14} style={styles.inputIcon} />
+      <input
+        value={trackingId}
+        onChange={(e) => setTrackingId(e.target.value.toUpperCase())}
+        placeholder="Enter tracking number"
+        style={styles.input}
+      />
+    </div>
+
+    <label style={{ ...styles.inputLabel, marginTop: '8px' }}>Shipment Date</label>
+    <div style={styles.inputWrap}>
+      <Clock size={14} style={styles.inputIcon} />
+      <input
+        type="date"
+        value={shippedDate}
+        onChange={(e) => setShippedDate(e.target.value)}
+        style={{ ...styles.input, fontFamily: 'inherit', paddingLeft: '36px' }}
+      />
+    </div>
+
+    <button onClick={updateTracking} disabled={isUpdating} className="btn-save" style={styles.saveBtn}>
+      {isUpdating
+        ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Synchronizing…</>
+        : <><Save size={13} /> Save All Changes</>
+      }
+    </button>
+  </div>
+</div>
 
             {/* Payment Summary */}
             <div style={styles.card}>
