@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Send, Search, UserMinus, CheckCircle2, ImagePlus, Layout, Link as LinkIcon, Upload, X, Eye, RefreshCw, ShieldAlert } from 'lucide-react';
+import { 
+    Send, Search, UserMinus, CheckCircle2, ImagePlus, Layout, 
+    Link as LinkIcon, Upload, X, Eye, RefreshCw, Users, Loader2 
+} from 'lucide-react';
 import { backendUrl } from '../App';
 
 const CustomerMail = ({ token }) => {
     const [customers, setCustomers] = useState([]);
-    const [excluded, setExcluded] = useState([]);
+    const [excluded, setExcluded] = useState([]); // Now strictly stores _id
     const [searchTerm, setSearchTerm] = useState("");
     const [subject, setSubject] = useState("");
     const [message, setMessage] = useState("");
@@ -16,6 +19,10 @@ const CustomerMail = ({ token }) => {
     const [templateType, setTemplateType] = useState("light");
     const [loading, setLoading] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
+
+    // High Performance States
+    const [isPending, startTransition] = useTransition();
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
         const fetchCustomers = async () => {
@@ -27,13 +34,35 @@ const CustomerMail = ({ token }) => {
         if (token) fetchCustomers();
     }, [token]);
 
+    // --- FIXED BULK ACTIONS ---
+    const handleSelectAll = () => {
+        setIsProcessing(true);
+        setTimeout(() => {
+            startTransition(() => {
+                setExcluded([]); // Clearing exclusion = Select All
+                setIsProcessing(false);
+                toast.info("Targeting all active registrants");
+            });
+        }, 50);
+    };
+
+    const handleUnselectAll = () => {
+        setIsProcessing(true);
+        setTimeout(() => {
+            startTransition(() => {
+                const allIds = customers.map(c => c._id); // Unified to _id
+                setExcluded(allIds); // Excluding everyone = Unselect All
+                setIsProcessing(false);
+                toast.warning("All registrants removed from dispatch");
+            });
+        }, 50);
+    };
+
     const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        
         const formData = new FormData();
         formData.append('image1', file); 
-        
         setUploading(true);
         try {
             const res = await axios.post(backendUrl + '/api/product/upload-single', formData, { 
@@ -42,31 +71,39 @@ const CustomerMail = ({ token }) => {
             if (res.data.success) {
                 setBannerImage(res.data.imageUrl); 
                 toast.success("Asset verified and staged");
-            } else { toast.error(res.data.message); }
-        } catch (error) { toast.error("File sync rejected by registry."); }
+            }
+        } catch (error) { toast.error("File sync rejected."); }
         finally { setUploading(false); }
     };
 
     const handleSend = async () => {
-        if (!subject || !message) return toast.warning("Briefing incomplete. Provide subject and message.");
+        if (!subject || !message) return toast.warning("Briefing incomplete.");
         
         const netReach = customers.length - excluded.length;
-        
-        // --- ADDED: CONFIRMATION POPUP ---
-        const confirmDispatch = window.confirm(
-            `CONFIRM DISPATCH\n\nTarget Reach: ${netReach} Customers\nSubject: ${subject}\n\nExecute transmission? This cannot be revoked.`
-        );
-
-        if (!confirmDispatch) return;
-
+        if (netReach === 0) return toast.error("No recipients targeted.");
+    
+        // OPTIMIZATION: If we only selected a few people, it's better to send
+        // a list of 'included' IDs rather than 9,000+ 'excluded' IDs.
+        const selectedIds = customers
+            .filter(c => !excluded.includes(c._id))
+            .map(c => c._id);
+    
         setLoading(true);
         try {
             const res = await axios.post(backendUrl + '/api/mail/send-bulk', 
-                { target: 'customers', subject, message, excludedEmails: excluded, bannerImage, templateType },
+                { 
+                    target: 'customers', 
+                    subject, 
+                    message, 
+                    // Only send the IDs of people we WANT to mail
+                    selectedIds: selectedIds, 
+                    bannerImage, 
+                    templateType 
+                },
                 { headers: { token } }
             );
             if(res.data.success) {
-                toast.success("Intelligence Dispatched successfully");
+                toast.success("Intelligence Dispatched");
                 setSubject(""); setMessage(""); setBannerImage(""); setExcluded([]);
             }
         } catch (error) { 
@@ -82,7 +119,7 @@ const CustomerMail = ({ token }) => {
 
     return (
         <div className='p-8 bg-white min-h-screen font-sans relative'>
-            {/* Header */}
+            
             <div className='mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4'>
                 <div>
                     <h2 className='text-3xl font-black uppercase tracking-tighter'>Intelligence Dispatch</h2>
@@ -99,21 +136,40 @@ const CustomerMail = ({ token }) => {
             </div>
             
             <div className='grid grid-cols-1 xl:grid-cols-3 gap-8'>
-                {/* Audience Selection */}
-                <div className='xl:col-span-1 border border-gray-100 rounded-3xl bg-gray-50 flex flex-col overflow-hidden h-[fit-content] max-h-[700px] shadow-sm'>
+                
+                {/* Audience Selection Sidebar */}
+                <div className='xl:col-span-1 border border-gray-100 rounded-3xl bg-gray-50 flex flex-col overflow-hidden h-[fit-content] max-h-[700px] shadow-sm relative'>
+                    
+                    {(isProcessing || isPending) && (
+                        <div className='absolute inset-0 z-[60] bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center transition-all'>
+                            <Loader2 size={24} className='text-[#BC002D] animate-spin mb-2' />
+                            <p className='text-[8px] font-black uppercase tracking-widest text-gray-500'>Updating Audience...</p>
+                        </div>
+                    )}
+
                     <div className='p-5 bg-white border-b border-gray-100 flex items-center gap-3'>
                         <Search size={16} className='text-gray-300' />
                         <input onChange={(e)=>setSearchTerm(e.target.value)} type="text" placeholder="Search Registrants..." className='text-[11px] font-bold outline-none w-full bg-transparent placeholder:text-gray-300' />
                     </div>
+
+                    <div className='flex p-2 bg-white border-b border-gray-100 gap-2'>
+                        <button onClick={handleSelectAll} disabled={isProcessing} className='flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-green-50 text-green-700 text-[9px] font-black uppercase tracking-widest hover:bg-green-100 border border-green-100 transition-all'>
+                            <Users size={12}/> Select All
+                        </button>
+                        <button onClick={handleUnselectAll} disabled={isProcessing} className='flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-700 text-[9px] font-black uppercase tracking-widest hover:bg-red-100 border border-red-100 transition-all'>
+                            <UserMinus size={12}/> Unselect All
+                        </button>
+                    </div>
+
                     <div className='overflow-y-auto custom-scrollbar'>
                         {filteredCustomers.length > 0 ? filteredCustomers.map(c => (
-                            <div key={c.email} onClick={() => setExcluded(prev => prev.includes(c.email) ? prev.filter(e => e !== c.email) : [...prev, c.email])}
-                                 className={`p-5 border-b border-gray-100 cursor-pointer flex justify-between items-center transition-all ${excluded.includes(c.email) ? 'bg-red-50/50' : 'hover:bg-white'}`}>
-                                <div className={excluded.includes(c.email) ? 'opacity-40' : ''}>
+                            <div key={c._id} onClick={() => setExcluded(prev => prev.includes(c._id) ? prev.filter(e => e !== c._id) : [...prev, c._id])}
+                                 className={`p-5 border-b border-gray-100 cursor-pointer flex justify-between items-center transition-all ${excluded.includes(c._id) ? 'bg-red-50/40' : 'hover:bg-white'}`}>
+                                <div className={excluded.includes(c._id) ? 'opacity-40' : ''}>
                                     <p className='text-[11px] font-black uppercase tracking-tight'>{c.name || 'Anonymous User'}</p>
                                     <p className='text-[9px] text-gray-400 font-mono tracking-tighter'>{c.email}</p>
                                 </div>
-                                {excluded.includes(c.email) ? <UserMinus size={16} className='text-red-500' /> : <CheckCircle2 size={16} className='text-green-500' />}
+                                {excluded.includes(c._id) ? <UserMinus size={16} className='text-red-500' /> : <CheckCircle2 size={16} className='text-green-500' />}
                             </div>
                         )) : (
                             <div className='p-10 text-center text-gray-400 text-[10px] font-black uppercase'>No matches found</div>
@@ -133,25 +189,14 @@ const CustomerMail = ({ token }) => {
                         </div>
 
                         <div className='p-5 bg-gray-50 rounded-3xl border border-gray-100'>
-                            <div className='flex justify-between items-center mb-3'>
+                             <div className='flex justify-between items-center mb-3'>
                                 <p className='text-[9px] font-black uppercase text-gray-400 flex items-center gap-2'><ImagePlus size={12}/> Briefing Banner</p>
-                                <div className='flex bg-white rounded-xl p-1 border border-gray-200'>
-                                    <button onClick={()=>setImageMode('url')} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${imageMode==='url' ? 'bg-[#BC002D] text-white' : 'text-gray-300'}`}>URL</button>
-                                    <button onClick={()=>setImageMode('upload')} className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all ${imageMode==='upload' ? 'bg-[#BC002D] text-white' : 'text-gray-300'}`}>Local</button>
-                                </div>
                             </div>
-                            {imageMode === 'url' ? (
-                                <div className='relative flex items-center'>
-                                    <LinkIcon size={12} className='absolute left-4 text-gray-400' />
-                                    <input value={bannerImage} onChange={(e)=>setBannerImage(e.target.value)} type="text" placeholder="Intelligence Source Link..." className='w-full pl-10 pr-3 py-3 text-[10px] font-bold rounded-xl border outline-none focus:border-[#BC002D] bg-white placeholder:text-gray-200' />
-                                </div>
-                            ) : (
-                                <label className={`flex items-center justify-center gap-3 w-full py-3 border border-dashed rounded-xl cursor-pointer transition-all ${bannerImage ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-[#BC002D]'}`}>
-                                    {uploading ? <RefreshCw size={14} className='animate-spin text-gray-400'/> : <Upload size={14} className={bannerImage ? 'text-green-500' : 'text-gray-400'}/>}
-                                    <span className={`text-[10px] font-black uppercase ${bannerImage ? 'text-green-600' : 'text-gray-400'}`}>{uploading ? "Uploading..." : bannerImage ? "Asset Secured" : "Browse Files"}</span>
-                                    <input type="file" hidden onChange={handleFileUpload} accept="image/*" />
-                                </label>
-                            )}
+                            <label className={`flex items-center justify-center gap-3 w-full py-3 border border-dashed rounded-xl cursor-pointer transition-all ${bannerImage ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-[#BC002D]'}`}>
+                                {uploading ? <RefreshCw size={14} className='animate-spin text-gray-400'/> : <Upload size={14} className={bannerImage ? 'text-green-500' : 'text-gray-400'}/>}
+                                <span className={`text-[10px] font-black uppercase ${bannerImage ? 'text-green-600' : 'text-gray-400'}`}>{uploading ? "Uploading..." : bannerImage ? "Asset Secured" : "Browse Files"}</span>
+                                <input type="file" hidden onChange={handleFileUpload} accept="image/*" />
+                            </label>
                         </div>
                     </div>
 
@@ -164,13 +209,13 @@ const CustomerMail = ({ token }) => {
                     ) : (
                         <div className='bg-white p-8 border border-gray-100 rounded-[40px] space-y-6 shadow-sm relative overflow-hidden'>
                             {loading && (
-                                <div className='absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300'>
+                                <div className='absolute inset-0 z-50 bg-white/80 backdrop-blur-md flex flex-col items-center justify-center'>
                                     <RefreshCw size={40} className='text-[#BC002D] animate-spin mb-4' />
                                     <p className='text-[11px] font-black uppercase tracking-[0.4em] text-[#BC002D]'>Dispatching Intelligence...</p>
                                 </div>
                             )}
                             <input value={subject} onChange={e=>setSubject(e.target.value)} className='w-full p-4 border-b-2 text-2xl font-black uppercase tracking-tighter outline-none focus:border-[#BC002D] placeholder-gray-100' placeholder="Briefing Subject..." />
-                            <textarea value={message} onChange={e=>setMessage(e.target.value)} className='w-full h-96 p-6 bg-gray-50 rounded-3xl outline-none border-2 border-transparent focus:border-[#BC002D] transition-all text-sm font-bold leading-relaxed placeholder:text-gray-300' placeholder="Type your strategic message here..." />
+                            <textarea value={message} onChange={e=>setMessage(e.target.value)} className='w-full h-96 p-6 bg-gray-50 rounded-3xl outline-none border-2 border-transparent focus:border-[#BC002D] transition-all text-sm font-bold leading-relaxed' placeholder="Type your strategic message here..." />
                             <button onClick={handleSend} disabled={loading || uploading} className='w-full py-5 bg-black text-white font-black uppercase tracking-[0.4em] rounded-2xl hover:bg-[#BC002D] transition-all disabled:bg-gray-100 flex items-center justify-center gap-4 shadow-xl active:scale-95'>
                                 {loading ? <RefreshCw size={18} className='animate-spin'/> : <Send size={18}/>}
                                 {loading ? "TRANSMITTING..." : "EXECUTE DISPATCH"}
@@ -179,7 +224,6 @@ const CustomerMail = ({ token }) => {
                     )}
                 </div>
             </div>
-
             <style dangerouslySetInnerHTML={{ __html: `
                 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
