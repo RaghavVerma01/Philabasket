@@ -4,7 +4,8 @@ import ProductItem from './ProductItem';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { Search, ChevronDown, X, Plus, Minus } from 'lucide-react'; 
+import { Search, ChevronDown, X, Plus, Minus ,ArrowRight} from 'lucide-react'; 
+import ShopByCountry from './ShobByCountry';
 
 const LatestCollection = () => {
     const { products, backendUrl } = useContext(ShopContext);
@@ -31,7 +32,7 @@ const LatestCollection = () => {
         const filtered = products
             .filter(item => item.newArrival === true || item.newArrival === "true")
             .sort((a, b) => b.date - a.date)
-            .slice(0, 16);
+            .slice(0, 15);
         setLatestProducts(filtered); 
     }, [products]);
 
@@ -45,40 +46,42 @@ const LatestCollection = () => {
         const groupsMap = {};
         const independentList = [];
         const term = searchTerm.toLowerCase().trim();
-
-        // Helper: Converts "INDIA" or "india" -> "India"
+    
         const normalize = (str) => {
             if (!str) return "";
             return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
         };
-
-        // 1. Filter based on raw data
-        const filtered = dbCategories.filter(cat => 
-            cat.name.toLowerCase().includes(term) || 
-            (cat.group && cat.group.toLowerCase().includes(term))
-        );
-
-        // 2. Build the structured list with normalized names
-        filtered.forEach(cat => {
+    
+        dbCategories.forEach(cat => {
+            const catName = cat.name.toLowerCase();
+            const groupNameRaw = cat.group ? cat.group.trim() : "";
+            const groupNameLower = groupNameRaw.toLowerCase();
+            
+            // Match condition: search term is in category name OR group name
+            const isMatch = catName.includes(term) || groupNameLower.includes(term);
+            if (!isMatch && term !== "") return;
+    
             const normalizedName = normalize(cat.name);
             const item = { name: normalizedName, count: cat.productCount || 0 };
-            
-            const groupName = cat.group ? cat.group.trim() : "";
-            const isIndependent = !groupName || ['general', 'independent', 'none', ''].includes(groupName.toLowerCase());
-
+            const isIndependent = !groupNameRaw || ['general', 'independent', 'none', ''].includes(groupNameLower);
+    
             if (isIndependent) {
                 independentList.push({ ...item, type: 'independent' });
             } else {
-                const gName = normalize(groupName);
+                const gName = normalize(groupNameRaw);
                 if (!groupsMap[gName]) {
                     groupsMap[gName] = { name: gName, type: 'group', items: [], totalCount: 0 };
                 }
                 groupsMap[gName].items.push(item);
                 groupsMap[gName].totalCount += item.count;
+                
+                // AUTO-OPEN: If we are searching and find a match in a group, force it open
+                if (term !== "" && !openGroups[gName]) {
+                    setOpenGroups(prev => ({ ...prev, [gName]: true }));
+                }
             }
         });
-
-        // 3. Combine and sort
+    
         const combined = [...Object.values(groupsMap), ...independentList];
         return combined.sort((a, b) => a.name.localeCompare(b.name));
     }, [dbCategories, searchTerm]);
@@ -108,7 +111,7 @@ const LatestCollection = () => {
             <div className="absolute -left-[10vw] top-[10%] h-[80%] w-[35%] bg-[#bd002d]/5 rounded-r-[600px] pointer-events-none"></div>
 
             <div className='px-6 md:px-16 lg:px-24 relative z-10'>
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
+                {/* <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-8">
                     <div className="max-w-2xl">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="w-10 h-10 border border-[#BC002D] rounded-full flex items-center justify-center">
@@ -120,7 +123,7 @@ const LatestCollection = () => {
                             NEW <span className="text-[#bd002d]">Arrivals.</span>
                         </h2>
                     </div>
-                </div>
+                </div> */}
 
                 <div className='flex flex-col lg:flex-row gap-12'>
                     {/* --- SIDEBAR --- */}
@@ -158,21 +161,28 @@ const LatestCollection = () => {
         )}
         </div>
 
-                                <div className='relative z-10 mb-6'>
-                                    <Search size={12} className='absolute left-3 top-1/2 -translate-y-1/2 text-white/40' />
-                                    <input 
-                                        type="text"
-                                        placeholder="Search Registry..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full bg-white/10 border border-white/20 rounded-xl pl-9 pr-8 py-2.5 text-[10px] text-white outline-none font-bold uppercase tracking-widest"
-                                    />
-                                    {searchTerm && (
-                                        <button onClick={() => setSearchTerm("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors">
-                                            <X size={14} />
-                                        </button>
-                                    )}
-                                </div>
+        <div className='relative z-10 mb-6'>
+    <Search size={12} className='absolute left-3 top-1/2 -translate-y-1/2 text-white/40' />
+    <input 
+        type="text"
+        placeholder="Search Registry..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full bg-white/10 border border-white/20 rounded-xl pl-9 pr-8 py-2.5 text-[10px] text-white outline-none font-bold  tracking-widest"
+    />
+    {searchTerm && (
+        <button 
+            type="button"
+            onClick={() => {
+                setSearchTerm("");
+                setOpenGroups({}); // Optional: close all groups on clear
+            }} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors z-20"
+        >
+            <X size={14} />
+        </button>
+    )}
+</div>
 
                                 <div className='flex flex-col gap-2 overflow-y-auto max-h-[180vh] hide-scrollbar relative z-10 pr-2'>
                                     {displayedIndex.map((entry) => (
@@ -239,45 +249,94 @@ const LatestCollection = () => {
                     </div>
 
                     {/* MAIN PRODUCT GRID */}
-                    <div className='w-full lg:w-3/4'>
-    {/* Grid setup matches the Collection page for visual consistency */}
+                    {/* MAIN PRODUCT GRID CONTAINER */}
+<div className='w-full lg:w-3/4'>
+<div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6'>
+                    <div>
+                        <h2 className='text-3xl font-bold tracking-tighter uppercase  text-gray-900'>
+                            New <span className='text-[#BC002D]'>Arrivals.</span>
+                        </h2>
+                    </div>
+                    <button 
+                        onClick={() => navigate('/collection')}
+                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 hover:text-[#BC002D] hover:border-[#BC002D] transition-all'
+                    >
+                        Explore Global Archive <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
+                    </button>
+                </div>
+        
+
+
+    {/* 1. Grid setup: Removed the extra <div> that was breaking the grid layout */}
     <div className='grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-x-4 md:gap-x-6 gap-y-10 md:gap-y-16 items-stretch px-2'>
-        {latestProducts.map((item, index) => (
+
+   
+
+        {latestProducts.map((item) => (
             <div 
-                key={item._id || index} 
+                key={item._id} 
                 onClick={() => handleProductClick(item._id)} 
-                /* Removed: bg-white, border, shadow-lg, and rounded-br 
-                   to match the floating specimen look of the Archive.
-                */
                 className="flex flex-col h-full transition-all duration-500 cursor-pointer relative group"
             >
-                {/* Rotated 'New' Ribbon Badge preserved for featured arrivals */}
+                {/* 'New' Ribbon Badge */}
                 <div className="absolute top-0 right-0 z-20 overflow-hidden w-16 h-16 pointer-events-none">
                     <div className="absolute top-[15%] -right-[35%] bg-[#bd002d] text-white text-[6px] font-black py-1 w-[140%] text-center transform rotate-45 shadow-sm uppercase tracking-tighter">
                         New
                     </div>
                 </div>
 
-                {/* Specimen Content: ProductItem handles its own internal layout */}
-               {/* Specimen Content: ProductItem handles its own internal layout */}
-<div className="flex-grow flex flex-col">
-    <div className="w-full flex-grow">
-        <ProductItem 
-            id={item._id} 
-            _id={item._id} 
-            image={item.image} 
-            name={item.name} 
-            price={item.price} 
-            marketPrice={item.marketPrice} 
-            category={item.category ? item.category[0] : ""} 
-            stock={item.stock} // CRITICAL: Pass the stock value here
-            isPriorityMode={true} 
-        />
-    </div>
-</div>
+                {/* Specimen Content */}
+                <div className="flex-grow flex flex-col">
+                    <div className="w-full flex-grow">
+                        <ProductItem 
+                            id={item._id} 
+                            _id={item._id} 
+                            image={item.image} 
+                            name={item.name} 
+                            price={item.price} 
+                            marketPrice={item.marketPrice} 
+                            category={item.category ? item.category[0] : ""} 
+                            stock={item.stock} 
+                            isPriorityMode={true} 
+                        />
+                    </div>
+                </div>
             </div>
         ))}
     </div>
+
+    <div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-6'>
+                    <div>
+                        <h2 className='text-3xl font-bold tracking-tighter uppercase  mt-5 text-gray-900'>
+                            Shop By <span className='text-[#BC002D]'>Country.</span>
+                        </h2>
+                    </div>
+                    {/* <button 
+                        onClick={() => navigate('/collection')}
+                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 hover:text-[#BC002D] hover:border-[#BC002D] transition-all'
+                    >
+                        Explore Global Archive <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
+                    </button> */}
+                </div>
+        
+
+    {/* 2. ShopByCountry placement: Moved outside the grid for proper full-width display */}
+    <div className=" border-t border-gray-100 ">
+        <ShopByCountry />
+    </div>
+
+    <div className='flex justify-center items-center mt-16'>
+    <button 
+        onClick={() => {
+            navigate('/collection');
+            window.scrollTo(0, 0);
+        }}
+        className='text-[11px] text-black uppercase tracking-[0.3em] font-black flex items-center gap-3 group border-b-2 border-black pb-2 hover:text-[#BC002D] hover:border-[#BC002D] transition-all duration-500'
+    >
+        Explore More Products 
+        <ArrowRight size={16} className='group-hover:translate-x-2 transition-transform duration-500' />
+    </button>
+</div>
 </div>
                 </div>
             </div>

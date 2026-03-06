@@ -35,8 +35,11 @@ const SidebarContent = ({
       {sidebarSearch && (
         <button 
           type="button"
-          onClick={() => setSidebarSearch("")} 
-          className='absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white'
+          onClick={() => {
+            setSidebarSearch("");
+            setOpenGroups({}); // Reset groups when search is cleared
+          }} 
+          className='absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white z-20'
         >
           <X size={12}/>
         </button>
@@ -62,16 +65,22 @@ const SidebarContent = ({
                 />
               </button>
               <div className={`flex flex-col gap-1 ml-4 border-l border-white/10 pl-4 transition-all duration-500 overflow-hidden ${openGroups[entry.name] ? 'max-h-[1000px] mt-1 mb-3 opacity-100' : 'max-h-0 opacity-0'}`}>
-                {entry.items.map(subCat => (
-                  <button
-                    key={subCat.name}
-                    onClick={() => handleCategorySelect(subCat.name)}
-                    className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all group/item ${activeCategory === subCat.name ? 'bg-white text-[#BC002D]' : 'text-white/40 hover:text-white'}`}
-                  >
-                    <span className='truncate mr-2 group-hover/item:translate-x-1 transition-transform'>{subCat.name}</span>
-                    <span className={`text-[8px] font-mono ${activeCategory === subCat.name ? 'text-[#BC002D]' : 'text-amber-400 font-mono font-black'}`}>{subCat.count}</span>
-                  </button>
-                ))}
+
+{entry.items.map(subCat => (
+  <button
+    key={subCat.name}
+    onClick={() => handleCategorySelect(subCat.name)} // Pass full name to DB
+    className={`flex items-center justify-between py-2.5 px-3 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all group/item ${activeCategory === subCat.name ? 'bg-white text-[#BC002D]' : 'text-white/40 hover:text-white'}`}
+  >
+    {/* Use subCat.display here for "Iran" instead of "Country > Iran" */}
+    <span className='truncate mr-2 group-hover/item:translate-x-1 transition-transform'>
+        {subCat.display} 
+    </span>
+    <span className={`text-[8px] font-mono ${activeCategory === subCat.name ? 'text-[#BC002D]' : 'text-amber-400'}`}>
+        {subCat.count}
+    </span>
+  </button>
+))}
               </div>
             </>
           ) : (
@@ -130,37 +139,53 @@ const Collection = () => {
   // UPDATED useMemo: Alphabetical Unified Index logic
   const unifiedIndex = useMemo(() => {
     if (!dbCategories.length) return [];
-
+  
     const groupsMap = {};
     const independentList = [];
     const searchLower = sidebarSearch.toLowerCase().trim();
-
-    const filtered = dbCategories.filter(cat => 
-      cat.name.toLowerCase().includes(searchLower)
-    );
-
-    filtered.forEach(cat => {
-      const item = { name: cat.name, count: cat.productCount || 0 };
+  
+    dbCategories.forEach(cat => {
+      const catName = cat.name.toLowerCase();
+      const groupNameRaw = cat.group ? cat.group.trim() : "";
+      const groupNameLower = groupNameRaw.toLowerCase();
       
-      if (!cat.group || ['General', 'Independent', 'none', ''].includes(cat.group.trim())) {
+      // Match logic
+      const isMatch = catName.includes(searchLower) || groupNameLower.includes(searchLower);
+      if (!isMatch && searchLower !== "") return;
+  
+      // String Cleaning: "Country > Iran" -> "Iran"
+      const displayName = cat.name.includes('>') 
+        ? cat.name.split('>')[1].trim() 
+        : cat.name;
+  
+      const item = { 
+        name: cat.name,      // Full name for DB queries
+        display: displayName, // Clean name for UI
+        count: cat.productCount || 0 
+      };
+  
+      const isIndependent = !groupNameRaw || ['general', 'independent', 'none', ''].includes(groupNameLower);
+  
+      if (isIndependent) {
         independentList.push({ ...item, type: 'independent' });
       } else {
-        const gName = cat.group.trim();
+        const gName = groupNameRaw;
         if (!groupsMap[gName]) {
           groupsMap[gName] = { name: gName, type: 'group', items: [], totalCount: 0 };
         }
         groupsMap[gName].items.push(item);
         groupsMap[gName].totalCount += item.count;
+  
+        // Only auto-expand if there is an active search term
+        if (searchLower !== "" && !openGroups[gName]) {
+          setOpenGroups(prev => ({ ...prev, [gName]: true }));
+        }
       }
     });
-
-    const combined = [
-      ...Object.values(groupsMap),
-      ...independentList
-    ];
-
+  
+    const combined = [...Object.values(groupsMap), ...independentList];
     return combined.sort((a, b) => a.name.localeCompare(b.name));
-  }, [dbCategories, sidebarSearch]);
+  }, [dbCategories, sidebarSearch]); // Removed openGroups from dependencies to prevent toggle-loops
 
   const fetchFromRegistry = useCallback(async (targetPage) => {
     if (!backendUrl) return;
