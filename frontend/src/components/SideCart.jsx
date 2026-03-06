@@ -9,7 +9,7 @@ const SideCart = () => {
     const getCartAmount = () => {
         let totalAmount = 0;
         for (const items in cartItems) {
-            let itemInfo = products.find((product) => product._id === items);
+            let itemInfo = products.find((product) => String(product._id) === String(items));
             if (itemInfo && cartItems[items] > 0) {
                 totalAmount += itemInfo.price * cartItems[items];
             }
@@ -46,7 +46,7 @@ const SideCart = () => {
                         ) : (
                             <div className='space-y-6'>
                                 {Object.keys(cartItems).map((id, index) => {
-                                    const item = products.find(p => p._id === id);
+                                    const item = products.find(p => String(p._id) === String(id));
                                     if (!item || cartItems[id] <= 0) return null;
                                     return (
                                         <div key={index} className='flex gap-4 border-b border-gray-50 pb-6'>

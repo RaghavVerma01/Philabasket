@@ -16,6 +16,7 @@ import RewardHistory from './pages/RewardHistory';
 import Legal from './pages/Legal';
 import FaceValueSubscription from './pages/FaceValusSubscription';
 import SideCart from './components/SideCart';
+import Gifting from './pages/Gifting';
 // import Rewards from './pages/Rewards';
 const Rewards=lazy(()=>import('./pages/Rewards'))
 
@@ -84,6 +85,8 @@ const App = () => {
           <Route path='/history' element={<RewardHistory/>}/>
           <Route path='/privacy' element={<Legal />} />
           <Route path='/membership' element={<FaceValueSubscription />} />
+          <Route path='/gifting' element={<Gifting />} />
+
 
 
 

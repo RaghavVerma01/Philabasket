@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { ShopContext } from '../context/ShopContext';
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
+import { toast } from 'react-toastify';
 import { Link } from 'react-router-dom';
 import { Heart, Trash2, Plus, Minus, ShieldCheck, Star, X ,Globe,Landmark} from 'lucide-react';
 
@@ -13,18 +14,33 @@ const Cart = () => {
 
   useEffect(() => {
     if (products.length > 0) {
-      const tempData = [];
-      for (const itemId in cartItems) {
-        if (cartItems[itemId] > 0) {
-          tempData.push({
-            _id: itemId,
-            quantity: cartItems[itemId]
-          });
+        const tempData = [];
+        const missingItems = [];
+
+        for (const itemId in cartItems) {
+            // Only process items with quantity > 0
+            if (cartItems[itemId] > 0) {
+                // FORCE STRING COMPARISON
+                const productFound = products.find((product) => String(product._id) === String(itemId));
+                
+                if (productFound) {
+                    tempData.push({
+                        _id: itemId,
+                        quantity: cartItems[itemId]
+                    });
+                } else {
+                    missingItems.push(itemId);
+                }
+            }
         }
-      }
-      setCartData(tempData);
+        setCartData(tempData);
+
+        if (missingItems.length > 0) {
+            missingItems.forEach(id => updateQuantity(id, 0));
+            toast.info("Registry updated: Unavailable specimens removed.");
+        }
     }
-  }, [cartItems, products]);
+}, [cartItems, products]);
 
   // Handler to move item to wishlist when clicking "X"
   const handleRemoveAndWishlist = (id) => {
@@ -99,6 +115,10 @@ const Cart = () => {
               <tbody className='divide-y divide-black/5'>
                 {cartData.map((item, index) => {
                   const productData = products.find((product) => product._id === item._id);
+                  if (!productData) {
+                      console.warn(`Registry Alert: Specimen ${item._id} found in cart but missing from Archive.`);
+                      return null;
+                  }
                   if (!productData) return null;
                   const subtotal = productData.price * item.quantity;
 

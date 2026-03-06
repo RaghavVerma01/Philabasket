@@ -212,30 +212,39 @@ const handleBillingPincodeChange = async (e) => {
     };
 
     // --- FINANCIAL SYNC ---
-    const currentFee = getDeliveryFee(formData.country);
+    const rawDeliveryFee = getDeliveryFee(formData.country); // Original fee from registry
 
-    const calculation = useMemo(() => {
-        const cartAmount = getCartAmount();
-        const subtotal = cartAmount + currentFee; 
-        
-        let couponVal = 0;
-        if (appliedCoupon) {
-            couponVal = appliedCoupon.discountType === 'percentage' 
-                ? (cartAmount * appliedCoupon.value) / 100 
-                : appliedCoupon.value;
-        }
+const calculation = useMemo(() => {
+    const cartAmount = getCartAmount();
+    
+    // Financial Protocol: Free shipping for orders >= ₹4999
+    const FREE_SHIPPING_THRESHOLD = 4999;
+    const isFreeShipping = cartAmount >= FREE_SHIPPING_THRESHOLD;
+    
+    // Apply 0 if threshold is met, otherwise use regional fee
+    const feeApplied = isFreeShipping ? 0 : rawDeliveryFee;
+    
+    const subtotal = cartAmount + feeApplied; 
+    
+    let couponVal = 0;
+    if (appliedCoupon) {
+        couponVal = appliedCoupon.discountType === 'percentage' 
+            ? (cartAmount * appliedCoupon.value) / 100 
+            : appliedCoupon.value;
+    }
 
-        const rewardDiscount = usePoints ? Math.min(Math.floor(userPoints / 10), subtotal - couponVal) : 0;
-        const finalPayable = subtotal - couponVal - rewardDiscount;
+    const rewardDiscount = usePoints ? Math.min(Math.floor(userPoints / 10), subtotal - couponVal) : 0;
+    const finalPayable = subtotal - couponVal - rewardDiscount;
 
-        return {
-            pointsDeducted: rewardDiscount * 10,
-            couponDeducted: couponVal,
-            rewardDeducted: rewardDiscount,
-            totalPayable: finalPayable,
-            feeApplied: currentFee 
-        };
-    }, [cartItems, userPoints, usePoints, appliedCoupon, currentFee, getCartAmount]);
+    return {
+        pointsDeducted: rewardDiscount * 10,
+        couponDeducted: couponVal,
+        rewardDeducted: rewardDiscount,
+        totalPayable: finalPayable,
+        feeApplied: feeApplied, // This goes to the database
+        isFreeShipping: isFreeShipping // Used for UI feedback
+    };
+}, [cartItems, userPoints, usePoints, appliedCoupon, rawDeliveryFee, getCartAmount]);
 
     const onSubmitHandler = async (e) => {
         if (e) e.preventDefault();

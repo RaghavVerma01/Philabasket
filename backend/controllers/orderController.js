@@ -111,6 +111,14 @@ const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null
     // Priority: 1. Explicitly passed activeFee | 2. Stored deliveryFee | 3. Hard fallback
     const finalFee = activeFee !== null ? activeFee : (deliveryFee || 0);
     const displayShipping = Number(finalFee).toFixed(2);
+// --- SHIPPING FEE DISPLAY LOGIC ---
+const isFreeShipping = currency === 'INR' && amount >= 4999;
+const shippingDisplayValue = isFreeShipping 
+    ? `<span style="color: #2e7d32; font-weight: 900;">COMPLIMENTARY</span>` 
+    : `${symbol}${displayShipping}`;
+
+// ... inside the return template table ...
+
 
     const itemRows = items.map(item => `
         <tr style="border-bottom: 1px solid #eeeeee;">
@@ -191,9 +199,11 @@ const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null
                                     </tr>` : ''}
 
                                     <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee (${address.country})</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${displayShipping}</td>
-                                    </tr>
+    <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee (${address.country})</td>
+    <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">
+        ${shippingDisplayValue}
+    </td>
+</tr>
                                     <tr>
                                         <td style="padding: 15px 0 5px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Asset Valuation</td>
                                         <td align="right" style="padding: 15px 0 5px 0; font-size: 18px; font-weight: 900; color: ${accentColor}; border-top: 2px solid ${secondaryColor};">${symbol}${amount.toLocaleString()}</td>

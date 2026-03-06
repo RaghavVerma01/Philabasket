@@ -16,7 +16,15 @@ const ShopContextProvider = (props) => {
 
     // Helper to get delivery fee based on selected country logic
     const getDeliveryFee = (country = 'India') => {
+        const totalAmount = getCartAmount(); // Get current cart total
         const normalizedCountry = country?.toLowerCase().trim();
+    
+        // Protocol: Free delivery for orders above 4999 in India
+        if (normalizedCountry === 'india' && totalAmount >= 4999) {
+            return 0;
+        }
+    
+        // Standard Fees
         return normalizedCountry === 'india' ? deliveryFees.india : deliveryFees.global;
     };
 
@@ -262,7 +270,7 @@ useEffect(() => {
         products, currency, toggleCurrency, formatPrice, 
         getDeliveryFee, // Exposed as a function for country-based calculation
         exchangeRate, 
-        search, setSearch, showSearch, setShowSearch,
+        search, setSearch, showSearch, setShowSearch,setProducts,
         cartItems, addToCart, setCartItems,
         getCartCount, updateQuantity, getCartAmount, 
         navigate, backendUrl, setToken, token,

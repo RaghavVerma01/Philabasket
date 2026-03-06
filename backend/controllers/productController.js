@@ -184,11 +184,15 @@ const bulkAddProducts = async (req, res) => {
                 const finalPrice = rowPrice || mPrice;
                 const cleanDate = (val) => {
                     const raw = clean(val);
-                    // Basic check: if it's 10 chars and has slashes, keep it. 
-                    // Otherwise, default to a placeholder or empty string to trigger your schema validator
-                    return /^\d{2}\/\d{2}\/\d{4}$/.test(raw) ? raw : "01/01/" + (row.year || "2026");
+                    
+                    // If it matches the required format, use it
+                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+                        return raw;
+                    }
+                    
+                    // Instead of forcing a fallback, return an empty string for optional status
+                    return ""; 
                 };
-
                 stamps.push({
                     name: nameTrimmed,
                     description: clean(row.description) || "Historical philatelic specimen.",
@@ -363,10 +367,28 @@ const listProducts = async (req, res) => {
         }
 
         // --- 3. SORT LOGIC ---
-        let sortOrder = { date: -1 };
-        if (sort === 'price-low') sortOrder = { price: 1 };
-        if (sort === 'price-high') sortOrder = { price: -1 };
-        if (sort === 'year-new') sortOrder = { year: -1 };
+        // --- 3. SORT LOGIC ---
+let sortOrder = { date: -1 }; // Default: Recent Arrivals
+
+switch (sort) {
+    case 'price-low':
+        sortOrder = { price: 1 };
+        break;
+    case 'price-high':
+        sortOrder = { price: -1 };
+        break;
+    case 'year-new':
+        sortOrder = { year: -1, date: -1 }; // Recent years first
+        break;
+    case 'year-old':
+        sortOrder = { year: 1, date: -1 };  // Oldest years first
+        break;
+    case 'name-asc':
+        sortOrder = { name: 1 };            // Alphabetical A-Z
+        break;
+    default:
+        sortOrder = { date: -1 };           // Default fallback
+}
 
         // --- 4. EXECUTION ---
         // countDocuments(query) now accurately reflects the current tab (Active or Trash)

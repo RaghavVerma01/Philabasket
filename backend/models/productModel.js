@@ -62,7 +62,7 @@ const productSchema = new mongoose.Schema({
     newArrival: { type: Boolean, default: false, index: true }, 
     releaseDate: { 
         type: String, 
-        required: true, 
+        required: false, 
         validate: {
             validator: function(v) {
                 // Regex to enforce DD/MM/YYYY format

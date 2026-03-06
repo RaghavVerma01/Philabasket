@@ -103,7 +103,7 @@ const SidebarContent = ({
 );
 
 const Collection = () => {
-  const { search, showSearch, backendUrl } = useContext(ShopContext);
+  const { search, showSearch, backendUrl ,setProducts: setGlobalProducts} = useContext(ShopContext);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -192,29 +192,27 @@ const Collection = () => {
     setLoading(true);
     try {
       const response = await axios.get(`${backendUrl}/api/product/list`, {
-        params: {
-          page: targetPage,
-          limit: 50,
-          category: activeCategory,
-          sort: sortType,
-          search: showSearch ? search : ''
-        }
+        params: { page: targetPage, limit: 50, category: activeCategory, sort: sortType, search: showSearch ? search : '' }
       });
   
       if (response.data.success) {
         let fetchedProducts = response.data.products;
   
-        if (location.state && location.state.priorityId) {
-          const priorityId = location.state.priorityId;
-          const priorityIndex = fetchedProducts.findIndex(p => p._id === priorityId);
-          if (priorityIndex > -1) {
-            const [priorityItem] = fetchedProducts.splice(priorityIndex, 1);
-            fetchedProducts.unshift(priorityItem);
-          }
-        }
-  
+        // 1. Update Local State (for the grid display)
         setProducts(fetchedProducts);
         setTotalFound(response.data.total);
+  
+        // 2. SYNC TO GLOBAL CONTEXT (so Cart/SideCart can see them)
+        setGlobalProducts(prevGlobal => {
+          // Create a Map of existing products for fast lookup
+          const existingIds = new Set(prevGlobal.map(p => String(p._id)));
+          
+          // Only add items that aren't already in the global list
+          const uniqueNewItems = fetchedProducts.filter(p => !existingIds.has(String(p._id)));
+          
+          return [...prevGlobal, ...uniqueNewItems];
+        });
+  
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
@@ -222,7 +220,7 @@ const Collection = () => {
     } finally {
       setLoading(false);
     }
-  }, [backendUrl, activeCategory, sortType, search, showSearch, location.state]);
+  }, [backendUrl, activeCategory, sortType, search, showSearch, location.state, setGlobalProducts]);
 
   useEffect(() => {
     setPage(1);
@@ -328,8 +326,8 @@ const Collection = () => {
             <div className='flex flex-col gap-1.5 min-w-0'>
               <div className='flex items-center gap-2'>
                 <LayoutGrid size={12} className='text-gray-400 flex-shrink-0' />
-                <p className='text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[#6A7EFC] whitespace-nowrap'>
-                  <span className='text-black font-mono'>{totalFound}</span> Specimens
+                <p className='text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[#6A7EFC] whitespace-nowrap'>
+                  <span className='text-black font-mono'>{totalFound}</span> items
                 </p>
               </div>
               {activeCategory && (
@@ -341,7 +339,7 @@ const Collection = () => {
             </div>
 
             <div className='flex items-center gap-2 flex-shrink-0'>
-              <button onClick={() => setShowFilter(true)} className='lg:hidden flex items-center gap-1.5 bg-black text-white py-2.5 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform shadow-lg'><SlidersHorizontal size={12} /><span>Filter</span></button>
+              <button onClick={() => setShowFilter(true)} className='lg:hidden flex items-center gap-1.5 bg-black text-white py-2.5 px-3.5 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition-transform shadow-lg'><SlidersHorizontal size={10} /><span>Categories</span></button>
               <div className='flex items-center gap-1.5 bg-gray-50 py-2.5 px-3.5 rounded-xl'>
                 <ArrowUpDown size={12} className='text-gray-900 flex-shrink-0' />
                 <select value={sortType} onChange={(e) => setSortType(e.target.value)} className='text-[9px] md:text-[10px] font-black text-gray-900 uppercase tracking-[0.15em] outline-none bg-transparent cursor-pointer max-w-[90px] md:max-w-none'>
@@ -356,20 +354,25 @@ const Collection = () => {
           </div>
 
          {/* --- UPDATED GRID CONTAINER --- */}
+         {/* Inside Collection.jsx */}
+{/* Inside Collection.jsx */}
 <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 md:gap-x-6 gap-y-8 md:gap-y-12 items-stretch'>
-  {loading ? (
-    [...Array(10)].map((_, i) => (
-      <div key={i} className='aspect-[3/4] bg-gray-50 animate-pulse rounded-br-[40px]'></div>
-    ))
-  ) : (
-    products.map((item) => (
-      <div key={item._id} className="flex flex-col h-full"> {/* Wrapper to force full height */}
-        <ProductItem id={item._id} {...item} />
-      </div>
-    ))
-  )}
+  {products.map((item) => (
+    <div key={item._id} className="flex flex-col h-full"> 
+      <ProductItem 
+        id={String(item._id)}      // Force String to prevent Object ID mismatch
+        _id={String(item._id)}     // Force String to prevent Object ID mismatch
+        image={item.image} 
+        name={item.name} 
+        price={item.price} 
+        marketPrice={item.marketPrice} 
+        category={item.category} 
+        stock={item.stock}  
+        isPriorityMode={false} 
+      />
+    </div>
+  ))}
 </div>
-
           {totalPages > 1 && (
             <div className='flex flex-wrap items-center justify-center gap-2 mt-16 mb-6'>
               <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className='p-2.5 md:p-3 rounded-xl bg-gray-50 text-gray-500 hover:bg-black hover:text-white disabled:opacity-30 transition-all active:scale-95'><ChevronLeft size={16} /></button>

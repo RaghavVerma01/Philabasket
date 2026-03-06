@@ -142,12 +142,16 @@ const Navbar = () => {
                     </div>
                 </Link>
 
-                <nav className='hidden xl:flex items-center gap-10 mr-5'>
+                <nav className='hidden xl:flex items-center gap-3 mr-7'>
                     {headerData.navMenu.map((tab, index) => (
                         <MegaMenu key={index} menuData={tab} />
                     ))}
-                    <NavLink to='/updates' className='group'><p className='text-[13px] font-[800] text-black group-hover:text-[#BC002D] font-["Nunito",sans-serif]'>Updates</p></NavLink>
+                    <NavLink to='/updates' className='group'><p className='text-[13px] font-[800] text-black group-hover:text-[#BC002D] font-["Nunito",sans-serif] mr-7'>Updates</p></NavLink>
+                    <NavLink to='/gifting' className='group'><p className='text-[13px] font-[800] text-black group-hover:text-[#BC002D] font-["Nunito",sans-serif]'>Gifting</p></NavLink>
+
                 </nav>
+
+                
 
                 {/* UTILITIES (Desktop) */}
                 <div className='flex items-center gap-4 lg:gap-6'>
@@ -338,6 +342,31 @@ const Navbar = () => {
                 <ChevronRight size={18} className="text-[#BC002D]" />
             </div>
         </div>
+
+       
+    </div>
+
+    <div className='border-b border-gray-100 pb-2'>
+        <div 
+            onClick={() => {
+                navigate('/gifting');
+                setVisible(false);
+            }} 
+            className='flex items-center justify-between py-2 cursor-pointer group'
+        >
+            <p className='text-xl font-bold tracking-tighter text-gray-900 capitalize group-hover:text-[#BC002D] transition-colors'>
+                Gifting
+            </p>
+            <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2">
+                    {/* <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#BC002D] opacity-75"></span> */}
+                    {/* <span className="relative inline-flex rounded-full h-2 w-2 bg-[#BC002D]"></span> */}
+                </span>
+                <ChevronRight size={18} className="text-[#BC002D]" />
+            </div>
+        </div>
+
+       
     </div>
 </div>
                         </div>
