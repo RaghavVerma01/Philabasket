@@ -75,25 +75,90 @@ const Orders = ({ token }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, sortBy]);
+  const downloadShippingManifestcolumn = async () => {
+    const toastId = toast.loading("Generating Shipping Manifest PDF...");
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/order/list?limit=1000&status=${filterStatus}&sort=${sortBy}`, 
+        {}, 
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        const ordersData = response.data.orders;
+        const doc = new jsPDF('l', 'mm', 'a4'); 
+
+        // Header
+        doc.setFontSize(18);
+        doc.text("PhilaBasket Shipping Registry", 14, 15);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+        const tableColumn = ["Order ID", "Customer Name", "Phone", "Shipping Address", "Status", "Amount"];
+        const tableRows = [];
+
+        ordersData.forEach(order => {
+          const addr = order.address || {};
+          
+          // 1. Correctly format the name
+          const customerName = `${addr.firstName || ''} ${addr.lastName || ''}`.trim() || "Guest Collector";
+          
+          // 2. Resolve the Phone Number (Handles both standard strings and MongoDB $numberLong objects)
+          const phoneValue = addr.phone?.$numberLong || addr.phone || "N/A";
+          
+          // 3. Handle the Address (Note: Check if your schema uses 'zipcode' or 'zipCode')
+          const zip = addr.zipcode || addr.zipCode || '';
+          const fullAddress = `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''},${addr.country} - ${zip}`.trim();
+          
+          tableRows.push([
+            order.orderNo || `#${order._id.slice(-6).toUpperCase()}`,
+            customerName,
+            phoneValue, // Use the resolved phone value here
+            fullAddress || "Address Not Found",
+            order.status,
+            `INR ${order.amount}`
+          ]);
+        });
+
+        // FIXED CALL: Use the imported autoTable function directly
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 30,
+          theme: 'grid',
+          styles: { fontSize: 8, font: 'helvetica', cellPadding: 3 },
+          headStyles: { fillColor: [188, 0, 45], textColor: [255, 255, 255] }, 
+          columnStyles: {
+            3: { cellWidth: 90 }, 
+          }
+        });
+
+        doc.save(`Shipping_Manifest_${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.update(toastId, { render: "Registry Exported Successfully", type: "success", isLoading: false, autoClose: 3000 });
+      }
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.update(toastId, { render: "Export Failed: See Console", type: "error", isLoading: false, autoClose: 3000 });
+    }
+  };
 
   // ── PDF EXPORT LOGIC (SHIPPING MANIFEST) ──────────────────────────────────
   // ── PDF EXPORT LOGIC (SHIPPING MANIFEST) ──────────────────────────────────
   const downloadShippingManifest = async () => {
     const toastId = toast.loading("Generating Archive Labels...");
     try {
-      const todayParam = filterStatus === "TODAY" 
+        const todayParam = filterStatus === "TODAY" 
             ? `&date=${new Date().toISOString().split('T')[0]}` 
             : "";
         
         const statusQuery = filterStatus === "TODAY" ? "ALL" : filterStatus;
 
-        // 2. UPDATE URL: Include the todayParam in the request
         const response = await axios.post(
             `${backendUrl}/api/order/list?limit=1000&status=${statusQuery}${todayParam}&sort=${sortBy}`, 
             {}, 
             { headers: { token } }
         );
-        
 
         if (response.data.success) {
             const ordersData = response.data.orders;
@@ -108,7 +173,7 @@ const Orders = ({ token }) => {
             const marginY = 5;
             const labelsPerRow = 4;
             const labelsPerPage = 8;
-            const padding = 4; // Inner padding for the text
+            const padding = 4;
 
             ordersData.forEach((order, index) => {
                 if (index > 0 && index % labelsPerPage === 0) {
@@ -129,43 +194,51 @@ const Orders = ({ token }) => {
                 const addr = order.address || {};
                 const name = `${addr.firstName || ''} ${addr.lastName || ''}`.trim();
                 const phone = addr.phone?.$numberLong || addr.phone || "N/A";
-                
-                // --- TEXT WRAPPING LOGIC ---
                 const zip = addr.zipcode || addr.zipCode || '';
-                const rawAddress = `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${zip}`;
-                
-                doc.setFontSize(8);
-                // splitTextToSize breaks the string so it doesn't exceed labelWidth minus padding
-                const wrappedAddress = doc.splitTextToSize(rawAddress, labelWidth - (padding * 2));
 
-                // 1. Order Number
+                // --- MULTILINE ADDRESS LOGIC ---
+                // We create an array of strings for each line
+                const addressLines = [
+                    addr.street || '',
+                    `${addr.city || ''}, ${addr.state || ''}`,
+                    `${addr.country || ''} - ${zip}`.toUpperCase() // Country at the bottom of the block
+                ].filter(line => line.trim() !== ""); // Remove empty lines
+
+                // 1. Header: Order Number
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.text(`Od No - ${order.orderNo || order._id.slice(-6).toUpperCase()}`, x + padding, y + 7);
+                doc.setFontSize(9);
+                doc.text(`OD: ${order.orderNo || order._id.slice(-6).toUpperCase()}`, x + padding, y + 6);
 
                 // 2. "To,"
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(9);
-                doc.text("To,", x + padding, y + 13);
+                doc.setFontSize(8);
+                doc.text("To,", x + padding, y + 11);
 
-                // 3. Name
+                // 3. Recipient Name
                 doc.setFont("helvetica", "bold");
                 doc.setFontSize(10);
-                doc.text(`Mr. ${name}`, x + padding, y + 18);
+                doc.text(`Mr. ${name}`, x + padding, y + 16);
 
-                // 4. Wrapped Address
+                // 4. Address Distribution
                 doc.setFont("helvetica", "normal");
                 doc.setFontSize(8);
-                // Render the array of lines starting at y + 23
-                doc.text(wrappedAddress, x + padding, y + 23);
+                
+                let currentY = y + 21;
+                addressLines.forEach((line) => {
+                    // splitTextToSize ensures that if a single line (like a long street) is too wide, it wraps
+                    const wrappedLine = doc.splitTextToSize(line, labelWidth - (padding * 2));
+                    doc.text(wrappedLine, x + padding, currentY);
+                    // Move currentY down based on number of lines wrappedLine produced (approx 3.5mm per line)
+                    currentY += (wrappedLine.length * 4); 
+                });
 
-                // 5. Mobile (Positioned relative to the end of the address to avoid overlap)
-                // Determine how many lines the address took to offset the phone number
-                const addressHeight = wrappedAddress.length * 4; 
-                doc.text(`Mob - ${phone}`, x + padding, y + 24 + addressHeight);
+                // 5. Mobile (Locked to the bottom area of the label)
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(8);
+                doc.text(`Mob: ${phone}`, x + padding, y + labelHeight - 4);
             });
 
-            doc.save(`Shipping_Labels_${new Date().toISOString().split('T')[0]}.pdf`);
+            doc.save(`Archive_Labels_${new Date().toISOString().split('T')[0]}.pdf`);
             toast.update(toastId, { render: "Labels Exported Successfully", type: "success", isLoading: false, autoClose: 3000 });
         }
     } catch (error) {
@@ -276,6 +349,12 @@ const Orders = ({ token }) => {
       className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:text-red-600 hover:shadow-md transition-all active:scale-95'
     >
       <FileText size={14} /> Shipping PDF
+    </button>
+    <button 
+      onClick={downloadShippingManifestcolumn} 
+      className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:text-red-600 hover:shadow-md transition-all active:scale-95'
+    >
+      <FileText size={14} /> Shipping list Pdf
     </button>
             <button onClick={downloadRegistry} className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:shadow-md transition-all active:scale-95'>
               <Download size={14} /> Export Excel
