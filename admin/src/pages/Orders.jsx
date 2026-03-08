@@ -7,8 +7,11 @@ import { toast } from 'react-toastify';
 import {
   RefreshCw, Truck, CheckCircle2, ShoppingBag, Ban, 
   ChevronLeft, ChevronRight, Download, Eye, Clock, 
-  MapPin, Package, CreditCard, PackageCheck
+  MapPin, Package, CreditCard, PackageCheck,FileText
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const ORDERS_PER_PAGE = 10;
 
@@ -66,6 +69,76 @@ const Orders = ({ token }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [filterStatus, sortBy]);
+
+  // ── PDF EXPORT LOGIC (SHIPPING MANIFEST) ──────────────────────────────────
+  // ── PDF EXPORT LOGIC (SHIPPING MANIFEST) ──────────────────────────────────
+  const downloadShippingManifest = async () => {
+    const toastId = toast.loading("Generating Shipping Manifest PDF...");
+    try {
+      const response = await axios.post(
+        `${backendUrl}/api/order/list?limit=1000&status=${filterStatus}&sort=${sortBy}`, 
+        {}, 
+        { headers: { token } }
+      );
+
+      if (response.data.success) {
+        const ordersData = response.data.orders;
+        const doc = new jsPDF('l', 'mm', 'a4'); 
+
+        // Header
+        doc.setFontSize(18);
+        doc.text("PhilaBasket Shipping Registry", 14, 15);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 22);
+
+        const tableColumn = ["Order ID", "Customer Name", "Phone", "Shipping Address", "Status", "Amount"];
+        const tableRows = [];
+
+        ordersData.forEach(order => {
+          const addr = order.address || {};
+          
+          // 1. Correctly format the name
+          const customerName = `${addr.firstName || ''} ${addr.lastName || ''}`.trim() || "Guest Collector";
+          
+          // 2. Resolve the Phone Number (Handles both standard strings and MongoDB $numberLong objects)
+          const phoneValue = addr.phone?.$numberLong || addr.phone || "N/A";
+          
+          // 3. Handle the Address (Note: Check if your schema uses 'zipcode' or 'zipCode')
+          const zip = addr.zipcode || addr.zipCode || '';
+          const fullAddress = `${addr.street || ''}, ${addr.city || ''}, ${addr.state || ''} - ${zip}`.trim();
+          
+          tableRows.push([
+            order.orderNo || `#${order._id.slice(-6).toUpperCase()}`,
+            customerName,
+            phoneValue, // Use the resolved phone value here
+            fullAddress || "Address Not Found",
+            order.status,
+            `INR ${order.amount}`
+          ]);
+        });
+
+        // FIXED CALL: Use the imported autoTable function directly
+        autoTable(doc, {
+          head: [tableColumn],
+          body: tableRows,
+          startY: 30,
+          theme: 'grid',
+          styles: { fontSize: 8, font: 'helvetica', cellPadding: 3 },
+          headStyles: { fillColor: [188, 0, 45], textColor: [255, 255, 255] }, 
+          columnStyles: {
+            3: { cellWidth: 90 }, 
+          }
+        });
+
+        doc.save(`Shipping_Manifest_${new Date().toISOString().split('T')[0]}.pdf`);
+        toast.update(toastId, { render: "Registry Exported Successfully", type: "success", isLoading: false, autoClose: 3000 });
+      }
+    } catch (error) {
+      console.error("PDF Export Error:", error);
+      toast.update(toastId, { render: "Export Failed: See Console", type: "error", isLoading: false, autoClose: 3000 });
+    }
+  };
 
   // ── EXPORT LOGIC ──────────────────────────────────────────────────────────
   // ── UPDATED EXPORT LOGIC ──────────────────────────────────────────────────
@@ -163,6 +236,13 @@ const Orders = ({ token }) => {
             <span className='bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full'>{totalOrdersCount}</span>
           </div>
           <div className='flex gap-2'>
+    {/* PDF Export Button */}
+    <button 
+      onClick={downloadShippingManifest} 
+      className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:text-red-600 hover:shadow-md transition-all active:scale-95'
+    >
+      <FileText size={14} /> Shipping PDF
+    </button>
             <button onClick={downloadRegistry} className='flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold hover:shadow-md transition-all active:scale-95'>
               <Download size={14} /> Export Excel
             </button>
