@@ -34,6 +34,67 @@ const OrderDetail = ({ token }) => {
 const [isInvoiceUpdating, setIsInvoiceUpdating] = useState(false);
 const [shippedDate, setShippedDate] = useState('');
 const [orderStatus, setOrderStatus] = useState('');
+const [customerOrderCount, setCustomerOrderCount] = useState(0);
+const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+const [userOrdersList, setUserOrdersList] = useState([]);
+const [isEmailing, setIsEmailing] = useState(false);
+
+const emailInvoice = async () => {
+    const message = `Dispatch electronic invoice for Order #${order.orderNo} to ${order.address?.email || order.userId?.email}?`;
+    
+    if (!window.confirm(message)) return;
+
+    setIsEmailing(true);
+    try {
+        const response = await axios.post(backendUrl + '/api/order/email-invoice', {
+            orderId
+        }, { headers: { token } });
+
+        if (response.data.success) {
+            toast.success("Registry Invoice Dispatched");
+        } else {
+            toast.error(response.data.message);
+        }
+    } catch (err) {
+        toast.error("Email protocol failed");
+        console.error(err);
+    } finally {
+        setIsEmailing(false);
+    }
+}; // To store full order objects
+
+useEffect(() => {
+  const fetchOrderAndHistory = async () => {
+    try {
+      if (!order) setLoading(true);
+      
+      // 1. Fetch current order
+      const response = await axios.post(backendUrl + '/api/order/single', { orderId }, { headers: { token } });
+      
+      if (response.data.success) {
+          const orderData = response.data.order;
+          setOrder(orderData);
+          setTrackingId(orderData.trackingNumber || '');
+          setAllowInvoice(orderData.allowInvoice || false);
+          setOrderStatus(orderData.status);
+
+          // 2. Fetch User's Total History using the Admin Token
+          const historyResponse = await axios.post(backendUrl + '/api/order/userordersadmin', 
+            { userId: orderData.userId._id }, 
+            { headers: { token } } // Admin token used here
+          );
+          
+          if (historyResponse.data.success) {
+            setCustomerOrderCount(historyResponse.data.orders.length);
+            setUserOrdersList(historyResponse.data.orders); // Save full list for the sidebar
+        }
+      }
+    } catch (err) { 
+        console.error("Fetch error:", err);
+    } finally { setLoading(false); }
+  };
+  if (token) fetchOrderAndHistory();
+}, [orderId, token]);
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -57,32 +118,7 @@ const [orderStatus, setOrderStatus] = useState('');
     if (token) fetchOrder();
   }, [orderId, token]);
 
-  const toggleInvoice = async () => {
-    // Determine the action message based on current state
-    const action = allowInvoice ? "RESTRICT" : "RELEASE";
-    const message = `Are you sure you want to ${action} the invoice for Order #${order.orderNo}?`;
 
-    // Show confirmation popup
-    if (!window.confirm(message)) return;
-
-    setIsInvoiceUpdating(true);
-    try {
-        const response = await axios.post(backendUrl + '/api/order/update-invoice', {
-            orderId,
-            status: !allowInvoice
-        }, { headers: { token } });
-
-        if (response.data.success) {
-            setAllowInvoice(!allowInvoice);
-            toast.success(allowInvoice ? "Invoice access revoked" : "Invoice released to collector");
-        }
-    } catch (err) {
-        toast.error("Registry update failed");
-        console.error(err);
-    } finally {
-        setIsInvoiceUpdating(false);
-    }
-};
 
 const updateTracking = async () => {
   // 1. Logic Change: Don't block if trackingId is empty, 
@@ -165,20 +201,20 @@ const updateTracking = async () => {
         </div>
 
         {/* --- INVOICE CONTROL CARD --- */}
-<div style={styles.card}>
+        <div style={styles.card}>
     <div style={styles.cardHeader}>
-        <span style={styles.cardTitle}>Document Control</span>
-        <Save size={15} style={{ color: '#64748b' }} />
+        <span style={styles.cardTitle}>Digital Dispatch</span>
+        <Mail size={15} style={{ color: '#64748b' }} />
     </div>
     <div style={styles.cardBody}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Allow Invoice Download</p>
-                <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>Enable for user to download PDF</p>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', margin: 0 }}>Email Registry Invoice</p>
+                <p style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>Send Philately-themed PDF/HTML to user</p>
             </div>
             <button 
-                onClick={toggleInvoice}
-                disabled={isInvoiceUpdating}
+                onClick={emailInvoice}
+                disabled={isEmailing}
                 style={{
                     padding: '8px 16px',
                     borderRadius: '4px',
@@ -188,17 +224,27 @@ const updateTracking = async () => {
                     letterSpacing: '0.05em',
                     cursor: 'pointer',
                     transition: 'all 0.3s',
-                    border: '1px solid',
-                    backgroundColor: allowInvoice ? '#f0fdf4' : '#fef2f2',
-                    borderColor: allowInvoice ? '#bbf7d0' : '#fecaca',
-                    color: allowInvoice ? '#166534' : '#991b1b'
+                    backgroundColor: '#1e3a5f',
+                    color: '#ffffff',
+                    border: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
                 }}
             >
-                {isInvoiceUpdating ? 'Updating...' : (allowInvoice ? 'ENABLED' : 'DISABLED')}
+                {isEmailing ? (
+                    <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : <Mail size={12} />}
+                {isEmailing ? 'SENDING...' : 'DISPATCH EMAIL'}
             </button>
         </div>
     </div>
 </div>
+
+
+
+
+
 
         {/* Page Header */}
         <div style={styles.pageHeader}>
@@ -206,6 +252,39 @@ const updateTracking = async () => {
             <p style={styles.headerLabel}>Order Details</p>
             <h1 style={styles.headerName}>{order.address?.firstName} {order.address?.lastName}</h1>
           </div>
+
+          <div 
+    onClick={() => setIsSidebarOpen(true)}
+    style={{
+        background: '#1e3a5f',
+        padding: '2px 8px',
+        borderRadius: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        cursor: 'pointer', // Added for feedback
+        transition: 'transform 0.2s'
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+    onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+>
+    <TrendingUp size={10} style={{ color: '#ffffff' }} />
+    <span style={{ fontSize: '9px', fontWeight: 800, color: '#ffffff', textTransform: 'uppercase' }}>
+        {customerOrderCount} Lifetime Orders
+    </span>
+</div>
+
+{order.userId && (
+              <div style={styles.rewardCard}>
+                <div style={styles.rewardIcon}><Star size={18} style={{ color: '#b45309' }} /></div>
+                <div>
+                  <p style={styles.rewardLabel}>Reward Balance</p>
+                  <p style={styles.rewardValue}>{order.userId.totalRewardPoints || 0} pts</p>
+                </div>
+              </div>
+            )}
+
+
           <div style={styles.statusBadge} className={cfg.color}>
             <cfg.icon size={13} />
             <span>{order.status}</span>
@@ -394,25 +473,90 @@ const updateTracking = async () => {
             </div>
 
             {/* Reward Points */}
-            {order.userId && (
-              <div style={styles.rewardCard}>
-                <div style={styles.rewardIcon}><Star size={18} style={{ color: '#b45309' }} /></div>
-                <div>
-                  <p style={styles.rewardLabel}>Reward Balance</p>
-                  <p style={styles.rewardValue}>{order.userId.totalRewardPoints || 0} pts</p>
-                </div>
-              </div>
-            )}
+
           </div>
 
         </div>
       </div>
+      {/* --- CUSTOMER HISTORY SIDEBAR --- */}
+<div style={{
+    ...styles.sidebarOverlay,
+    visibility: isSidebarOpen ? 'visible' : 'hidden',
+    opacity: isSidebarOpen ? 1 : 0
+}} onClick={() => setIsSidebarOpen(false)}>
+    <div style={{
+        ...styles.sidebarContent,
+        transform: isSidebarOpen ? 'translateX(0)' : 'translateX(100%)'
+    }} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.sidebarHeader}>
+            <div>
+                <p style={styles.headerLabel}>Collector History</p>
+                <h3 style={{ ...styles.headerName, fontSize: '20px' }}>{order.address?.firstName}'s Orders</h3>
+            </div>
+            <button onClick={() => setIsSidebarOpen(false)} style={styles.closeBtn}>✕</button>
+        </div>
+        
+        <div style={styles.sidebarBody}>
+            {userOrdersList.map((item) => (
+                <div 
+                    key={item._id} 
+                    onClick={() => { navigate(`/orders/${item._id}`); setIsSidebarOpen(false); }}
+                    style={{
+                        ...styles.historyItem,
+                        borderLeft: item._id === orderId ? '4px solid #1e3a5f' : '4px solid transparent',
+                        background: item._id === orderId ? '#f8fafc' : '#fff'
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={styles.historyRef}>#{item.orderNo || item._id.slice(-6)}</span>
+                        <span style={{ 
+                            fontSize: '9px', 
+                            fontWeight: 800, 
+                            color: STATUS_CONFIG[item.status]?.color.includes('emerald') ? '#059669' : '#64748b' 
+                        }}>{item.status}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={styles.historyDate}>{new Date(item.date).toLocaleDateString()}</span>
+                        <span style={styles.historyAmount}>₹{item.amount}</span>
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+</div>
     </div>
   );
 };
 
 /* ── Styles ── */
 const styles = {
+
+  sidebarOverlay: {
+    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+    background: 'rgba(15, 23, 42, 0.4)', zIndex: 1000,
+    transition: 'all 0.3s ease-in-out', backdropFilter: 'blur(2px)'
+  },
+  sidebarContent: {
+    position: 'absolute', right: 0, top: 0, bottom: 0,
+    width: '350px', background: '#fff', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+    display: 'flex', flexDirection: 'column', transition: 'transform 0.3s ease-in-out'
+  },
+  sidebarHeader: {
+    padding: '24px', borderBottom: '1px solid #f1f5f9',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'
+  },
+  closeBtn: {
+    background: 'none', border: 'none', fontSize: '18px', cursor: 'pointer', color: '#94a3b8'
+  },
+  sidebarBody: { padding: '16px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' },
+  historyItem: {
+    padding: '16px', borderRadius: '6px', border: '1px solid #e2e8f0',
+    cursor: 'pointer', transition: 'all 0.2s'
+  },
+  historyRef: { fontSize: '12px', fontWeight: 700, color: '#1e3a5f', fontFamily: 'monospace' },
+  historyDate: { fontSize: '11px', color: '#94a3b8' },
+  historyAmount: { fontSize: '14px', fontWeight: 700, color: '#0f172a' },
+
   page: {
     minHeight: '100vh',
     background: '#f1f5f9',
@@ -698,15 +842,17 @@ const styles = {
   rewardCard: {
     display: 'flex',
     alignItems: 'center',
-    gap: '16px',
-    padding: '18px 20px',
+    gap: '20px', 
+    marginTop: '5px',           // Reduced gap for header layout
+    padding: '2px 2px',      // Slimmer padding to match other badges
     background: '#fffbeb',
     border: '1px solid #fde68a',
-    borderRadius: '6px',
+    borderRadius: '10px',     // Increased to match the 10px of your Lifetime Orders badge
+    minHeight: '32px',        // Ensures consistent height across the row
   },
   rewardIcon: {
-    width: '44px',
-    height: '44px',
+    width: '20px',            // Scaled down from 44px for header context
+    height: '20px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -715,18 +861,22 @@ const styles = {
     borderRadius: '4px',
     flexShrink: 0,
   },
+  rewardTextContent: {        // Added a wrapper style for better alignment
+    display: 'flex',
+    alignItems: 'baseline',
+    gap: '6px'
+  },
   rewardLabel: {
-    fontSize: '10px',
-    fontWeight: 700,
+    fontSize: '8px',          // Smaller for secondary context
+    fontWeight: 800,
     color: '#92400e',
-    letterSpacing: '0.1em',
+    letterSpacing: '0.05em',
     textTransform: 'uppercase',
-    marginBottom: '4px',
   },
   rewardValue: {
-    fontFamily: "'Playfair Display', serif",
-    fontSize: '20px',
-    fontWeight: 700,
+    fontFamily: "'Source Sans 3', sans-serif", // Matched your primary sans font for badges
+    fontSize: '12px',
+    fontWeight: 800,
     color: '#78350f',
   },
 };

@@ -12,12 +12,14 @@
   "dependencies": {
     "@react-oauth/google": "^0.13.4",
     "axios": "^1.7.4",
+    "boring-avatars": "^2.0.4",
     "fuse.js": "^7.1.0",
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.563.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-nice-avatar": "^1.5.0",
     "react-router-dom": "^6.26.1",
     "react-toastify": "^10.0.5",
     "xlsx": "^0.18.5"

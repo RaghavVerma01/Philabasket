@@ -1,5 +1,5 @@
 import express from 'express'
-import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus} from '../controllers/orderController.js'
+import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus, emailInvoiceToUser} from '../controllers/orderController.js'
 import adminAuth  from '../middleware/adminAuth.js'
 import authUser from '../middleware/auth.js'
 
@@ -18,6 +18,10 @@ orderRouter.post('/razorpay',authUser,placeOrderRazorpay)
 
 // User Feature 
 orderRouter.post('/userorders',authUser,userOrders)
+// Change this line in orderRouter.js
+orderRouter.post('/userordersadmin', adminAuth, userOrders)
+// orderRouter.js
+orderRouter.post('/email-invoice', adminAuth, emailInvoiceToUser);
 
 // verify payment
 orderRouter.post('/verifyStripe',authUser, verifyStripe)

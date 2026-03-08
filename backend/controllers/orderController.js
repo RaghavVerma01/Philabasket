@@ -247,7 +247,35 @@ const updateStock = async (items, type = "reduce") => {
 
 // import userRewardModel from "../models/userRewardModel.js"; // Ensure this path is correct
 
+export const emailInvoiceToUser = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+        const order = await orderModel.findById(orderId).populate('userId');
 
+        if (!order) {
+            return res.json({ success: false, message: "Order not found" });
+        }
+
+        // Generate the Philately-themed HTML
+        const emailHtml = getOrderHtmlTemplate(order, order.deliveryFee, order.trackingNumber);
+
+        // Send the email using your transporter utility
+        const result = await sendEmail(
+            order.address.email || order.userId.email,
+            `Acquisition Registry: Order #${order.orderNo}`,
+            emailHtml
+        );
+
+        if (result.success) {
+            res.json({ success: true, message: "Invoice dispatched to collector" });
+        } else {
+            res.json({ success: false, message: "Logistics email delivery failed" });
+        }
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+};
 
 
 
