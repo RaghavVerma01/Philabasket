@@ -44,11 +44,17 @@ const Orders = ({ token }) => {
   const fetchAllOrders = useCallback(async (isManual = false) => {
     try {
       if (isManual) setLoading(true);
+      const todayParam = filterStatus === "TODAY" 
+      ? `&date=${new Date().toISOString().split('T')[0]}` 
+      : "";
+
+      const statusQuery = filterStatus === "TODAY" ? "ALL" : filterStatus;
+
       const response = await axios.post(
-        `${backendUrl}/api/order/list?page=${currentPage}&limit=${ORDERS_PER_PAGE}&status=${filterStatus}&sort=${sortBy}`, 
-        {}, 
-        { headers: { token } }
-      );
+      `${backendUrl}/api/order/list?page=${currentPage}&limit=${ORDERS_PER_PAGE}&status=${statusQuery}${todayParam}&sort=${sortBy}`, 
+      {}, 
+      { headers: { token } }
+    );
       if (response.data.success) {
         setOrders(response.data.orders);
         setTotalOrdersCount(response.data.totalOrders);
@@ -75,11 +81,19 @@ const Orders = ({ token }) => {
   const downloadShippingManifest = async () => {
     const toastId = toast.loading("Generating Archive Labels...");
     try {
+      const todayParam = filterStatus === "TODAY" 
+            ? `&date=${new Date().toISOString().split('T')[0]}` 
+            : "";
+        
+        const statusQuery = filterStatus === "TODAY" ? "ALL" : filterStatus;
+
+        // 2. UPDATE URL: Include the todayParam in the request
         const response = await axios.post(
-            `${backendUrl}/api/order/list?limit=1000&status=${filterStatus}&sort=${sortBy}`, 
+            `${backendUrl}/api/order/list?limit=1000&status=${statusQuery}${todayParam}&sort=${sortBy}`, 
             {}, 
             { headers: { token } }
         );
+        
 
         if (response.data.success) {
             const ordersData = response.data.orders;
@@ -293,17 +307,21 @@ const Orders = ({ token }) => {
 
         {/* ── CONTROLS ── */}
         <div className='bg-white p-4 rounded-2xl border border-gray-100 flex flex-wrap justify-between items-center gap-4 shadow-sm'>
-          <div className='flex flex-wrap gap-2'>
-            {["ALL", "Order Placed", "On Hold", "Money Received", "Shipped", "Delivered", "Cancelled"].map(s => (
-              <button
-                key={s}
-                onClick={() => setFilterStatus(s)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${filterStatus === s ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+        <div className='flex flex-wrap gap-2'>
+  {["ALL", "TODAY", "Order Placed", "On Hold", "Money Received", "Shipped", "Delivered", "Cancelled"].map(s => (
+    <button
+      key={s}
+      onClick={() => setFilterStatus(s)}
+      className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+        filterStatus === s 
+          ? 'bg-[#BC002D] text-white' // Highlighting Today/Active in brand red
+          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+      }`}
+    >
+      {s === "TODAY" ? "📅 Today's Orders" : s}
+    </button>
+  ))}
+</div>
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}

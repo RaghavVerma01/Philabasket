@@ -622,6 +622,15 @@ const allOrders = async (req, res) => {
             query.status = status;
         }
 
+        if (req.query.date) {
+            const start = new Date(req.query.date);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(req.query.date);
+            end.setHours(23, 59, 59, 999);
+            
+            query.date = { $gte: start.getTime(), $lte: end.getTime() };
+        }
+
         // 2. Build Sort Logic
         let sortOrder = { date: -1 }; // Default: Newest first
         if (sort === 'DATE_ASC') sortOrder = { date: 1 };
