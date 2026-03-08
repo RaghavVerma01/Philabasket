@@ -3,100 +3,81 @@ import { ShieldAlert, FileText, RotateCcw, Info } from 'lucide-react';
 
 const Terms = () => {
     return (
-        <div className='bg-white min-h-screen pt-10 pb-20 px-6 md:px-16 lg:px-24 select-none animate-fade-in'>
+        <div className='bg-white min-h-screen pt-24 pb-20 px-6 md:px-16 lg:px-24 select-none animate-fade-in font-sans'>
             
-            {/* --- HEADER --- */}
-            <div className='mb-16'>
-                <div className='flex items-center gap-4 mb-4'>
-                    <span className='h-[1.5px] w-12 bg-[#BC002D]'></span>
-                    <p className='text-[10px] tracking-[0.6em] text-[#BC002D] uppercase font-black'>Legal & Policy</p>
-                </div>
-                <h2 className='text-4xl md:text-6xl font-bold text-gray-900 tracking-tighter uppercase'>
-                    Terms of <span className='text-[#BC002D]'>Service.</span>
-                </h2>
-            </div>
+            <div className='max-w-5xl mx-auto'>
+                {/* --- USE OF OUR WEBSITE --- */}
+                <section className='mb-16'>
+                    <h2 className='text-3xl font-bold text-gray-800 mb-8 uppercase tracking-tight'>Terms and Conditions</h2>
+                    <p className='text-sm text-gray-600 mb-6'>When you use this website and place orders through it, you agree to:</p>
+                    <ul className='space-y-4 text-sm text-gray-600 list-disc pl-5'>
+                        <li>Use this website to make enquiries and legally valid orders only.</li>
+                        <li>Not to make any false or fraudulent orders. If an order of this type may reasonably be considered to have been placed, we shall be authorised to cancel it and inform the competent authorities.</li>
+                        <li>Provide us with your email address, postal address and/or other contact details truthfully and exactly. You also agree that we may use this information to contact you in the context of your order if necessary.</li>
+                        <li>If you do not provide us with all the information we need, you cannot place your order.</li>
+                    </ul>
+                </section>
 
-            <div className='max-w-4xl space-y-16'>
-                
-                {/* --- SECTION 1: PRODUCT CONDITION --- */}
-                <section>
-                    <div className='flex items-center gap-3 mb-6'>
-                        <ShieldAlert size={20} className='text-[#BC002D]' />
-                        <h3 className='text-sm font-black uppercase tracking-[0.3em] text-gray-900'>01. Product Condition</h3>
+                {/* --- PRODUCT CONDITION --- */}
+                <section className='mb-16'>
+                    <div className='flex items-center gap-3 mb-8'>
+                        <ShieldAlert size={24} className='text-[#BC002D]' />
+                        <h2 className='text-3xl font-bold text-gray-800 uppercase tracking-tight'>PRODUCT CONDITION:</h2>
                     </div>
-                    <div className='bg-gray-50 p-8 md:p-10 rounded-br-[60px] border border-gray-100'>
-                        <p className='text-[12px] md:text-sm font-medium text-gray-600 leading-relaxed mb-6'>
-                            **All Images On The Website Are Referral** – Due to multiple quantity listing we cannot change image of thousands of item every time. 
+                    <div className='bg-gray-50 p-8 border border-gray-100 rounded-sm'>
+                        <p className='text-sm font-bold text-gray-700 leading-relaxed mb-8'>
+                            All Images On The Website Are Referral – Due to multiple quantity listing we cannot change image of thousands of item every time hence the block of stamps having margin in image may have different side margin or no-margin at all, similarly traffic light in blocks of stamps or singe stamp may be present in image but not in the item delivered. all images are only referral except for the items listed in errors/oddities category.
                         </p>
-                        <ul className='space-y-4 text-[11px] md:text-[12px] font-bold text-gray-500 uppercase tracking-wide list-disc pl-5'>
-                            <li>Blocks of stamps having margins in images may have different side margins or no margin at all.</li>
-                            <li>Traffic lights in blocks or single stamps may be present in image but not in the delivered item.</li>
-                            <li>All images are referral except for items listed in <span className='text-[#BC002D]'>Errors/Oddities</span> category.</li>
-                        </ul>
-                    </div>
-                </section>
+                        
+                        <h3 className='text-sm font-bold text-gray-800 mb-6 uppercase tracking-widest'>The condition of the stamps may be defined in following manner:</h3>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'>
+                            {[
+                                { code: 'MNH', desc: 'Mint Never Hinged' },
+                                { code: 'MLH', desc: 'Mint Lightly Hinged' },
+                                { code: 'MH', desc: 'Mint hinged (Heavy Hinge Mark)' },
+                                { code: 'MM', desc: 'Mounted Mint (Stamp is Unused but it’s stuck on a paper)' }
+                            ].map((grade) => (
+                                <div key={grade.code} className='border border-gray-200 p-4 flex justify-between items-center bg-white'>
+                                    <span className='font-black text-[#BC002D]'>{grade.code}</span>
+                                    <span className='text-[10px] font-bold text-gray-500 uppercase'>{grade.desc}</span>
+                                </div>
+                            ))}
+                        </div>
 
-                {/* --- SECTION 2: STAMP GRADING --- */}
-                <section>
-                    <div className='flex items-center gap-3 mb-6'>
-                        <FileText size={20} className='text-[#BC002D]' />
-                        <h3 className='text-sm font-black uppercase tracking-[0.3em] text-gray-900'>02. Grading Index</h3>
-                    </div>
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4 mb-8'>
-                        {[
-                            { code: 'MNH', desc: 'Mint Never Hinged' },
-                            { code: 'MLH', desc: 'Mint Lightly Hinged' },
-                            { code: 'MH', desc: 'Mint Hinged (Heavy Hinge Mark)' },
-                            { code: 'MM', desc: 'Mounted Mint (Unused but stuck on paper)' }
-                        ].map((grade) => (
-                            <div key={grade.code} className='border border-gray-100 p-6 rounded-2xl flex items-center justify-between group hover:border-[#BC002D]/20 transition-all'>
-                                <span className='text-[11px] font-black text-[#BC002D]'>{grade.code}</span>
-                                <span className='text-[10px] font-bold text-gray-400 uppercase'>{grade.desc}</span>
-                            </div>
-                        ))}
-                    </div>
-                    
-                    <div className='bg-gray-900 text-white/80 p-8 rounded-2xl space-y-4 font-medium text-[11px] leading-loose uppercase tracking-widest'>
-                        <p><span className='text-white font-black'>1990 Onwards:</span> MNH stamps are in Excellent Condition (White gum, no marks/spots).</p>
-                        <p><span className='text-white font-black'>1957–1988:</span> Mixed condition. Gum side may be white or off-white/light yellow due to India's climate and older technology.</p>
-                        <p><span className='text-white font-black'>Before 1957:</span> Stamps may be completely tropicalized.</p>
-                    </div>
-                </section>
-
-                {/* --- SECTION 3: FDC POLICY --- */}
-                <section>
-                    <div className='flex items-center gap-3 mb-6'>
-                        <Info size={20} className='text-[#BC002D]' />
-                        <h3 className='text-sm font-black uppercase tracking-[0.3em] text-gray-900'>03. FDC Guidelines</h3>
-                    </div>
-                    <p className='text-[12px] text-gray-500 font-bold uppercase tracking-widest leading-loose'>
-                        Cancellations on FDCs may differ from images in position and clarity. Philatelic bureau cancellations are often hand-stamped, which may result in slight smudging. These are considered general conditions and not major damage. We carefully examine each specimen to ensure you receive the best available condition.
-                    </p>
-                </section>
-
-                {/* --- SECTION 4: EXCHANGE --- */}
-                <section>
-                    <div className='flex items-center gap-3 mb-6'>
-                        <RotateCcw size={20} className='text-[#BC002D]' />
-                        <h3 className='text-sm font-black uppercase tracking-[0.3em] text-gray-900'>04. Exchange Policy</h3>
-                    </div>
-                    <div className='border-2 border-dashed border-gray-100 p-8 rounded-[40px]'>
-                        <p className='text-[12px] text-gray-600 font-medium mb-6 leading-relaxed'>
-                            Accidental purchases must be intimated via email at <span className='text-[#BC002D] font-black'>Admin@philabasket.com</span> within 24 hours of receipt.
-                        </p>
-                        <div className='flex flex-col md:flex-row gap-8'>
-                            <div className='flex-1'>
-                                <p className='text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2'>Logistics</p>
-                                <p className='text-[11px] font-bold text-gray-500 uppercase'>Shipping charges for exchanges are borne by the buyer.</p>
-                            </div>
-                            <div className='flex-1'>
-                                <p className='text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2'>Processing</p>
-                                <p className='text-[11px] font-bold text-gray-500 uppercase'>Exchanged material is dispatched only after receiving original items.</p>
+                        <div className='space-y-6 text-sm text-gray-600 leading-relaxed'>
+                            <p>For all Mint Never hinged stamps, please understand that all stamps are in Excellent Condition from the year 1990 onwards, i.e. all are white gum no mark / spots. Stamps for the period 1957-1988 are mixed in condition i.e. many are white, many are off-white / v. v. light yellow in color this is because of the topicalization of gum side in India due to the climate and old printing technology used. Stamps before 1957, may be tropicalized completely.</p>
+                            
+                            <p>Regarding FDC, the cancellation on the stamp may differ from image, the position of cancellation, stamps etc. may also differ from image as such the image is only referral and we have multiple quantity listing. Many cancellations today also are hand stamped in philatelic bureaus resulting in slight smudging, all these are general condition nothing related to major damage.</p>
+                            
+                            <div className='p-5 border-l-4 border-[#BC002D] bg-white italic'>
+                                We try to provide the best condition possible, in general our materials are much better in condition than our competitors because we carefully examine each stamp and send you the best available. However, in any case if you are not satisfied by the material’s condition, there is always an option of refund.
                             </div>
                         </div>
                     </div>
                 </section>
 
+                {/* --- EXCHANGE --- */}
+                <section className='mb-16'>
+                    <div className='flex items-center gap-3 mb-8'>
+                        <RotateCcw size={24} className='text-[#BC002D]' />
+                        <h2 className='text-3xl font-bold text-gray-800 uppercase tracking-tight'>EXCHANGE:</h2>
+                    </div>
+                    <div className='border-2 border-dashed border-gray-200 p-8 md:p-10'>
+                        <p className='text-sm text-gray-700 font-bold uppercase tracking-wide leading-relaxed mb-8'>
+                            Once you have bought any material or stamps by mistake and wanted other items in its place, then again you shall need to intimate us via email at <span className='text-[#BC002D] underline'>Admin@philabasket.com</span> within 24 hours of receiving of materials.
+                        </p>
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-10'>
+                            <div className='space-y-4'>
+                                <p className='text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]'>SHIPPING PROTOCOL</p>
+                                <p className='text-xs text-gray-600 font-bold uppercase leading-loose'>Additional shipping charges shall be borne by the buyer and the exchanged material will be sent after receiving the original item for which exchange has been sought.</p>
+                            </div>
+                            <div className='space-y-4'>
+                                <p className='text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]'>SETTLEMENT</p>
+                                <p className='text-xs text-gray-600 font-bold uppercase leading-loose'>Any difference in amount while exchanging shall be settled as per the situation and such information shall be communicated via email.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
             </div>
 
             <style dangerouslySetInnerHTML={{ __html: `
