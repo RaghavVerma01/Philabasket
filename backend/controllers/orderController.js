@@ -11,6 +11,8 @@ import rewardTransactionModel from "../models/rewardTranscationModel.js";
 import userRewardModel from "../models/userRewardModel.js";
 import settingsModel from "../models/settingModel.js";
 
+import { rewardReferrer } from "./userController.js";
+
 
 const recordRewardActivity = async (userId, userEmail, amount, type, orderId = null) => {
     try {
@@ -518,6 +520,21 @@ const updateStatus = async (req, res) => {
         if (trackingNumber) updateFields.trackingNumber = trackingNumber;
         if (shippedDate) updateFields.shippedDate = shippedDate;
 
+        if (finalStatus === 'Shipped' && currentOrder.status !== 'Shipped') {
+            // This function handles the 50/25 point split and 1st order check
+            await rewardReferrer(currentOrder); 
+            
+            try {
+                await sendEmail(
+                    currentOrder.address.email, 
+                    "Items Shipped", 
+                    getOrderHtmlTemplate(currentOrder, null, trackingNumber)
+                );
+            } catch (emailError) {
+                console.error("Shipping Email Failed:", emailError);
+            }
+        }
+
         // --- UPDATED REWARD LOGIC: TIER BASED MULTIPLIER ---
         if (finalStatus === 'Delivered' && currentOrder.status !== 'Delivered') {
             updateFields.payment = true;
@@ -560,13 +577,7 @@ const updateStatus = async (req, res) => {
 
         await orderModel.findByIdAndUpdate(orderId, updateFields);
         
-        if (finalStatus === 'Shipped' && trackingNumber) {
-            await sendEmail(
-                currentOrder.address.email, 
-                "Items Shipped", 
-                getOrderHtmlTemplate(currentOrder, null, trackingNumber) 
-            );
-        }
+        
 
         if (shippedDate) updateFields.shippedDate = shippedDate;
 

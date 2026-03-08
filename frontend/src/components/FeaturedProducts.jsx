@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState, useRef } from 'react';
 import { ShopContext } from '../context/ShopContext';
 import ProductItem from '../components/ProductItem';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const FeaturedProducts = () => {
     const { products, navigate } = useContext(ShopContext);
@@ -18,6 +18,16 @@ const FeaturedProducts = () => {
         }
     }, [products]);
 
+    const scrollRegistry = (direction) => {
+        if (scrollRef.current) {
+            const scrollAmount = 400; 
+            scrollRef.current.scrollBy({
+                left: direction === 'left' ? -scrollAmount : scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    };
+
     const handleScroll = () => {
         if (scrollRef.current) {
             const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
@@ -26,7 +36,6 @@ const FeaturedProducts = () => {
         }
     };
 
-    // SEO Slug Generator consistent with your BestSeller logic
     const navigateToProduct = (item) => {
         const slug = item.name.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
@@ -38,13 +47,12 @@ const FeaturedProducts = () => {
     if (featured.length === 0) return null;
 
     return (
-        <section className="bg-white py-20 md:py-32 overflow-hidden select-none relative border-t border-black/[0.03]">
-            {/* Background Decorative Accent - Mirrored from BestSeller */}
+        <section className="bg-white py-10 md:py-12 overflow-hidden select-none relative border-t border-black/[0.03]">
             <div className="absolute -left-[10vw] top-[10%] h-[80%] w-[40%] bg-[#bd002d]/5 rounded-r-[600px] pointer-events-none"></div>
 
             <div className='px-6 md:px-16 lg:px-24 relative z-10'>
                 
-                {/* Header Section - Matches BestSeller Typography */}
+                {/* --- HEADER --- */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
                     <div className="max-w-2xl">
                         <div className="flex items-center gap-4 mb-4">
@@ -53,9 +61,8 @@ const FeaturedProducts = () => {
                                 Curated Selection
                             </span>
                         </div>
-                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 gap-4 tracking-tighter leading-none uppercase">
-                            Featured 
-                            <span className="text-[#bd002d] ml-3">Registry.</span>
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tighter leading-none uppercase">
+                            Featured <span className="text-[#bd002d] ml-3">Registry.</span>
                         </h2>
                     </div>
 
@@ -67,19 +74,35 @@ const FeaturedProducts = () => {
                     </button>
                 </div>
 
-                {/* SCROLLABLE AREA - Styled like BestSeller Mobile/Tablet view */}
-                <div className='relative'>
+                {/* --- CAROUSEL CONTAINER --- */}
+                <div className='relative group/nav'>
+                    
+                    {/* LEFT BUTTON - Positioned at edge */}
+                    <button 
+                        onClick={() => scrollRegistry('left')}
+                        className="hidden md:flex absolute -left-6 lg:-left-12 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
+
+                    {/* RIGHT BUTTON - Positioned at edge */}
+                    <button 
+                        onClick={() => scrollRegistry('right')}
+                        className="hidden md:flex absolute -right-6 lg:-right-12 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
+
                     <div 
                         ref={scrollRef}
                         onScroll={handleScroll}
-                        className='flex overflow-x-auto gap-8 pb-12 pt-8 mobile-scrollbar snap-x snap-mandatory cursor-grab active:cursor-grabbing'
+                        className='flex overflow-x-auto gap-8 pb-12 pt-3 mobile-scrollbar snap-x snap-mandatory scroll-smooth'
                     >
-                        {featured.map((item, index) => (
+                        {featured.map((item) => (
                             <div 
                                 key={item._id} 
-                                className='min-w-[65%] sm:min-w-[45vw] lg:min-w-[220px] snap-center group relative transition-all duration-700'
+                                className='min-w-[75%] sm:min-w-[45vw] lg:min-w-[230px] snap-center group relative transition-all duration-700'
                             >
-                                {/* Sovereign Featured Badge */}
                                 <div className="absolute -top-3 -left-3 z-20 pointer-events-none">
                                     <div className="bg-black text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex flex-col items-center justify-center shadow-lg transform group-hover:-rotate-12 transition-transform duration-500 border-2 border-white">
                                         <Sparkles size={12} className="text-amber-400 mb-0.5" />
@@ -92,14 +115,13 @@ const FeaturedProducts = () => {
                                         onClick={() => navigateToProduct(item)}
                                         className="flex flex-col h-full relative bg-white border border-gray-100 shadow-lg cursor-pointer transition-all duration-500 group-hover:-translate-y-4 group-hover:shadow-2xl group-hover:border-[#bd002d]/20 overflow-hidden rounded-br-[40px] md:rounded-br-[60px]"
                                     >
-                                        {/* Status Indicator */}
                                         <div className="absolute top-4 right-4 flex items-center gap-1.5 z-10">
                                             <div className="w-1.5 h-1.5 bg-[#BC002D] rounded-full animate-pulse shadow-[0_0_5px_#BC002D]"></div>
                                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Premium Grade</span>
                                         </div>
 
-                                        <div className="flex-grow p-2 md:p-2">
-                                            <div className="w-full h-full bg-[#f8f8f8] flex items-center justify-center p-0 md:p-0 rounded-br-[35px] md:rounded-br-[40px]">
+                                        <div className="flex-grow p-2">
+                                            <div className="w-full h-full bg-[#f8f8f8] flex items-center justify-center rounded-br-[35px] md:rounded-br-[40px]">
                                                 <ProductItem 
                                                     id={item._id} 
                                                     _id={item._id} 
@@ -119,11 +141,11 @@ const FeaturedProducts = () => {
                         ))}
                     </div>
 
-                    {/* Gradient Fade - Hidden on mobile, active on desktop */}
-                    <div className='absolute right-0 top-0 bottom-12 w-32 bg-gradient-to-l from-white via-white/80 to-transparent pointer-events-none hidden lg:block'></div>
+                    {/* Gradient Fade */}
+
                 </div>
 
-                {/* --- REGISTRY SLIDER PROGRESS --- */}
+                {/* --- PROGRESS BAR --- */}
                 <div className='mt-4 flex items-center gap-6 max-w-sm'>
                     <span className='text-[8px] font-black text-gray-300 uppercase tracking-widest'>Registry Start</span>
                     <div className='relative h-[3px] flex-1 bg-gray-100 rounded-full overflow-hidden'>

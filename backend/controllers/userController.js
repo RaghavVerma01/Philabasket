@@ -22,39 +22,72 @@ const createToken = (id) => {
 // --- HELPER: DUAL-REWARD & LOOPHOLE PROTECTION ---
 // --- HELPER: DUAL-REWARD WITH 3-PERSON CAP ---
 // --- HELPER: DUAL-REWARD WITH 3-PERSON CAP & IP PROTECTION ---
-const rewardReferrer = async (referrerCode, newUser, ipAddress) => {
-    try {
-        if (!referrerCode || !newUser) return false;
+// const rewardReferrer = async (referrerCode, newUser, ipAddress) => {
+//     try {
+//         if (!referrerCode || !newUser) return false;
 
-        // 1. Find the inviter
-        const referrer = await userModel.findOne({ referralCode: referrerCode });
+//         // 1. Find the inviter
+//         const referrer = await userModel.findOne({ referralCode: referrerCode });
+//         if (!referrer) return false;
+
+//         // 2. Self-Referral Protection
+//         if (referrer._id.toString() === newUser._id.toString()) return false;
+
+//         // 3. CAP PROTECTION: Limit to 3 referrals
+//         if (referrer.referralCount >= 3) return false;
+
+//         // 4. IP Protection: Prevent same person creating multiple accounts
+//         const duplicateIP = await userModel.findOne({ 
+//             signupIP: ipAddress, 
+//             _id: { $ne: newUser._id } 
+//         });
+//         if (duplicateIP) return false;
+
+//         // 5. Apply Rewards
+//         referrer.totalRewardPoints = (referrer.totalRewardPoints || 0) + 50;
+//         referrer.referralCount = (referrer.referralCount || 0) + 1;
+        
+//         newUser.totalRewardPoints = (newUser.totalRewardPoints || 0) + 25;
+//         newUser.signupIP = ipAddress;
+
+//         await referrer.save();
+//         await newUser.save();
+//         return true;
+//     } catch (error) {
+//         console.error("Referral Error:", error);
+//         return false;
+//     }
+// }
+export const rewardReferrer = async (order) => {
+    try {
+        // 1. Identify the buyer
+        const newUser = await userModel.findById(order.userId);
+        
+        // 2. Protocol Check: Must have a referrer and must NOT have been rewarded yet
+        if (!newUser || !newUser.referredBy || newUser.isReferralRewardClaimed) return false;
+
+        // 3. Identify the Referrer (The Inviter)
+        const referrer = await userModel.findOne({ referralCode: newUser.referredBy });
         if (!referrer) return false;
 
-        // 2. Self-Referral Protection
-        if (referrer._id.toString() === newUser._id.toString()) return false;
-
-        // 3. CAP PROTECTION: Limit to 3 referrals
-        if (referrer.referralCount >= 3) return false;
-
-        // 4. IP Protection: Prevent same person creating multiple accounts
-        const duplicateIP = await userModel.findOne({ 
-            signupIP: ipAddress, 
-            _id: { $ne: newUser._id } 
-        });
-        if (duplicateIP) return false;
+        // 4. IP Protection: Verify unique household to prevent "self-referral" farming
+        if (newUser.signupIP === referrer.signupIP) return false;
 
         // 5. Apply Rewards
-        referrer.totalRewardPoints = (referrer.totalRewardPoints || 0) + 50;
+        // Inviter gets 50 PTS
+        referrer.totalRewardPoints = (referrer.totalRewardPoints || 0) + 1000;
         referrer.referralCount = (referrer.referralCount || 0) + 1;
         
-        newUser.totalRewardPoints = (newUser.totalRewardPoints || 0) + 25;
-        newUser.signupIP = ipAddress;
+        // New Buyer gets 25 PTS
+        newUser.totalRewardPoints = (newUser.totalRewardPoints || 0) + 500;
+        newUser.isReferralRewardClaimed = true; // Lock the reward so it only happens once
 
         await referrer.save();
         await newUser.save();
+        
         return true;
     } catch (error) {
-        console.error("Referral Error:", error);
+        console.error("Referral Reward Error:", error);
         return false;
     }
 }
@@ -102,7 +135,8 @@ const registerUser = async (req, res) => {
 
         const newUser = new userModel({
             name, email, password: hashedPassword,
-            totalRewardPoints: 0, referralCount: 0
+            totalRewardPoints: 1000, referralCount: 0,referredBy: req.body.referrerCode || null, 
+            signupIP: req.ip
         });
 
         const user = await newUser.save();

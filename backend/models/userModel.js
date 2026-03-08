@@ -18,6 +18,8 @@ const userSchema = new mongoose.Schema({
         enum: ['Silver', 'Gold', 'Platinum'], 
         default: 'Silver' 
     },
+    referredBy: { type: String, default: null }, // Stores the inviter's referralCode
+    isReferralRewardClaimed: { type: Boolean, default: false }, // Prevents multi-reward loops
 
     defaultAddress: {
         street: { type: String, default: "" },

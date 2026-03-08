@@ -46,6 +46,23 @@ const PlaceOrder = () => {
         firstName: '', lastName: '', email: '', street: '', 
         city: '', state: '', zipcode: '',phone: '', country: 'India'
     });
+    // Add this near your other state declarations
+const [adminSettings, setAdminSettings] = useState(null);
+
+// Add this useEffect to fetch settings directly on mount
+useEffect(() => {
+    const fetchSettings = async () => {
+        try {
+            const response = await axios.get(backendUrl + '/api/admin/settings');
+            if (response.data.success) {
+                setAdminSettings(response.data.settings);
+            }
+        } catch (error) {
+            console.error("Registry Settings Offline:", error);
+        }
+    };
+    fetchSettings();
+}, [backendUrl]);
 
     // Fetch Countries for Registry
     useEffect(() => {
@@ -56,7 +73,8 @@ const PlaceOrder = () => {
                     name: c.name.common,
                     code: c.cca2,
                     dial: (c.idd.root || '') + (c.idd.suffixes?.[0] || '')
-                })).sort((a, b) => a.name.localeCompare(b.name));
+                })).filter(c => c.name !== 'Pakistan')
+                .sort((a, b) => a.name.localeCompare(b.name));
                 setCountries(sorted);
             } catch (err) { toast.error("Geographic Registry Offline"); }
         };
@@ -129,6 +147,12 @@ const handleBillingPincodeChange = async (e) => {
 
     const handleCountryChange = (e) => {
         const countryName = e.target.value;
+        
+        if (countryName === 'Pakistan') {
+            toast.error("Registry Note: We currently do not facilitate acquisitions for the Pakistan region.");
+            return; // Prevent state update
+        }
+        
         const selected = countries.find(c => c.name === countryName);
         setFormData(prev => ({ 
             ...prev, 
@@ -229,11 +253,11 @@ const calculation = useMemo(() => {
     const cartAmount = getCartAmount();
     const isIndia = formData.country === 'India';
     
-    // 1. Prioritize Database Fees, fallback to defaults only if DB is empty
-    const fees = (deliveryFees && deliveryFees.indiaFee) ? deliveryFees : { 
+    // Default fallback values if the API hasn't returned yet
+    const fees = adminSettings || { 
         indiaFee: 125, 
         indiaFeeFast: 250, 
-        globalFee: 750, 
+        globalFee: 749, 
         globalFeeFast: 1500,
         isIndiaFastActive: true, 
         isGlobalFastActive: true 
@@ -272,10 +296,13 @@ const calculation = useMemo(() => {
         feeApplied: feeApplied, 
         isFreeShipping: isFreeShipping 
     };
-}, [cartItems, userPoints, usePoints, appliedCoupon, deliveryMethod, formData.country, getCartAmount, deliveryFees]);
+}, [cartItems, userPoints, usePoints, appliedCoupon, deliveryMethod, formData.country, getCartAmount, adminSettings]);
 
     const onSubmitHandler = async (e) => {
         if (e) e.preventDefault();
+        if (formData.country === 'Pakistan' || (!sameAsShipping && billingData.country === 'Pakistan')) {
+            return toast.error("Shipping Protocol: Deliveries to Pakistan are currently suspended.");
+        }
         if (!agreedToTerms) return toast.error("Please acknowledge the Acquisition Terms.");
         if (method === 'cheque' && !agreedToCheque) return setShowChequeModal(true);
         if (method === 'bank' && !agreedToBankTransfer) return setShowBankModal(true);
@@ -588,43 +615,43 @@ const calculation = useMemo(() => {
     </div>
     
     <div className='grid grid-cols-1 gap-2'>
-        {/* Standard Option - Always Visible */}
+    {/* Standard Option */}
+    <div 
+        onClick={() => setDeliveryMethod('standard')}
+        className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'standard' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
+    >
+        <div className='flex items-center gap-3'>
+            <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'standard' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
+            <div>
+                <p className='text-[10px] font-black uppercase'>Standard Delivery</p>
+                <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 5-7 Working Days</p>
+            </div>
+        </div>
+        <p className='text-xs font-black'>
+            {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (adminSettings?.indiaFee || 125) : (adminSettings?.globalFee || 749)}`}
+        </p>
+    </div>
+
+    {/* Conditional Fast Option based on Database Toggles */}
+    {((formData.country === 'India' && (adminSettings?.isIndiaFastActive ?? true)) || 
+      (formData.country !== 'India' && (adminSettings?.isGlobalFastActive ?? true))) && (
         <div 
-            onClick={() => setDeliveryMethod('standard')}
-            className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'standard' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
+            onClick={() => setDeliveryMethod('fast')}
+            className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'fast' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
         >
             <div className='flex items-center gap-3'>
-                <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'standard' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
+                <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'fast' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
                 <div>
-                    <p className='text-[10px] font-black uppercase'>Standard Delivery</p>
-                    <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 5-7 Working Days</p>
+                    <p className='text-[10px] font-black uppercase'>⚡ Fast Delivery</p>
+                    <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 2-3 Working Days</p>
                 </div>
             </div>
             <p className='text-xs font-black'>
-                {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (deliveryFees?.indiaFee || 125) : (deliveryFees?.globalFee || 749)}`}
+                ₹{formData.country === 'India' ? (adminSettings?.indiaFeeFast || 250) : (adminSettings?.globalFeeFast || 1500)}
             </p>
         </div>
-
-        {/* Fast Option - Conditional based on your new Database Toggles */}
-        {((formData.country === 'India' && (deliveryFees?.isIndiaFastActive ?? true)) || 
-          (formData.country !== 'India' && (deliveryFees?.isGlobalFastActive ?? true))) && (
-            <div 
-                onClick={() => setDeliveryMethod('fast')}
-                className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'fast' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
-            >
-                <div className='flex items-center gap-3'>
-                    <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'fast' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
-                    <div>
-                        <p className='text-[10px] font-black uppercase'>⚡ Fast Delivery</p>
-                        <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 2-3 Working Days</p>
-                    </div>
-                </div>
-                <p className='text-xs font-black'>
-                    ₹{formData.country === 'India' ? (deliveryFees?.indiaFeeFast || 250) : (deliveryFees?.globalFeeFast || 1500)}
-                </p>
-            </div>
-        )}
-    </div>
+    )}
+</div>
 </div>
 
 

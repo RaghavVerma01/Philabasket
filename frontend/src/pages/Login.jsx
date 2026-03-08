@@ -75,7 +75,7 @@ const Login = () => {
   }, [token]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-[#FCF9F4] select-none animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-[#FCF9F4] text-black select-none animate-fade-in">
       
       <div className="flex w-full max-w-6xl bg-white shadow-xl rounded-sm overflow-hidden border border-black/5">
         

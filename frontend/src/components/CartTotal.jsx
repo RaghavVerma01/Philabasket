@@ -1,16 +1,33 @@
-import React, { useContext } from 'react'
-import { ShopContext } from '../context/ShopContext'
+import React, { useContext, useEffect, useState } from 'react';
+import { ShopContext } from '../context/ShopContext';
+import axios from 'axios';
 import Title from './Title';
 
 const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
-
-    const { currency, deliveryFees, getCartAmount, formatPrice } = useContext(ShopContext);
+    // Keep currency and pricing logic in context, but fetch fees directly
+    const { currency, backendUrl, getCartAmount, formatPrice } = useContext(ShopContext);
+    const [adminFees, setAdminFees] = useState(null);
 
     const subtotal = getCartAmount();
     
     // --- FINANCIAL PROTOCOLS ---
     const gstAmount = subtotal * 0.05;
     const philabasketDiscount = subtotal * 0.05; 
+
+    // --- DIRECT DATABASE FETCH FOR FEES ---
+    useEffect(() => {
+        const fetchFees = async () => {
+            try {
+                const response = await axios.get(backendUrl + '/api/admin/settings');
+                if (response.data.success) {
+                    setAdminFees(response.data.settings);
+                }
+            } catch (error) {
+                console.error("Registry Settings Offline:", error);
+            }
+        };
+        fetchFees();
+    }, [backendUrl]);
 
     // --- DYNAMIC SHIPPING LOGIC ---
     const calculateShipping = () => {
@@ -22,11 +39,15 @@ const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
             return 0;
         }
 
-        // Use DeliveryFees from Context with naming alignment (indiaFee, indiaFeeFast, etc.)
+        // Use AdminFees from direct state with fallback values provided
         if (isIndia) {
-            return deliveryMethod === 'fast' ? (deliveryFees?.indiaFeeFast || 250) : (deliveryFees?.indiaFee || 125);
+            return deliveryMethod === 'fast' 
+                ? (adminFees?.indiaFeeFast || 250) 
+                : (adminFees?.indiaFee || 125);
         } else {
-            return deliveryMethod === 'fast' ? (deliveryFees?.globalFeeFast || 1500) : (deliveryFees?.globalFee || 749);
+            return deliveryMethod === 'fast' 
+                ? (adminFees?.globalFeeFast || 1500) 
+                : (adminFees?.globalFee || 749);
         }
     };
 
@@ -71,7 +92,7 @@ const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
 
                 <hr className='border-black/5' />
 
-                {/* Shipping Fee with Method Toggle Feedback */}
+                {/* Shipping Fee */}
                 <div className='flex justify-between items-center'>
                     <div>
                         <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Registry Shipping Fee</p>
@@ -104,7 +125,7 @@ const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default CartTotal;

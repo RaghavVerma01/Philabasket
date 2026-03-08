@@ -11,6 +11,7 @@ import Banner from '../components/Banner'
 import Testimonials from '../components/Testimonila'
 import StampCategoryScroll from '../components/StampCategoryScroll'
 import FeaturedProducts from '../components/FeaturedProducts'
+import PromoPopup from '../components/Popup'
 
 const Home = () => {
   const latestCollectionRef = useRef(null);
@@ -19,6 +20,8 @@ const Home = () => {
   };
   return (
     <div className='bg-white'>
+
+      <PromoPopup/>
       {/* 1. THE HOOK: High-impact emotional entrance */}
       {/* <NewHero scrollHandler={scrollToCollection} /> */}
       <Banner scrollHandler={scrollToCollection}/>
