@@ -427,6 +427,32 @@ const listMedia = async (req, res) => {
 
 // import categoryModel from '../models/categoryModel.js'; // Ensure this is imported
 
+
+
+
+// Optimized API for Admin Order Editing (Modal search)
+export const listProductsForAdminEdit = async (req, res) => {
+    try {
+        // We fetch basic fields for all items, including hidden ones
+        // No pagination here to ensure the admin can search the entire registry
+        const products = await productModel.find({})
+            .select('name price image category isActive stock')
+            .sort({ name: 1 }) // Alphabetical for easier manual browsing
+            .lean();
+
+        res.json({ 
+            success: true, 
+            products 
+        });
+
+    } catch (error) {
+        console.error("Admin Edit Registry Error:", error);
+        res.json({ success: false, message: "Failed to access master registry" });
+    }
+};
+
+
+
 const listProducts = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
@@ -1070,7 +1096,8 @@ export const getRecentlyUpdated = async (req, res) => {
         const products = await productModel.find({})
             .sort({ updatedAt: -1 }) // Newest updates first
             .limit(30); // Limit to top 20 recent changes
-        await sendUpdateEmails(products);
+
+        // await sendUpdateEmails(products);
 
         res.json({ success: true, products });
     } catch (error) {

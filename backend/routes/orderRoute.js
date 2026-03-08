@@ -1,5 +1,5 @@
 import express from 'express'
-import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus, emailInvoiceToUser} from '../controllers/orderController.js'
+import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus, emailInvoiceToUser, updateOrderItems} from '../controllers/orderController.js'
 import adminAuth  from '../middleware/adminAuth.js'
 import authUser from '../middleware/auth.js'
 
@@ -30,7 +30,7 @@ orderRouter.get('/admin-stats', adminAuth, getAdminDashboardStats);
 orderRouter.get('/detailed-analytics', adminAuth, getDetailedAnalytics);
 orderRouter.post('/single', adminAuth, singleOrder);
 orderRouter.post('/update-invoice', adminAuth, updateInvoiceStatus);
-
+orderRouter.post('/update-items', adminAuth, updateOrderItems);
 orderRouter.post('/migrate-legacy-data', adminAuth, syncLegacyOrderDetails);
 
 

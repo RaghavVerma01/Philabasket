@@ -2,9 +2,9 @@ import React, { useContext } from 'react'
 import { ShopContext } from '../context/ShopContext'
 import Title from './Title';
 
-const CartTotal = ({ country = 'India' }) => {
+const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
 
-    const { currency, getDeliveryFee, getCartAmount, formatPrice } = useContext(ShopContext);
+    const { currency, deliveryFees, getCartAmount, formatPrice } = useContext(ShopContext);
 
     const subtotal = getCartAmount();
     
@@ -12,11 +12,26 @@ const CartTotal = ({ country = 'India' }) => {
     const gstAmount = subtotal * 0.05;
     const philabasketDiscount = subtotal * 0.05; 
 
-    // Threshold logic: Free shipping for orders > ₹4999 (Registry Standard)
-    const FREE_SHIPPING_THRESHOLD = 4999;
-    const isFreeShipping = subtotal >= FREE_SHIPPING_THRESHOLD;
-    const currentDeliveryFee = isFreeShipping ? 0 : getDeliveryFee(country); 
-    
+    // --- DYNAMIC SHIPPING LOGIC ---
+    const calculateShipping = () => {
+        const isIndia = country?.toLowerCase().trim() === 'india';
+        const FREE_SHIPPING_THRESHOLD = 4999;
+        
+        // Protocol: Free shipping only for Standard India orders >= 4999
+        if (isIndia && deliveryMethod === 'standard' && subtotal >= FREE_SHIPPING_THRESHOLD) {
+            return 0;
+        }
+
+        // Use DeliveryFees from Context with naming alignment (indiaFee, indiaFeeFast, etc.)
+        if (isIndia) {
+            return deliveryMethod === 'fast' ? (deliveryFees?.indiaFeeFast || 250) : (deliveryFees?.indiaFee || 125);
+        } else {
+            return deliveryMethod === 'fast' ? (deliveryFees?.globalFeeFast || 1500) : (deliveryFees?.globalFee || 749);
+        }
+    };
+
+    const currentDeliveryFee = calculateShipping();
+    const isFreeShipping = currentDeliveryFee === 0 && subtotal > 0;
     const currencySymbol = currency === 'USD' ? '$' : '₹';
 
     return (
@@ -56,9 +71,14 @@ const CartTotal = ({ country = 'India' }) => {
 
                 <hr className='border-black/5' />
 
-                {/* Shipping Fee with Free Delivery Protocol */}
+                {/* Shipping Fee with Method Toggle Feedback */}
                 <div className='flex justify-between items-center'>
-                    <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Registry Shipping Fee ({country})</p>
+                    <div>
+                        <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Registry Shipping Fee</p>
+                        <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-tighter'>
+                            {deliveryMethod === 'fast' ? '⚡ Priority Dispatch' : 'Standard Delivery'}
+                        </p>
+                    </div>
                     <div className='text-right'>
                         {isFreeShipping ? (
                             <span className='text-[8px] font-black bg-black text-white px-2 py-0.5 rounded-full uppercase tracking-widest'>Complimentary</span>
@@ -87,4 +107,4 @@ const CartTotal = ({ country = 'India' }) => {
     )
 }
 
-export default CartTotal
+export default CartTotal;

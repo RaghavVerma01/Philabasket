@@ -13,6 +13,12 @@ const orderSchema = new mongoose.Schema({
     amount: { type: Number, required: true },
 
     deliveryFee: { type: Number, required: true, default: 0 },
+    deliveryMethod: { 
+        type: String, 
+        required: true, 
+        enum: ['standard', 'fast'], 
+        default: 'standard' 
+    }, //
     allowInvoice: { type: Boolean, default: false },
 
     address: { type: Object, required: true },

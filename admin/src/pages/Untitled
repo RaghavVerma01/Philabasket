@@ -375,129 +375,29 @@ const OrderDetail = ({ token }) => {
       )}
 
       {/* --- SIDEBAR --- */}
-      <div style={{
-    ...styles.sidebarOverlay,
-    visibility: isSidebarOpen ? 'visible' : 'hidden',
-    opacity: isSidebarOpen ? 1 : 0
-}} onClick={() => setIsSidebarOpen(false)}>
-    <div style={{
-        ...styles.sidebarContent,
-        transform: isSidebarOpen ? 'translateX(0)' : 'translateX(100%)'
-    }} onClick={(e) => e.stopPropagation()}>
-        
-        {/* Fixed Header: flex-shrink-0 prevents it from squishing */}
-        <div style={styles.sidebarHeader}>
-            <div>
-                <p style={styles.headerLabel}>Collector History</p>
-                <h3 style={{ ...styles.headerName, fontSize: '20px', margin: 0 }}>
-                    {order.address?.firstName}'s Orders
-                </h3>
-            </div>
-            <button onClick={() => setIsSidebarOpen(false)} style={styles.closeBtn}>✕</button>
-        </div>
-        
-        {/* Scrollable Body: flex-1 makes it take up all remaining vertical space */}
-        <div style={styles.sidebarBody} className="sidebar-scroll">
-            {userOrdersList.map((item) => (
-                <div 
-                    key={item._id} 
-                    onClick={() => { navigate(`/orders/${item._id}`); setIsSidebarOpen(false); }}
-                    style={{
-                        ...styles.historyItem,
-                        borderLeft: item._id === orderId ? '4px solid #BC002D' : '4px solid transparent',
-                        background: item._id === orderId ? '#f8fafc' : '#fff'
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={styles.historyRef}>#{item.orderNo || item._id.slice(-6)}</span>
-                        <span style={{ 
-                            fontSize: '9px', 
-                            fontWeight: 800, 
-                            color: STATUS_CONFIG[item.status]?.color.includes('emerald') ? '#059669' : '#64748b' 
-                        }}>{item.status}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={styles.historyDate}>{new Date(item.date).toLocaleDateString()}</span>
-                        <span style={{ fontWeight: 700 }}>₹{item.amount}</span>
-                    </div>
+      {isSidebarOpen && (
+        <div style={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)}>
+            <div style={styles.sidebarContent} onClick={(e)=>e.stopPropagation()}>
+                <div style={styles.sidebarHeader}><h3 style={{ fontWeight: 800 }}>Collector History</h3><button onClick={() => setIsSidebarOpen(false)} style={styles.closeBtn}>✕</button></div>
+                <div style={styles.sidebarBody}>
+                    {userOrdersList.map(o => (
+                        <div key={o._id} style={styles.historyItem} onClick={() => { navigate(`/orders/${o._id}`); setIsSidebarOpen(false); }}>
+                            <p style={{ fontWeight: 700, margin: 0, fontSize: '12px' }}>#{o.orderNo || o._id.slice(-6)}</p>
+                            <div style={{display: 'flex', justifyContent: 'space-between', marginTop: '4px'}}>
+                                <span style={{ fontSize: '11px', color: '#64748b' }}>₹{o.amount}</span>
+                                <span style={{ fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', color: '#1e3a5f' }}>{o.status}</span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            ))}
+            </div>
         </div>
-    </div>
-</div>
-
+      )}
     </div>
   );
 };
 
 const styles = {
-  sidebarOverlay: {
-    position: 'fixed', 
-    top: 0, 
-    left: 0, 
-    right: 0, 
-    bottom: 0,
-    background: 'rgba(15, 23, 42, 0.4)', 
-    zIndex: 2000, 
-    transition: 'all 0.3s ease-in-out', 
-    backdropFilter: 'blur(2px)'
-  },
-
-  sidebarContent: {
-    position: 'absolute', 
-    right: 0, 
-    top: 0, 
-    bottom: 0,
-    width: '380px', 
-    height: '100vh',           // Lock to viewport height
-    background: '#fff', 
-    boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
-    display: 'flex', 
-    flexDirection: 'column',   // Stack Header and Body vertically
-    transition: 'transform 0.3s ease-in-out'
-  },
-
-  sidebarHeader: {
-    padding: '24px', 
-    borderBottom: '1px solid #f1f5f9',
-    display: 'flex', 
-    justifyContent: 'space-between', 
-    alignItems: 'center',
-    flexShrink: 0              // Prevent header from collapsing
-  },
-
-  sidebarBody: { 
-    padding: '20px', 
-    overflowY: 'auto',         // Enable scrolling for body only
-    flex: 1,                   // Fill all space between Header and Bottom
-    display: 'flex', 
-    flexDirection: 'column', 
-    gap: '12px',
-    backgroundColor: '#fcfcfc'
-  },
-
-  historyItem: {
-    padding: '16px', 
-    borderRadius: '6px', 
-    border: '1px solid #e2e8f0',
-    cursor: 'pointer', 
-    transition: 'all 0.2s',
-    flexShrink: 0              // Prevent items from squishing
-  },
-
-  closeBtn: {
-    background: '#f1f5f9', 
-    border: 'none', 
-    borderRadius: '50%',
-    width: '30px',
-    height: '30px',
-    cursor: 'pointer', 
-    color: '#64748b',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 'bold'
-  },
   page: { minHeight: '100vh', background: '#f8fafc', paddingBottom: '60px', fontFamily: "'Source Sans 3', sans-serif" },
   container: { maxWidth: '1200px', margin: '0 auto', padding: '20px 24px' },
   topBar: { display: 'flex', justifyContent: 'space-between', marginBottom: '20px' },
@@ -553,12 +453,12 @@ const styles = {
   productItem: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', border: '1px solid #f1f5f9', borderRadius: '8px' },
   summaryRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' },
   summaryDivider: { height: '1px', background: '#f1f5f9', margin: '12px 0' },
-  // sidebarOverlay: { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 1000, transition: 'all 0.3s ease-in-out', backdropFilter: 'blur(2px)' },
-  // sidebarContent: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', background: '#fff', padding: '24px', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)' },
-  // sidebarHeader: { borderBottom: '1px solid #f1f5f9', paddingBottom: '15px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  // closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' },
-  // sidebarBody: { overflowY: 'auto' },
-  // historyItem: { padding: '12px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' },
+  sidebarOverlay: { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.4)', zIndex: 1000, transition: 'all 0.3s ease-in-out', backdropFilter: 'blur(2px)' },
+  sidebarContent: { position: 'absolute', right: 0, top: 0, bottom: 0, width: '320px', background: '#fff', padding: '24px', boxShadow: '-10px 0 30px rgba(0,0,0,0.1)' },
+  sidebarHeader: { borderBottom: '1px solid #f1f5f9', paddingBottom: '15px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' },
+  sidebarBody: { overflowY: 'auto' },
+  historyItem: { padding: '12px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' },
   loadingScreen: { minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' },
 };
 

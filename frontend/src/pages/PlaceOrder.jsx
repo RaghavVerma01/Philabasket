@@ -15,7 +15,7 @@ const PlaceOrder = () => {
     const { 
         navigate, backendUrl, token, cartItems, setCartItems, 
         getCartAmount, getDeliveryFee, products, currency, 
-        userData, fetchUserData, formatPrice 
+        userData, fetchUserData, formatPrice ,deliveryFees
     } = useContext(ShopContext);
     
     const [loading, setLoading] = useState(false);
@@ -62,6 +62,14 @@ const PlaceOrder = () => {
         };
         fetchCountries();
     }, []);
+
+    // if (!deliveryFees || !deliveryFees.india) {
+    //     return (
+    //         <div className='flex items-center justify-center min-h-screen'>
+    //             <Loader2 className='animate-spin text-[#BC002D]' size={40} />
+    //         </div>
+    //     );
+    // }
 
 // --- BILLING HANDLERS ---
 // --- UPDATED BILLING HANDLERS ---
@@ -212,17 +220,37 @@ const handleBillingPincodeChange = async (e) => {
     };
 
     // --- FINANCIAL SYNC ---
-    const rawDeliveryFee = getDeliveryFee(formData.country); // Original fee from registry
+// Original fee from registry
+
+// Add this state at the top of your component with other states
+const [deliveryMethod, setDeliveryMethod] = useState('standard');
 
 const calculation = useMemo(() => {
     const cartAmount = getCartAmount();
+    const isIndia = formData.country === 'India';
     
-    // Financial Protocol: Free shipping for orders >= ₹4999
+    // 1. Prioritize Database Fees, fallback to defaults only if DB is empty
+    const fees = (deliveryFees && deliveryFees.indiaFee) ? deliveryFees : { 
+        indiaFee: 125, 
+        indiaFeeFast: 250, 
+        globalFee: 750, 
+        globalFeeFast: 1500,
+        isIndiaFastActive: true, 
+        isGlobalFastActive: true 
+    };
+
     const FREE_SHIPPING_THRESHOLD = 4999;
-    const isFreeShipping = cartAmount >= FREE_SHIPPING_THRESHOLD;
+    // Protocol: Free shipping only for Standard India orders >= 4999
+    const isFreeShipping = cartAmount >= FREE_SHIPPING_THRESHOLD && deliveryMethod === 'standard' && isIndia;
     
-    // Apply 0 if threshold is met, otherwise use regional fee
-    const feeApplied = isFreeShipping ? 0 : rawDeliveryFee;
+    let feeApplied = 0;
+    if (!isFreeShipping) {
+        if (isIndia) {
+            feeApplied = deliveryMethod === 'fast' ? fees.indiaFeeFast : fees.indiaFee;
+        } else {
+            feeApplied = deliveryMethod === 'fast' ? fees.globalFeeFast : fees.globalFee;
+        }
+    }
     
     const subtotal = cartAmount + feeApplied; 
     
@@ -241,10 +269,10 @@ const calculation = useMemo(() => {
         couponDeducted: couponVal,
         rewardDeducted: rewardDiscount,
         totalPayable: finalPayable,
-        feeApplied: feeApplied, // This goes to the database
-        isFreeShipping: isFreeShipping // Used for UI feedback
+        feeApplied: feeApplied, 
+        isFreeShipping: isFreeShipping 
     };
-}, [cartItems, userPoints, usePoints, appliedCoupon, rawDeliveryFee, getCartAmount]);
+}, [cartItems, userPoints, usePoints, appliedCoupon, deliveryMethod, formData.country, getCartAmount, deliveryFees]);
 
     const onSubmitHandler = async (e) => {
         if (e) e.preventDefault();
@@ -261,7 +289,8 @@ const calculation = useMemo(() => {
                 address: formData,
                 billingAddress: sameAsShipping ? formData : billingData,
                 items: orderItems,
-                deliveryFee: Number(calculation.feeApplied), // Clean number for DB
+                deliveryFee: Number(calculation.feeApplied),
+                deliveryMethod: deliveryMethod, // Add this line // Clean number for DB
                 amount: Number(calculation.totalPayable),
                 pointsUsed: Math.round(calculation.pointsDeducted),
                 couponUsed: appliedCoupon ? appliedCoupon.code : null,
@@ -509,7 +538,7 @@ const calculation = useMemo(() => {
                 <div className='flex flex-col gap-6 w-full lg:max-w-[380px]'>
                     <div className='bg-white border border-gray-100 p-6 shadow-sm rounded-sm'>
                         {/* Passes Country to update shipping automatically */}
-                        <CartTotal country={formData.country} />
+                        <CartTotal country={formData.country} deliveryMethod={deliveryMethod} />
                         
                         <div className='mt-6 flex flex-col gap-2'>
                             <div className='flex gap-2'>
@@ -547,6 +576,57 @@ const calculation = useMemo(() => {
                         <input required type="checkbox" checked={agreedToTerms} onChange={() => setAgreedToTerms(!agreedToTerms)} className='mt-1 accent-black' />
                         <p className='text-[9px] text-gray-400 font-bold uppercase leading-relaxed'>I accept the <span onClick={(e) => {e.stopPropagation(); setShowTerms(true)}} className='text-[#BC002D] cursor-pointer underline'>Acquisition Terms</span>.</p>
                     </div>
+
+
+                    {/* SHIPPING METHOD SELECTION */}
+{/* SHIPPING METHOD SELECTION */}
+{/* SHIPPING METHOD SELECTION */}
+<div className='flex flex-col gap-3 mb-6'>
+    <div className='flex items-center gap-2 mb-2'>
+        <MapPin size={14} className='text-[#BC002D]' />
+        <h4 className='text-[10px] font-black uppercase tracking-widest'>Shipping Method</h4>
+    </div>
+    
+    <div className='grid grid-cols-1 gap-2'>
+        {/* Standard Option - Always Visible */}
+        <div 
+            onClick={() => setDeliveryMethod('standard')}
+            className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'standard' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
+        >
+            <div className='flex items-center gap-3'>
+                <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'standard' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
+                <div>
+                    <p className='text-[10px] font-black uppercase'>Standard Delivery</p>
+                    <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 5-7 Working Days</p>
+                </div>
+            </div>
+            <p className='text-xs font-black'>
+                {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (deliveryFees?.indiaFee || 125) : (deliveryFees?.globalFee || 749)}`}
+            </p>
+        </div>
+
+        {/* Fast Option - Conditional based on your new Database Toggles */}
+        {((formData.country === 'India' && (deliveryFees?.isIndiaFastActive ?? true)) || 
+          (formData.country !== 'India' && (deliveryFees?.isGlobalFastActive ?? true))) && (
+            <div 
+                onClick={() => setDeliveryMethod('fast')}
+                className={`flex items-center justify-between p-4 cursor-pointer border rounded-sm transition-all ${deliveryMethod === 'fast' ? 'border-[#BC002D] bg-[#BC002D]/5' : 'border-gray-100 bg-white'}`}
+            >
+                <div className='flex items-center gap-3'>
+                    <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'fast' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
+                    <div>
+                        <p className='text-[10px] font-black uppercase'>⚡ Fast Delivery</p>
+                        <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 2-3 Working Days</p>
+                    </div>
+                </div>
+                <p className='text-xs font-black'>
+                    ₹{formData.country === 'India' ? (deliveryFees?.indiaFeeFast || 250) : (deliveryFees?.globalFeeFast || 1500)}
+                </p>
+            </div>
+        )}
+    </div>
+</div>
+
 
                     <div className='space-y-3'>
                         <Title text1={'PAYMENT'} text2={'PROTOCOL'} />

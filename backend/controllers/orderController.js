@@ -288,22 +288,40 @@ const placeOrder = async (req, res) => {
         const { 
             userId, items, amount, address, billingAddress, 
             currency, pointsUsed, couponUsed, discountAmount, 
-            paymentMethod, status ,deliveryFee
+            paymentMethod, status, deliveryFee, 
+            deliveryMethod // Pull the new selection from the frontend
         } = req.body;
 
+        // 1. FETCH UPDATED REGISTRY PROTOCOLS
+        const settings = await settingsModel.findOne({}) || { 
+            rate: 83, 
+            indiaFee: 125, indiaFeeFast: 250, 
+            globalFee: 750, globalFeeFast: 1500 
+        };
 
-        const settings = await settingsModel.findOne({}) || { rate: 83, indiaFee: 125, globalFee: 750 };
-        const expectedFee = address.country.toLowerCase() === 'india' 
-            ? settings.indiaFee 
-            : settings.globalFee;
+        // 2. CALCULATE EXPECTED FEE BASED ON 4-WAY MATRIX
+        const isIndia = address.country.toLowerCase() === 'india';
+        const method = deliveryMethod === 'fast' ? 'fast' : 'standard';
 
-        // Safety Check: If the sent deliveryFee doesn't match our DB records, alert admin
-        if (Number(deliveryFee) !== expectedFee) {
-            console.error(`Valuation Mismatch: Expected ${expectedFee}, received ${deliveryFee}`);
-            // Optional: Hard-reset to the correct fee or block the order
+        let expectedFee = 0;
+        if (isIndia) {
+            expectedFee = method === 'fast' ? settings.indiaFeeFast : settings.indiaFee;
+        } else {
+            expectedFee = method === 'fast' ? settings.globalFeeFast : settings.globalFee;
         }
 
-        // 1. BLOCK DOUBLE COUPON USAGE
+        // Apply Free Shipping override for Standard Domestic orders >= 4999 if applicable
+        const cartAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        if (isIndia && method === 'standard' && cartAmount >= 4999) {
+            expectedFee = 0;
+        }
+
+        // Valuation Safety Check
+        if (Number(deliveryFee) !== expectedFee) {
+            console.error(`Valuation Mismatch: Expected ${expectedFee}, received ${deliveryFee}`);
+        }
+
+        // 3. BLOCK DOUBLE COUPON USAGE
         if (couponUsed) {
             const alreadyUsed = await userRewardModel.findOne({ 
                 discountCode: couponUsed, 
@@ -314,17 +332,18 @@ const placeOrder = async (req, res) => {
             if (alreadyUsed) {
                 return res.json({ 
                     success: false, 
-                    message: `Security Alert: Coupon ${couponUsed} has already been recorded in your Archive.` 
+                    message: `Security Alert: Coupon ${couponUsed} has already been recorded.` 
                 });
             }
         }
 
-        // 2. CONSTRUCT ORDER DATA
+        // 4. CONSTRUCT ORDER DATA WITH DELIVERY METHOD
         const orderData = {
             userId,
             items,
             address,
             deliveryFee: expectedFee,
+            deliveryMethod: method, // Explicitly save chosen method
             billingAddress: billingAddress || address,
             amount,
             pointsUsed: pointsUsed || 0,
@@ -338,11 +357,10 @@ const placeOrder = async (req, res) => {
             status: status || (paymentMethod === 'Cheque' ? 'Cheque on Hold' : 'Order Placed')
         };
 
-        // 3. SAVE ORDER TO DATABASE
         const newOrder = new orderModel(orderData);
         await newOrder.save(); 
 
-        // 4. RECORD USAGE IN USER REWARD TABLE
+        // 5. POST-ORDER LOGIC (Rewards, Inventory, Cart)
         if (couponUsed) {
             const usedEntry = new userRewardModel({
                 email: address.email,
@@ -350,51 +368,41 @@ const placeOrder = async (req, res) => {
                 description: `Acquisition Discount via ${couponUsed}`,
                 discountValue: discountAmount,
                 discountCode: couponUsed,
-                pointsUsed: discountAmount,
                 status: 'used',
                 createdAt: new Date()
             });
             await usedEntry.save();
         }
 
-        // 5. DEDUCT REWARD POINTS
         if (pointsUsed > 0) {
             await recordRewardActivity(userId, address.email, -Math.abs(pointsUsed), 'redeem_point', newOrder._id);
         }
 
-        // 6. UPDATE INVENTORY
         for (const item of items) {
             await productModel.findByIdAndUpdate(item._id, { $inc: { stock: -item.quantity } });
         }
 
-        // 7. CLEAN USER CART
         await userModel.findByIdAndUpdate(userId, { $set: { cartData: {} } });
 
-        // --- 8. TRIGGER EMAIL NOTIFICATION (THE FIX) ---
-        // --- 8. TRIGGER EMAIL NOTIFICATION (THE FIX) ---
+        // 6. TRIGGER NOTIFICATIONS
         try {
             const emailSubject = orderData.paymentMethod === 'Cheque' 
                 ? "Order Received - Awaiting Cheque" 
                 : "Order Confirmation";
             
-            // We use the 'expectedFee' we calculated at the top of the controller
-            // Pass 'newOrder' and 'expectedFee' as separate arguments to the template
+            // Pass deliveryMethod to template if needed for UI priority badges
             const htmlContent = getOrderHtmlTemplate(newOrder.toObject(), expectedFee);
-        
             await sendEmail(address.email, emailSubject, htmlContent);
-            console.log("Acquisition Email Sent to:", address.email);
         } catch (emailError) {
-            console.error("Email notification failed to send:", emailError);
+            console.error("Email notification failed:", emailError);
         }
 
-        // 9. TRIGGER WHATSAPP ALERT FOR ADMIN
         await sendWhatsAppAlert(orderData);
 
-        // 10. FINAL SUCCESS RESPONSE
         res.json({ 
             success: true, 
             message: paymentMethod === 'Cheque' 
-                ? "Acquisition secured. Order is 'On Hold' awaiting cheque clearance." 
+                ? "Acquisition secured. Awaiting cheque clearance." 
                 : "Order Placed & Confirmation Sent.", 
             orderNo: newOrder.orderNo 
         });
@@ -455,6 +463,44 @@ const updateSoldCount = async (items) => {
         });
     }
 };
+
+// API to update order items and total amount (Admin only)
+export const updateOrderItems = async (req, res) => {
+    try {
+        const { orderId, items, amount } = req.body;
+
+        // 1. Validation
+        if (!orderId || !items || items.length === 0) {
+            return res.json({ success: false, message: "Invalid Registry Data" });
+        }
+
+        // 2. Update the document
+        // We use the $set operator to ensure other fields (like address/status) remain untouched
+        const updatedOrder = await orderModel.findByIdAndUpdate(
+            orderId,
+            { 
+                items: items, 
+                amount: Number(amount) 
+            },
+            { new: true } // Returns the updated document
+        );
+
+        if (!updatedOrder) {
+            return res.json({ success: false, message: "Order not found in Archives" });
+        }
+
+        res.json({ 
+            success: true, 
+            message: "Archive Registry Updated", 
+            order: updatedOrder 
+        });
+
+    } catch (error) {
+        console.error("Registry Sync Error:", error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
 
 
 const updateStatus = async (req, res) => {

@@ -11,22 +11,38 @@ const ShopContextProvider = (props) => {
 
     // --- ADMINISTRATIVE PROTOCOLS (Dynamic) ---
     const [exchangeRate, setExchangeRate] = useState(83); 
-    const [deliveryFees, setDeliveryFees] = useState({ india: 125, global: 750 });
+    const [deliveryFees, setDeliveryFees] = useState({ 
+        indiaFee: 125, 
+        indiaFeeFast: 250, 
+        globalFee: 750, 
+        globalFeeFast: 1500,
+        isIndiaFastActive: false,
+        isGlobalFastActive: false
+    });
     const [currency, setCurrency] = useState('INR'); 
 
 
     // Helper to get delivery fee based on selected country logic
-    const getDeliveryFee = (country = 'India') => {
-        const totalAmount = getCartAmount(); // Get current cart total
-        const normalizedCountry = country?.toLowerCase().trim();
+    // Helper to get delivery fee based on region and speed protocol
+    const getDeliveryFee = (country = 'India', method = 'standard') => {
+        // Safety Check: If deliveryFees hasn't loaded yet, return a default number
+        if (!deliveryFees) return 125; 
     
-        // Protocol: Free delivery for orders above 4999 in India
-        if (normalizedCountry === 'india' && totalAmount >= 4999) {
+        const totalAmount = getCartAmount();
+        const isIndia = country?.toLowerCase().trim() === 'india';
+    
+        // Protocol: Free delivery ONLY for Standard India orders >= 4999
+        if (isIndia && method === 'standard' && totalAmount >= 4999) {
             return 0;
         }
     
-        // Standard Fees
-        return normalizedCountry === 'india' ? deliveryFees.india : deliveryFees.global;
+        if (isIndia) {
+            // FIXED: Changed .india to .indiaFee and .indiaFast to .indiaFeeFast
+            return method === 'fast' ? deliveryFees.indiaFeeFast : deliveryFees.indiaFee;
+        } else {
+            // FIXED: Changed .global to .globalFee and .globalFast to .globalFeeFast
+            return method === 'fast' ? deliveryFees.globalFeeFast : deliveryFees.globalFee;
+        }
     };
 
     const [search, setSearch] = useState('');
@@ -76,19 +92,24 @@ useEffect(() => {
 }, []);
 
     // --- FETCH ADMIN SETTINGS FROM DATABASE ---
+    // --- FETCH ADMIN SETTINGS FROM DATABASE ---
     const fetchAdminSettings = async () => {
         try {
             const response = await axios.get(backendUrl + '/api/admin/settings');
             if (response.data.success) {
-                const { indiaFee, globalFee } = response.data.settings;
-                // setExchangeRate(Number(rate));
+                const s = response.data.settings; //
+                
                 setDeliveryFees({ 
-                    india: Number(indiaFee), 
-                    global: Number(globalFee) 
+                    indiaFee: Number(s.indiaFee || 125), //
+                    indiaFeeFast: Number(s.indiaFeeFast || 250), //
+                    globalFee: Number(s.globalFee || 749), //
+                    globalFeeFast: Number(s.globalFeeFast || 1500), //
+                    isIndiaFastActive: s.isIndiaFastActive ?? true, //
+                    isGlobalFastActive: s.isGlobalFastActive ?? true //
                 });
             }
         } catch (error) {
-            console.error("Registry Protocols Offline: Using fallback values.", error);
+            console.error("Registry Protocols Offline:", error); //
         }
     };
 

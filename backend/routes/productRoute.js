@@ -15,7 +15,8 @@ import {
     updateMediaName,
     bulkUpdateStatus,
     bulkUpdateAttributes,
-    getRecentlyUpdated
+    getRecentlyUpdated,
+    listProductsForAdminEdit
 } from '../controllers/productController.js'
 import upload from '../middleware/multer.js';
 import adminAuth from '../middleware/adminAuth.js';
@@ -60,6 +61,8 @@ productRouter.post('/update-media-name', adminAuth, updateMediaName);
 productRouter.post('/delete-media', adminAuth, deleteMedia);
 productRouter.post('/query', chatWithRegistry);
 productRouter.post('/bulk-status', adminAuth, bulkUpdateStatus);
+// Add this near your other routes
+productRouter.get('/admin-list', adminAuth, listProductsForAdminEdit);
 
 
 productRouter.post('/bulk-update-attributes', adminAuth, bulkUpdateAttributes);

@@ -2,20 +2,21 @@ import settingsModel from "../models/settingModel.js";
 
 /**
  * GET SETTINGS
- * Retrieves the single financial protocol document. 
- * If none exists, it initializes the database with defaults.
+ * Initializes with the 4 fee options and toggles if empty.
  */
 export const getSettings = async (req, res) => {
     try {
-        // Find the first document in the collection
         let settings = await settingsModel.findOne({});
 
-        // If the collection is empty, create the initial entry
         if (!settings) {
             settings = await settingsModel.create({ 
                 rate: 83, 
-                indiaFee: 120, 
-                globalFee: 750 
+                indiaFee: 125, 
+                indiaFeeFast: 250,      // New
+                globalFee: 750, 
+                globalFeeFast: 1500,    // New
+                isIndiaFastActive: false, // On/Off Switch
+                isGlobalFastActive: false // On/Off Switch
             });
         }
 
@@ -28,27 +29,35 @@ export const getSettings = async (req, res) => {
 
 /**
  * UPDATE SETTINGS
- * Updates the existing document. Ensures numbers are saved correctly.
+ * Saves the 4 fees and the 2 active toggles.
  */
 export const updateSettings = async (req, res) => {
     try {
-        const { rate, indiaFee, globalFee } = req.body;
+        const { 
+            rate, 
+            indiaFee, 
+            indiaFeeFast, 
+            globalFee, 
+            globalFeeFast, 
+            isIndiaFastActive, 
+            isGlobalFastActive 
+        } = req.body;
 
-        // Force convert incoming strings to Numbers to prevent CastErrors in MongoDB
         const updatedData = {
             rate: Number(rate),
             indiaFee: Number(indiaFee),
-            globalFee: Number(globalFee)
+            indiaFeeFast: Number(indiaFeeFast),
+            globalFee: Number(globalFee),
+            globalFeeFast: Number(globalFeeFast),
+            // Booleans don't need Number() conversion
+            isIndiaFastActive: !!isIndiaFastActive, 
+            isGlobalFastActive: !!isGlobalFastActive 
         };
 
-        // Validate that the conversion resulted in valid numbers
-        if (Object.values(updatedData).some(val => isNaN(val))) {
+        if (Object.values(updatedData).filter(v => typeof v === 'number').some(val => isNaN(val))) {
             return res.json({ success: false, message: "Registry Error: Invalid numeric data." });
         }
 
-        // Use findOneAndUpdate with an empty filter {} to target the singleton
-        // upsert: true ensures it creates the doc if it was accidentally deleted
-        // new: true returns the document AFTER the update
         const settings = await settingsModel.findOneAndUpdate(
             {}, 
             updatedData, 
@@ -63,7 +72,6 @@ export const updateSettings = async (req, res) => {
 
     } catch (error) {
         console.error("Update Settings Error:", error.message);
-        // This message will be caught by your frontend toast.error(res.data.message)
         res.json({ success: false, message: error.message });
     }
 };
