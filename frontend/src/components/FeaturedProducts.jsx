@@ -47,13 +47,13 @@ const FeaturedProducts = () => {
     if (featured.length === 0) return null;
 
     return (
-        <section className="bg-white py-10 md:py-12 overflow-hidden select-none relative border-t border-black/[0.03]">
+        <section className="bg-white py-5 md:py-5 overflow-hidden select-none relative border-t border-black/[0.03]">
             <div className="absolute -left-[10vw] top-[10%] h-[80%] w-[40%] bg-[#bd002d]/5 rounded-r-[600px] pointer-events-none"></div>
 
-            <div className='px-6 md:px-16 lg:px-24 relative z-10'>
+            <div className='px-1 md:px-16 lg:px-2 relative z-10'>
                 
                 {/* --- HEADER --- */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-16 gap-8">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-8">
                     <div className="max-w-2xl">
                         <div className="flex items-center gap-4 mb-4">
                             <span className="h-[1px] w-12 bg-[#BC002D]"></span>
@@ -62,7 +62,7 @@ const FeaturedProducts = () => {
                             </span>
                         </div>
                         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tighter leading-none uppercase">
-                            Featured <span className="text-[#bd002d] ml-3">Registry.</span>
+                            Featured <span className="text-[#bd002d] ml-1">Registry.</span>
                         </h2>
                     </div>
 
@@ -80,7 +80,7 @@ const FeaturedProducts = () => {
                     {/* LEFT BUTTON - Positioned at edge */}
                     <button 
                         onClick={() => scrollRegistry('left')}
-                        className="hidden md:flex absolute -left-6 lg:-left-12 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
+                        className="hidden md:flex absolute -left-6 lg:-left-25 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
                     >
                         <ChevronLeft size={20} />
                     </button>
@@ -88,7 +88,7 @@ const FeaturedProducts = () => {
                     {/* RIGHT BUTTON - Positioned at edge */}
                     <button 
                         onClick={() => scrollRegistry('right')}
-                        className="hidden md:flex absolute -right-6 lg:-right-12 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
+                        className="hidden md:flex absolute -right-6 lg:-right-25 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full items-center justify-center bg-white border border-gray-100 shadow-xl text-black hover:bg-black hover:text-white transition-all duration-300 opacity-0 group-hover/nav:opacity-100"
                     >
                         <ChevronRight size={20} />
                     </button>
@@ -101,7 +101,7 @@ const FeaturedProducts = () => {
                         {featured.map((item) => (
                             <div 
                                 key={item._id} 
-                                className='min-w-[75%] sm:min-w-[45vw] lg:min-w-[230px] snap-center group relative transition-all duration-700'
+                                className='min-w-[55%] sm:min-w-[45vw] lg:min-w-[230px] snap-center group relative transition-all duration-700'
                             >
                                 <div className="absolute -top-3 -left-3 z-20 pointer-events-none">
                                     <div className="bg-black text-white w-12 h-12 md:w-14 md:h-14 rounded-full flex flex-col items-center justify-center shadow-lg transform group-hover:-rotate-12 transition-transform duration-500 border-2 border-white">
@@ -146,7 +146,7 @@ const FeaturedProducts = () => {
                 </div>
 
                 {/* --- PROGRESS BAR --- */}
-                <div className='mt-4 flex items-center gap-6 max-w-sm'>
+                <div className='hidden lg:flex mt-4 flex items-center gap-6 max-w-sm'>
                     <span className='text-[8px] font-black text-gray-300 uppercase tracking-widest'>Registry Start</span>
                     <div className='relative h-[3px] flex-1 bg-gray-100 rounded-full overflow-hidden'>
                         <div 

@@ -43,7 +43,7 @@ const Banner = () => {
 
   return (
     <div className='relative w-full overflow-hidden select-none bg-white group
-        h-[25vh] sm:h-[35vh] md:h-[50vh] lg:h-[55vh] xl:h-[60vh]
+        h-[15vh] sm:h-[25vh] md:h-[50vh] lg:h-[55vh] xl:h-[60vh]
     '>
       
       {/* Slide Content */}
