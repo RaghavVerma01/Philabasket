@@ -24,6 +24,7 @@ import BannerManager from './pages/BannerManager'
 import HeaderManager from './pages/HeaderManager'
 import Settings from './pages/Settings'
 import OrderDetail from './pages/OrderDetail'
+import UserDetail from './components/UserDetails'
 export const backendUrl = import.meta.env.VITE_BACKEND_URL
 export const currency = '$'
 
@@ -66,6 +67,7 @@ const App = () => {
                 <Route path='/header' element={<HeaderManager token={token}  />} />
                 <Route path='/setting' element={<Settings token={token}  />} />
                 <Route path='/orders/:orderId' element={<OrderDetail token={token} />} />
+                <Route path='/users/:id' element={<UserDetail token={token} />} />
 
 
 

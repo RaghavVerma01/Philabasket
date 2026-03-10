@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  X, Truck, Users, Star, Award, 
-  ArrowRight, ShieldCheck, Zap 
+  X, Truck, Users, Award, 
+  ArrowRight, ShieldCheck, Zap, Sparkles
 } from 'lucide-react';
 
 const PromoPopup = () => {
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-        // Only show once per session to maintain premium experience
         const hasSeenPopup = sessionStorage.getItem('phila_promo_seen');
         if (!hasSeenPopup) {
-            const timer = setTimeout(() => setIsVisible(true), 1500);
+            const timer = setTimeout(() => setIsVisible(true), 1200);
             return () => clearTimeout(timer);
         }
     }, []);
@@ -25,102 +24,100 @@ const PromoPopup = () => {
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Backdrop with Blur */}
+            {/* Soft Backdrop with high-end blur */}
             <div 
-                className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in duration-500" 
+                className="absolute inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-700" 
                 onClick={closePopup}
             ></div>
 
-            {/* Popup Content */}
-            <div className="relative w-full max-w-lg bg-white overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 select-none font-sans">
+            {/* Popup Body */}
+            <div className="relative w-full max-w-[440px] bg-white rounded-sm shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-[#D4AF37]/20 overflow-hidden animate-in zoom-in-95 duration-500 font-sans">
                 
-                {/* Header Accent */}
-                <div className="h-1.5 w-full bg-[#BC002D]"></div>
+                {/* Decorative Gold & Red Top Bar */}
+                <div className="flex h-1.5 w-full">
+                    <div className="flex-1 bg-[#BC002D]"></div>
+                    <div className="flex-1 bg-[#D4AF37]"></div>
+                    <div className="flex-1 bg-[#BC002D]"></div>
+                </div>
 
-                {/* Close Button */}
+                {/* Floating Close Trigger */}
                 <button 
                     onClick={closePopup}
-                    className="absolute top-4 right-4 text-gray-400 hover:text-black transition-colors"
+                    className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:bg-[#BC002D] hover:text-white transition-all duration-300 z-50"
                 >
-                    <X size={20} />
+                    <X size={16} />
                 </button>
 
-                <div className="p-8 md:p-10">
-                    {/* Brand Label */}
-                    <div className="flex items-center gap-3 mb-6">
-                        <span className="h-[1px] w-8 bg-[#BC002D]"></span>
-                        <p className="text-[10px] tracking-[0.4em] text-[#BC002D] uppercase font-black">Archive Bulletin</p>
+                <div className="p-10">
+                    {/* Sovereign Badge */}
+                    <div className="flex flex-col items-center text-center mb-8">
+                        <div className="mb-4 p-3 rounded-full bg-gradient-to-tr from-[#D4AF37]/20 to-white border border-[#D4AF37]/30">
+                            <Sparkles size={20} className="text-[#D4AF37]" />
+                        </div>
+                        <p className="text-[10px] tracking-[0.5em] text-[#D4AF37] uppercase font-black mb-2 ml-1">Archive Member Privileges</p>
+                        <h2 className="text-3xl font-bold text-gray-900 tracking-tighter uppercase leading-[0.9]">
+                            Collector <br /> <span className="text-[#BC002D]">Sovereignty.</span>
+                        </h2>
                     </div>
 
-                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tighter uppercase leading-none mb-8">
-                        Collector <br /> <span className="text-[#BC002D]">Privileges.</span>
-                    </h2>
-
-                    {/* Features Grid */}
+                    {/* Features Registry */}
                     <div className="space-y-6">
-                        
-    {/* Free Shipping */}
-    <div className="flex items-start gap-4 group">
-        <div className="p-3 bg-gray-50 rounded-sm group-hover:bg-[#BC002D]/5 transition-colors">
-            <Truck size={18} className="text-[#BC002D]" />
-        </div>
-        <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-gray-900">Complimentary Dispatch</p>
-            <p className="text-[12px] text-gray-500 font-medium">Free Shipping on domestic orders above <span className="text-black font-bold">₹4,999</span>.</p>
-        </div>
-    </div>
+                        {/* Item 1 */}
+                        <div className="flex items-center gap-5 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-100 shadow-sm group-hover:border-[#BC002D]/30">
+                                <Truck size={18} className="text-[#BC002D]" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Logistics</p>
+                                <p className="text-[11px] text-gray-600 font-bold uppercase tracking-tight">Free Shipping above <span className="text-black">₹4,999</span></p>
+                            </div>
+                        </div>
 
-    {/* Points Accumulation - NEW */}
-    <div className="flex items-start gap-4 group">
-        <div className="p-3 bg-gray-50 rounded-sm group-hover:bg-[#BC002D]/5 transition-colors">
-            <Zap size={18} className="text-[#BC002D]" />
-        </div>
-        <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-gray-900">Accumulation Protocol</p>
-            <p className="text-[12px] text-gray-500 font-medium">Earn <span className="text-black font-bold">100 Points</span> for every <span className="text-black font-bold">₹1,000</span> spent in the archive.</p>
-        </div>
-    </div>
+                        {/* Item 2 */}
+                        <div className="flex items-center gap-5 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-100 shadow-sm group-hover:border-[#BC002D]/30">
+                                <Zap size={18} className="text-[#BC002D]" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Accumulation</p>
+                                <p className="text-[11px] text-gray-600 font-bold uppercase tracking-tight">Earn <span className="text-black">100 PTS</span> per <span className="text-black">₹1,000</span></p>
+                            </div>
+                        </div>
 
-    {/* Referral System */}
-    <div className="flex items-start gap-4 group">
-        <div className="p-3 bg-gray-50 rounded-sm group-hover:bg-[#BC002D]/5 transition-colors">
-            <Users size={18} className="text-[#BC002D]" />
-        </div>
-        <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-gray-900">Referral Protocol</p>
-            <p className="text-[12px] text-gray-500 font-medium">Earn <span className="text-black font-bold">50 PTS</span> for every collector you invite after their first dispatch.</p>
-        </div>
-    </div>
+                        {/* Item 3 */}
+                        <div className="flex items-center gap-5 p-3 rounded-lg hover:bg-gray-50 transition-colors group">
+                            <div className="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-white border border-gray-100 shadow-sm group-hover:border-[#BC002D]/30">
+                                <Users size={18} className="text-[#BC002D]" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">Referral</p>
+                                <p className="text-[11px] text-gray-600 font-bold uppercase tracking-tight">Earn <span className="text-black">50 Points</span> for Invites</p>
+                            </div>
+                        </div>
 
-    {/* Tiers & Rewards */}
-    <div className="flex items-start gap-4 group">
-        <div className="p-3 bg-gray-50 rounded-sm group-hover:bg-[#BC002D]/5 transition-colors">
-            <Award size={18} className="text-[#BC002D]" />
-        </div>
-        <div>
-            <p className="text-[11px] font-black uppercase tracking-widest text-gray-900">Tiered Multipliers</p>
-            <p className="text-[12px] text-gray-500 font-medium">Silver, Gold, and Platinum tiers offer up to <span className="text-black font-bold">50% reward multipliers</span>.</p>
-        </div>
-    </div>
+                        {/* Conversion Protocol Section */}
+                        <div className="mt-8 pt-6 border-t border-gray-100">
+                            <div className="flex items-center justify-between bg-black p-4 rounded-sm">
+                                <div className="flex flex-col">
+                                    <span className="text-[8px] font-black text-[#D4AF37] uppercase tracking-widest">Exchange Rate</span>
+                                    <span className="text-[11px] font-black text-white uppercase tracking-wider">10 PTS = ₹1.00</span>
+                                </div>
+                                <Award size={16} className="text-[#D4AF37]" />
+                            </div>
+                        </div>
+                    </div>
 
-    {/* Conversion Note - NEW */}
-    <div className="mt-4 p-3 bg-black rounded-sm flex items-center justify-between">
-        <p className="text-[9px] font-black uppercase tracking-widest text-white/60">Exchange Protocol</p>
-        <p className="text-[10px] font-black uppercase tracking-widest text-[#BC002D]">10 PTS = ₹1.00 (10% Value)</p>
-    </div>
-</div>
-
-                    {/* Action Button */}
+                    {/* Final Action */}
                     <button 
                         onClick={closePopup}
-                        className="w-full mt-10 bg-black text-white py-4 text-[11px] font-black uppercase tracking-[0.3em] flex items-center justify-center gap-3 hover:bg-[#BC002D] transition-all duration-300"
+                        className="w-full mt-10 bg-black text-white py-4 text-[10px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-3 hover:bg-[#BC002D] transition-all duration-300 shadow-lg"
                     >
-                        Explore <ArrowRight size={14} />
+                        Enter Archive <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </button>
 
-                    <div className="mt-6 flex justify-center items-center gap-2">
-                        <ShieldCheck size={12} className="text-gray-900" />
-                        <p className="text-[9px] font-bold text-gray-900 uppercase tracking-widest">Sovereign Registry Policy Applied</p>
+                    <div className="mt-6 flex justify-center items-center gap-2 opacity-40">
+                        <ShieldCheck size={10} className="text-gray-900" />
+                        <p className="text-[8px] font-black text-gray-900 uppercase tracking-[0.2em]">Verified Sovereign Registry</p>
                     </div>
                 </div>
             </div>
