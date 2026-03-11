@@ -141,10 +141,29 @@ const shippingDisplayValue = isFreeShipping
                 <td align="center">
                     <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
                         <tr>
-                            <td style="background-color: ${accentColor}; padding: 40px 20px; text-align: center;">
-                                <h1 style="color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 3px; font-weight: 900;">PhilaBasket</h1>
-                                <p style="color: rgba(255,255,255,0.8); margin: 10px 0 0 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">The World of Philately</p>
-                            </td>
+                            <td style="background-color: ${accentColor}; padding: 25px 30px;">
+    <table width="100%" border="0" cellspacing="0" cellpadding="0">
+        <tr>
+            <td width="80" align="left" style="vertical-align: middle;">
+                <img src="https://res.cloudinary.com/darmvywhd/image/upload/v1773258449/lat_ut1ao6.png" 
+                     alt="PhilaBasket" 
+                     width="65" 
+                     style="display: block; border: 0; outline: none; text-decoration: none;" />
+            </td>
+
+            <td align="center" style="vertical-align: middle;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; line-height: 1.2;">
+                    PhilaBasket
+                </h1>
+                <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
+                    The World of Philately
+                </p>
+            </td>
+
+            <td width="80">&nbsp;</td>
+        </tr>
+    </table>
+</td>
                         </tr>
                         <tr>
                             <td style="padding: 40px;">
@@ -507,9 +526,8 @@ export const updateOrderItems = async (req, res) => {
 
 const updateStatus = async (req, res) => {
     try {
-        const { orderId, status, trackingNumber ,shippedDate } = req.body;
+        const { orderId, status, trackingNumber, shippedDate } = req.body;
         
-        // Populate userId to get the user's current Tier
         const currentOrder = await orderModel.findById(orderId).populate('userId');
         if (!currentOrder) {
             return res.json({ success: false, message: "Order not found" });
@@ -517,69 +535,58 @@ const updateStatus = async (req, res) => {
 
         let finalStatus = (trackingNumber && (status === 'Order Placed' || status === 'Packing')) ? 'Shipped' : status;
         const updateFields = { status: finalStatus };
+        
         if (trackingNumber) updateFields.trackingNumber = trackingNumber;
-        if (shippedDate) updateFields.shippedDate = shippedDate;
+
+        // --- FIX: Convert String Date to Number Timestamp ---
+        if (shippedDate) {
+            // new Date("2026-03-13").getTime() returns a Number (e.g., 1773350400000)
+            updateFields.shippedDate = new Date(shippedDate).getTime();
+        }
+        if (finalStatus === 'Order Placed' && currentOrder.status !== 'Order Placed') {
+            // Optional: Clear logistics if moving backward in workflow
+            updateFields.trackingNumber = "";
+            updateFields.shippedDate = null;
+
+            try {
+                await sendEmail(
+                    currentOrder.address.email, 
+                    "Order Confirmation Update", 
+                    getOrderHtmlTemplate(currentOrder) // Sends standard confirmation template
+                );
+            } catch (emailError) {
+                console.error("Order Placed Email Failed:", emailError);
+            }
+        }
 
         if (finalStatus === 'Shipped' && currentOrder.status !== 'Shipped') {
-            // This function handles the 50/25 point split and 1st order check
             await rewardReferrer(currentOrder); 
-            
             try {
                 await sendEmail(
                     currentOrder.address.email, 
                     "Items Shipped", 
-                    getOrderHtmlTemplate(currentOrder, null, trackingNumber)
+                    getOrderHtmlTemplate(currentOrder, null, trackingNumber || currentOrder.trackingNumber)
                 );
             } catch (emailError) {
                 console.error("Shipping Email Failed:", emailError);
             }
         }
 
-        // --- UPDATED REWARD LOGIC: TIER BASED MULTIPLIER ---
+        // --- REWARD LOGIC ---
         if (finalStatus === 'Delivered' && currentOrder.status !== 'Delivered') {
             updateFields.payment = true;
-        
-            // 1. Calculate Item-Only Subtotal (Excluding delivery, discounts, and GST)
-            const itemSubtotal = currentOrder.items.reduce((acc, item) => {
-                return acc + (item.price * item.quantity);
-            }, 0);
-        
-            // 2. Define Multipliers based on User Tier
+            const itemSubtotal = currentOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
             const userTier = currentOrder.userId?.tier || 'Silver';
-            let multiplier = 0.10; // Silver: 10%
-            if (userTier === 'Gold') multiplier = 0.30;      // Gold: 30%
-            if (userTier === 'Platinum') multiplier = 0.50;  // Platinum: 50%
+            let multiplier = 0.10; 
+            if (userTier === 'Gold') multiplier = 0.30;
+            if (userTier === 'Platinum') multiplier = 0.50;
         
-            // 3. Calculate points based on Item Subtotal only
             const earnedPoints = Math.floor(itemSubtotal * multiplier);
-        
-            await recordRewardActivity(
-                currentOrder.userId._id, 
-                currentOrder.address.email, 
-                earnedPoints, 
-                'earn_point', 
-                currentOrder._id
-            );
-        
-            // Logging for the Archive
-            console.log(`Registry Ledger: ${userTier} Rewards calculated on Item Value (₹${itemSubtotal}). Points: ${earnedPoints}`);
-
-            try {
-                await sendEmail(
-                    currentOrder.address.email, 
-                    `Acquisition Delivered - ${userTier} Rewards Added`, 
-                    getOrderHtmlTemplate(currentOrder) 
-                );
-            } catch (emailError) {
-                console.error("Delivery Email Failed:", emailError);
-            }
+            await recordRewardActivity(currentOrder.userId._id, currentOrder.address.email, earnedPoints, 'earn_point', currentOrder._id);
         }
 
+        // Apply the updates
         await orderModel.findByIdAndUpdate(orderId, updateFields);
-        
-        
-
-        if (shippedDate) updateFields.shippedDate = shippedDate;
 
         res.json({ success: true, message: "Status Updated", currentStatus: finalStatus });
 
@@ -670,66 +677,87 @@ const getAdminDashboardStats = async (req, res) => {
 
 const allOrders = async (req, res) => {
     try {
-        const { page = 1, limit = 10, status, sort } = req.query;
+        const { page = 1, limit = 10, status, sort, search, date } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        // 1. Build Dynamic Filter Query
-        let query = {};
-        if (status && status !== "ALL") {
-            query.status = status;
+        // 1. Initial Filters
+        let matchQuery = {};
+        if (status && status !== "ALL") matchQuery.status = status;
+        if (date) {
+            const start = new Date(date).setHours(0, 0, 0, 0);
+            const end = new Date(date).setHours(23, 59, 59, 999);
+            matchQuery.date = { $gte: start, $lte: end };
         }
 
-        if (req.query.date) {
-            const start = new Date(req.query.date);
-            start.setHours(0, 0, 0, 0);
-            const end = new Date(req.query.date);
-            end.setHours(23, 59, 59, 999);
-            
-            query.date = { $gte: start.getTime(), $lte: end.getTime() };
-        }
-
-        // 2. Build Sort Logic
-        let sortOrder = { date: -1 }; // Default: Newest first
-        if (sort === 'DATE_ASC') sortOrder = { date: 1 };
-        if (sort === 'AMOUNT')   sortOrder = { amount: -1 };
-
-        // 3. Parallel Execution for Speed
-        const [orders, totalOrdersCount, statsData] = await Promise.all([
-            orderModel.find(query)
-                .populate('userId', 'name email orderNo totalRewardPoints referralCount referralCode')
-                .sort(sortOrder)
-                .skip(skip)
-                .limit(parseInt(limit))
-                .lean(),
-            orderModel.countDocuments(query), // Count reflects current filter
-            orderModel.aggregate([
-                {
-                    $group: {
-                        _id: "$status",
-                        count: { $sum: 1 },
-                        revenue: { $sum: { $cond: [{ $ne: ["$status", "Cancelled"] }, "$amount", 0] } }
-                    }
+        // 2. Build Pipeline
+        let pipeline = [
+            { $match: matchQuery },
+            {
+                $lookup: {
+                    from: "users", // Must match your DB collection name
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userDetails"
                 }
+            },
+            { $unwind: { path: "$userDetails", preserveNullAndEmptyArrays: true } }
+        ];
+
+        // 3. Search Logic
+        if (search) {
+            const searchRegex = new RegExp(search.trim(), 'i');
+            const searchNumber = Number(search.trim());
+
+            let orConditions = [
+                { "userDetails.name": searchRegex },
+                { "address.firstName": searchRegex },
+                { "address.lastName": searchRegex }
+            ];
+
+            // Only query orderNo if the search input is a valid number
+            if (!isNaN(searchNumber)) {
+                orConditions.push({ orderNo: searchNumber });
+            }
+
+            pipeline.push({ $match: { $or: orConditions } });
+        }
+
+        // 4. Sort Logic
+        let sortOrder = { date: -1 };
+        if (search) sortOrder = { orderNo: 1, date: -1 };
+        else if (sort === 'DATE_ASC') sortOrder = { date: 1 };
+        else if (sort === 'AMOUNT') sortOrder = { amount: -1 };
+        
+        pipeline.push({ $sort: sortOrder });
+
+        // 5. Execute with Stats
+        const [orders, statsData] = await Promise.all([
+            orderModel.aggregate([
+                ...pipeline,
+                { $skip: skip },
+                { $limit: parseInt(limit) }
+            ]),
+            orderModel.aggregate([
+                { $group: { _id: "$status", count: { $sum: 1 }, revenue: { $sum: { $cond: [{ $ne: ["$status", "Cancelled"] }, "$amount", 0] } } } }
             ])
         ]);
 
-        // Format stats for the frontend dashboard
-        const stats = {
-            total: await orderModel.countDocuments({}), // Absolute total for badge
-            revenue: statsData.reduce((acc, curr) => acc + curr.revenue, 0),
-            ...statsData.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {})
-        };
+        const totalResult = await orderModel.aggregate([...pipeline, { $count: "total" }]);
+        const totalOrdersCount = totalResult.length > 0 ? totalResult[0].total : 0;
 
-        res.json({ 
-            success: true, 
-            orders, 
-            totalOrders: totalOrdersCount, 
-            stats,
-            totalPages: Math.ceil(totalOrdersCount / parseInt(limit)) 
+        res.json({
+            success: true,
+            orders,
+            totalOrders: totalOrdersCount,
+            stats: {
+                revenue: statsData.reduce((acc, curr) => acc + curr.revenue, 0),
+                ...statsData.reduce((acc, curr) => ({ ...acc, [curr._id]: curr.count }), {})
+            }
         });
-    } catch (error) { 
-        console.error("Order List Error:", error);
-        res.json({ success: false, message: error.message }); 
+
+    } catch (error) {
+        console.error("Search Fix Error:", error);
+        res.json({ success: false, message: error.message });
     }
 };
 

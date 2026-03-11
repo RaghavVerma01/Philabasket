@@ -72,11 +72,6 @@ const Footer = () => {
                 </div>
                 <div className="flex flex-wrap gap-x-5 gap-y-4 items-center opacity-100 transition-all duration-500">
     {/* Visa */}
-    <img 
-        src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" 
-        className="h-2.5 w-auto" 
-        alt="Visa" 
-    />
     
     {/* Mastercard - Fixed missing path */}
     <img 
@@ -112,6 +107,8 @@ const Footer = () => {
       { label: 'Referral', path: '/referral' },
       { label: 'Rewards', path: '/rewards' },
       { label: 'Archive blogs', path: '/blogs' },
+      { label: 'Catalogue', path: '/collection' },
+
       
       // { label: 'About the Archive', path: '/about' },
     ]
@@ -119,7 +116,7 @@ const Footer = () => {
   {
     title: "Our Policies",
     links: [
-      { label: 'Shipping policy', path: '/ship' },
+      { label: 'Shipping policy', path: '/shipping' },
       { label: 'Terms and condition', path: '/terms' },
       { label: 'Privacy Policy', path: '/privacy' }, // Fixed safe path
       { label: 'Frequently asked questions', path: '/faq' },

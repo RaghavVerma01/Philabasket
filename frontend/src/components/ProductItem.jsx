@@ -137,36 +137,29 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
                 </div>
 
                 {/* --- ACTION BUTTONS --- */}
-                <div className='grid grid-cols-2 gap-2 mt-2'>
-                    {isOutOfStock ? (
-                        /* SOLD OUT STATE */
-                        <button 
-                            disabled
-                            className='col-span-2 flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-400 rounded-xl cursor-not-allowed border border-gray-200'
-                        >
-                            <Ban size={13} />
-                            <span className='text-[9px] font-black uppercase tracking-widest'>Sold Out</span>
-                        </button>
-                    ) : (
-                        /* ACTIVE STATE */
-                        <>
-                            <button 
-                                onClick={handleAddToCart}
-                                className='flex items-center justify-center gap-1.5 py-2.5 bg-gray-100 text-gray-900 rounded-xl hover:bg-black hover:text-white transition-all duration-300'
-                            >
-                                <ShoppingCart size={13} />
-                                <span className='text-[8px] lg:text-[9px] font-black uppercase tracking-widest'>Add</span>
-                            </button>
-                            <button 
-                                onClick={handleBuyNow}
-                                className='flex items-center justify-center gap-1.5 py-2.5 bg-black text-white rounded-xl hover:bg-[#BC002D] transition-all duration-300 shadow-md shadow-black/5'
-                            >
-                                <Zap size={13} className='fill-amber-400 text-amber-400 border-none' />
-                                <span className='text-[8px] lg:text-[9px] font-black uppercase tracking-widest'>Buy</span>
-                            </button>
-                        </>
-                    )}
-                </div>
+                <div className='mt-2'> {/* Removed grid-cols-2 to allow full width */}
+    {isOutOfStock ? (
+        /* SOLD OUT STATE */
+        <button 
+            disabled
+            className='w-full flex items-center justify-center gap-2 py-2.5 bg-gray-100 text-gray-400 rounded-xl cursor-not-allowed border border-gray-200'
+        >
+            <Ban size={13} />
+            <span className='text-[9px] font-black uppercase tracking-widest'>Sold Out</span>
+        </button>
+    ) : (
+        /* ACTIVE STATE - Full Width Add to Cart */
+        <button 
+            onClick={handleAddToCart}
+            className='w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-xl hover:bg-[#BC002D] transition-all duration-300 shadow-md shadow-black/5'
+        >
+            <ShoppingCart size={14} />
+            <span className='text-[9px] lg:text-[10px] font-black uppercase tracking-[0.2em]'>
+                Add to Cart
+            </span>
+        </button>
+    )}
+</div>
             </div>
           </div>
       </div>

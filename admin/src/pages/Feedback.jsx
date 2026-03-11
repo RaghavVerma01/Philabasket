@@ -99,7 +99,7 @@ const Feedback = ({ token }) => {
   });
 
   return (
-    <div className='p-8 bg-[#FCF9F4] min-h-screen font-sans'>
+    <div className='p-8 bg-[#FCF9F4] w-full min-h-screen font-sans'>
       {/* HEADER & VIEW TOGGLE */}
       <div className='flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10'>
         <div>

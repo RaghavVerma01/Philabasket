@@ -12,6 +12,7 @@ import Testimonials from '../components/Testimonila'
 import StampCategoryScroll from '../components/StampCategoryScroll'
 import FeaturedProducts from '../components/FeaturedProducts'
 import PromoPopup from '../components/Popup'
+import BlogRegistry from '../components/BlogRegistry'
 
 const Home = () => {
   const latestCollectionRef = useRef(null);
@@ -40,6 +41,8 @@ const Home = () => {
 
 
       <NewsletterBox />
+
+      <BlogRegistry/>
 
 
       <Testimonials/>

@@ -304,23 +304,13 @@ const handleMouseMove = (e) => {
           <div className='w-full lg:w-[52%] flex flex-col gap-0'>
 
 {/* 1. Header Tags (Matching "Reveal Radiant Eyes | HOT") */}
-<div className='flex items-center gap-2 mb-4'>
-  <span className='text-gray-700 text-[10px] font-["Prata"]  tracking-widest'>
-     Country :{productData.country} 
-  </span>
-  <span className='h-3 w-[1px] bg-gray-200'></span>
-  
-</div>
 
-{/* 2. Product Name */}
-<div className='flex flex-col md:flex-row justify-between items-start gap-6 mb-6'>
-  
-  {/* Left Side: Product Title and Sub-details */}
+{/* 2. Product Name & Description */}
+<div className='flex flex-col justify-between items-start gap-2 mb-6'>
   <div className='flex-1'>
     <h1 className='text-2xl md:text-3xl font-semibold text-gray-900 leading-tight tracking-tight mb-4'>
       {productData.name}
     </h1>
-    {/* Description snippet as seen in reference */}
     <p className='text-[13px] text-gray-800 leading-relaxed font-medium'>
       {productData.description}
     </p>
@@ -328,117 +318,107 @@ const handleMouseMove = (e) => {
       {productData.description2}
     </p>
   </div>
+</div>
 
-  {/* Right Side: Price Block (Matching Reference Layout) */}
-  <div className='flex flex-col items-end shrink-0'>
-    <div className='flex flex-col items-end'>
-      {/* Current Price */}
-      <span className='text-3xl md:text-4xl font-bold text-gray-900 tracking-tighter'>
-        {valuationSymbol}{String(formatPrice(productData.price * quantity)).replace(/[₹$]/g, '').trim()}
+{/* 3. Pricing Block (Moved below Description) */}
+<div className='flex flex-col items-start mb-8'>
+  <div className='flex items-baseline gap-3'>
+    {/* Current Price */}
+    <span className='text-3xl md:text-4xl font-bold text-gray-900 tracking-tighter'>
+      {valuationSymbol}{String(formatPrice(productData.price * quantity)).replace(/[₹$]/g, '').trim()}
+    </span>
+    
+    {/* Market Price Reference */}
+    {productData.marketPrice > productData.price && (
+      <span className='text-sm font-bold text-gray-300 line-through'>
+        {valuationSymbol}{String(formatPrice(productData.marketPrice * quantity)).replace(/[₹$]/g, '').trim()}
       </span>
-      
-      {/* Market Price Reference */}
-      {productData.marketPrice > productData.price && (
-        <span className='text-sm font-bold text-gray-300 line-through mt-[-4px]'>
-          {valuationSymbol}{String(formatPrice(productData.marketPrice * quantity)).replace(/[₹$]/g, '').trim()}
-        </span>
-      )}
-    </div>
+    )}
 
-    {/* Savings Badge (Matching "SAVE 35%" style) */}
+    {/* Savings Badge */}
     {discount > 0 && (
-      <p className='text-[11px] font-black text-[#BC002D] uppercase tracking-widest mt-2'>
+      <span className='text-[11px] font-black text-[#BC002D] uppercase tracking-widest bg-[#BC002D]/5 px-2 py-1 rounded-md'>
         SAVE {discount}%
-      </p>
+      </span>
     )}
   </div>
 </div>
 
-{/* 3. Description Summary (New placement matching reference) */}
-
-
-{/* 4. Social Proof / Trusted By (Matching demo reference) */}
-
-
-{/* 5. Modernized Price Block (Matching demo reference) */}
-
-
 {/* 6. Classification Grid */}
 <div className='grid grid-cols-2 sm:grid-cols-3 gap-4 mb-10'>
-    {/* CONDITION */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <ShieldCheck size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Condition</span>
-        </div>
-        <span className='text-[11px] font-black text-gray-900 leading-none'>
-            {productData.condition}
-        </span>
+  {/* CONDITION */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <ShieldCheck size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Condition</span>
     </div>
+    <span className='text-[11px] font-black text-gray-900 leading-none ml-[22px]'>
+      {productData.condition}
+    </span>
+  </div>
 
-    {/* AVAILABILITY */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <Database size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Availability</span>
-        </div>
-        <span className='text-[11px] font-black text-gray-900 leading-none'>
-            {productData.stock} Specimens
-        </span>
+  {/* AVAILABILITY */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <Database size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Availability</span>
     </div>
+    <span className='text-[11px] font-black text-gray-900 leading-none ml-[22px]'>
+      {productData.stock} Specimens
+    </span>
+  </div>
 
-    {/* RELEASE DATE */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <Calendar size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Release Date</span>
-        </div>
-        <span className='text-[11px] font-black text-gray-900 leading-none'>
-            {productData.releaseDate || "Historical Issue"}
-        </span>
+  {/* RELEASE DATE */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <Calendar size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Release Date</span>
     </div>
+    <span className='text-[11px] font-black text-gray-900 leading-none ml-[22px]'>
+      {productData.releaseDate || "Historical Issue"}
+    </span>
+  </div>
 
-    {/* PRODUCED COUNT */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <Layers size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Produced</span>
-        </div>
-        <span className='text-[11px] font-black text-gray-900 leading-none '>
-            {productData.producedCount||'Limited'} Units
-        </span>
+  {/* PRODUCED COUNT */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <Layers size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Produced</span>
     </div>
+    <span className='text-[11px] font-black text-gray-900 leading-none ml-[22px]'>
+      {productData.producedCount || 'Limited'} Units
+    </span>
+  </div>
 
-    {/* VARIETY / CLASSIFICATION */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <Tag size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Variety</span>
-        </div>
-        <div className='flex flex-wrap gap-1'>
-            {productData.category && productData.category.slice(0, 3).map((cat, i) => (
-                <span key={i} className='text-[10px] font-black  text-gray-900 capitalize truncate'>
-                    {cat},
-                </span>
-            ))}
-        </div>
+  {/* VARIETY / CLASSIFICATION */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <Tag size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Variety</span>
     </div>
-
-    {/* ORIGIN */}
-    <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
-        <div className='flex items-center gap-2'>
-            <Globe size={14} className='text-[#BC002D]' strokeWidth={2.5} />
-            <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Origin</span>
-        </div>
-        <span className='text-[11px] font-black text-gray-900 leading-none capitalize'>
-            {productData.country}
+    <div className='flex flex-wrap gap-1 ml-[22px]'>
+      {productData.category && productData.category.slice(0, 2).map((cat, i) => (
+        <span key={i} className='text-[10px] font-black text-gray-900 capitalize truncate'>
+          {cat}{i < productData.category.slice(0, 2).length - 1 ? ',' : ''}
         </span>
+      ))}
     </div>
+  </div>
+
+  {/* ORIGIN */}
+  <div className='flex flex-col gap-2 p-4 bg-[#BC002D]/5 rounded-2xl border border-[#BC002D]/10 hover:bg-[#BC002D]/8 transition-all'>
+    <div className='flex items-center gap-2'>
+      <Globe size={14} className='text-[#BC002D]' strokeWidth={2.5} />
+      <span className='text-[9px] font-black text-[#BC002D] uppercase tracking-widest'>Origin</span>
+    </div>
+    <span className='text-[11px] font-black text-gray-900 leading-none capitalize ml-[22px]'>
+      {productData.country}
+    </span>
+  </div>
 </div>
 
-{/* 7. Action Buttons (Matching reference CTA weights) */}
+{/* 7. Action Buttons */}
 <div className='flex gap-3'>
-  {/* --- ACTION BUTTONS (Buy Now / Add to Cart or Sold Out) --- */}
   {productData.stock > 0 ? (
     <>
       <button
@@ -456,29 +436,27 @@ const handleMouseMove = (e) => {
       </button>
     </>
   ) : (
-    /* --- CONSOLIDATED SOLD OUT BUTTON --- */
     <button
       disabled
       className='w-full bg-gray-100 text-gray-400 py-5 rounded-2xl text-[11px] font-black tracking-[0.3em] uppercase flex items-center justify-center gap-3 cursor-not-allowed border border-gray-200'
     >
       <X size={14} />
-       Sold Out
+      Sold Out
     </button>
   )}
 
-  {/* --- WISHLIST BUTTON (Always Available) --- */}
   <button
     onClick={() => toggleWishlist(productData._id)}
     className={`p-5 rounded-2xl border-2 transition-all flex items-center justify-center shadow-sm
-      ${wishlist.includes(productData._id) 
-        ? 'bg-[#BC002D]/5 border-[#BC002D]/20 text-[#BC002D]' 
+    ${wishlist.includes(productData._id)
+        ? 'bg-[#BC002D]/5 border-[#BC002D]/20 text-[#BC002D]'
         : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
       }`}
     title="Secure to Vault"
   >
-    <Heart 
-      size={20} 
-      fill={wishlist.includes(productData._id) ? "#BC002D" : "none"} 
+    <Heart
+      size={20}
+      fill={wishlist.includes(productData._id) ? "#BC002D" : "none"}
       className={wishlist.includes(productData._id) ? "animate-pulse" : ""}
     />
   </button>
@@ -486,11 +464,6 @@ const handleMouseMove = (e) => {
 
 {/* Interactive & Resource Section */}
 <div className='flex flex-col md:flex-row gap-8 items-start mt-10 pt-8 border-t border-gray-100'>
-  
-  {/* AI Historian - Primary Interaction (Left Side) */}
-  
-
-  {/* Blog Section - Resource Context (Right Side / Sidebar) */}
   {productData.blogLink && (
     <div className='w-full md:w-[350px] shrink-0'>
       <div className='bg-gray-50/50 rounded-3xl p-6 border border-gray-100 transition-all hover:bg-white hover:shadow-xl hover:shadow-gray-200/50 group/blog'>
@@ -498,11 +471,9 @@ const handleMouseMove = (e) => {
           <span className='w-1 h-1 bg-[#BC002D] rounded-full'></span>
           Philatelic Insight
         </p>
-        
-    
-        <a 
-          href={productData.blogLink} 
-          target="_blank" 
+        <a
+          href={productData.blogLink}
+          target="_blank"
           rel="noopener noreferrer"
           className='flex items-center justify-between w-full px-5 py-4 bg-[#BC002D] text-white rounded-2xl shadow-lg shadow-red-100 hover:bg-black transition-all group'
         >
@@ -510,25 +481,25 @@ const handleMouseMove = (e) => {
             <span className='text-[10px] font-black uppercase tracking-widest'>Read Full Blog</span>
             <span className='text-[8px] opacity-70 font-bold uppercase tracking-tighter'>Explore Stamp's History</span>
           </div>
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            width="18" height="18" 
-            viewBox="0 0 24 24" fill="none" 
-            stroke="currentColor" strokeWidth="3" 
-            strokeLinecap="round" strokeLinejoin="round" 
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18" height="18"
+            viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="3"
+            strokeLinecap="round" strokeLinejoin="round"
             className="group-hover:translate-x-1 transition-transform"
           >
-            <path d="M5 12h14m-7-7 7 7-7 7"/>
+            <path d="M5 12h14m-7-7 7 7-7 7" />
           </svg>
         </a>
       </div>
     </div>
   )}
 
-<div className='w-full md:flex-1'>
-    <AIHistorian 
-      productId={productData._id} 
-      productName={productData.name} 
+  <div className='w-full md:flex-1'>
+    <AIHistorian
+      productId={productData._id}
+      productName={productData.name}
     />
   </div>
 </div>

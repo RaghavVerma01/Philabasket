@@ -117,6 +117,7 @@ const Collection = () => {
   const [dbCategories, setDbCategories] = useState([]);
   const [openGroups, setOpenGroups] = useState({});
   const [sidebarSearch, setSidebarSearch] = useState("");
+  const activeStatus = searchParams.get('status') || "all";
   const location = useLocation();
 
   useEffect(() => {
@@ -191,37 +192,39 @@ const Collection = () => {
     if (!backendUrl) return;
     setLoading(true);
     try {
-      const response = await axios.get(`${backendUrl}/api/product/list`, {
-        params: { page: targetPage, limit: 50, category: activeCategory, sort: sortType, search: showSearch ? search : '' }
-      });
-  
-      if (response.data.success) {
-        let fetchedProducts = response.data.products;
-  
-        // 1. Update Local State (for the grid display)
-        setProducts(fetchedProducts);
-        setTotalFound(response.data.total);
-  
-        // 2. SYNC TO GLOBAL CONTEXT (so Cart/SideCart can see them)
-        setGlobalProducts(prevGlobal => {
-          // Create a Map of existing products for fast lookup
-          const existingIds = new Set(prevGlobal.map(p => String(p._id)));
-          
-          // Only add items that aren't already in the global list
-          const uniqueNewItems = fetchedProducts.filter(p => !existingIds.has(String(p._id)));
-          
-          return [...prevGlobal, ...uniqueNewItems];
+        const response = await axios.get(`${backendUrl}/api/product/list`, {
+            params: { 
+                page: targetPage, 
+                limit: 50, 
+                category: activeCategory, 
+                sort: sortType, 
+                search: showSearch ? search : '',
+                // Translate the single "activeStatus" pill into specific backend keys
+                bestseller: activeStatus === 'bestseller' ? 'true' : undefined,
+                isFeatured: activeStatus === 'featured' ? 'true' : undefined,
+                newArrival: activeStatus === 'newArrival' ? 'true' : undefined,
+            }
         });
-  
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    } catch (error) {
-      toast.error("Registry Sync Failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [backendUrl, activeCategory, sortType, search, showSearch, location.state, setGlobalProducts]);
 
+        if (response.data.success) {
+            setProducts(response.data.products);
+            setTotalFound(response.data.total);
+            
+            // Sync with global context for cart/side-panel
+            setGlobalProducts(prev => {
+                const existingIds = new Set(prev.map(p => String(p._id)));
+                const uniqueNew = response.data.products.filter(p => !existingIds.has(String(p._id)));
+                return [...prev, ...uniqueNew];
+            });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    } catch (error) {
+        console.error("Registry Sync Failed:", error);
+        toast.error("Registry Sync Failed");
+    } finally {
+        setLoading(false);
+    }
+}, [backendUrl, activeCategory, activeStatus, sortType, search, showSearch, setGlobalProducts]);
   useEffect(() => {
     setPage(1);
     fetchFromRegistry(1);
@@ -238,6 +241,17 @@ const Collection = () => {
       setSearchParams({ category: val });
     }
     setShowFilter(false);
+  };
+
+  const handleStatusSelect = (status) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (status === 'all') {
+      newParams.delete('status');
+    } else {
+      newParams.set('status', status);
+    }
+    setSearchParams(newParams);
+    setPage(1); // Reset to page 1
   };
 
   const totalPages = Math.ceil(totalFound / 50);
@@ -279,6 +293,26 @@ const Collection = () => {
         </h2>
       </div>
 
+      <div className='flex items-center gap-3 mb-8 overflow-x-auto pb-4 scrollbar-hide px-1 snap-x snap-mandatory'>
+    {[
+        { id: 'all', label: 'Complete Archive' },
+        { id: 'featured', label: 'Curated/Featured' },
+        { id: 'bestseller', label: 'Top Bestsellers' },
+        { id: 'newArrival', label: 'Recent Arrivals' }
+    ].map((btn) => (
+        <button
+            key={btn.id}
+            onClick={() => handleStatusSelect(btn.id)}
+            className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 border whitespace-nowrap snap-start ${
+                activeStatus === btn.id 
+                ? 'bg-[#BC002D] text-white border-[#BC002D] shadow-[0_8px_20px_rgba(188,0,45,0.25)] scale-105' 
+                : 'bg-white text-gray-400 border-gray-100 hover:border-gray-300 hover:text-gray-900 shadow-sm'
+            }`}
+        >
+            {btn.label}
+        </button>
+    ))}
+</div>
       <div className='flex flex-col lg:flex-row gap-8 lg:gap-12 relative z-20'>
 
         {/* MOBILE DRAWER */}
@@ -300,6 +334,8 @@ const Collection = () => {
             </div>
           </div>
         </div>
+
+        
 
         {/* DESKTOP SIDEBAR */}
         <aside className='hidden lg:block lg:w-[22%] ml-[-5vh] lg:sticky lg:top-10 lg:self-start'>

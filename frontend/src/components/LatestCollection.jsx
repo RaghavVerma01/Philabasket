@@ -251,8 +251,14 @@ const LatestCollection = () => {
                     {/* MAIN PRODUCT GRID */}
                     {/* MAIN PRODUCT GRID CONTAINER */}
 <div className='w-full lg:w-3/4'>
-<div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6'>
+<div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-7 gap-6'>
                     <div>
+                    <div className="flex items-center gap-4 mt-4">
+                            <span className="h-[1px] w-12 bg-[#BC002D]"></span>
+                            <span className="text-[10px] tracking-[0.6em] text-[#BC002D] uppercase font-black">
+                                Curated Selection
+                            </span>
+                        </div>
                         <h2 className='text-3xl font-bold tracking-tighter uppercase  text-gray-900'>
                             New <span className='text-[#BC002D]'>Arrivals.</span>
                         </h2>
@@ -305,18 +311,25 @@ const LatestCollection = () => {
         ))}
     </div>
 
-    <div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-6'>
-                    <div>
-                        <h2 className='text-3xl font-bold tracking-tighter uppercase  mt-5 text-gray-900'>
-                            Shop By <span className='text-[#BC002D]'>Country.</span>
+    <div className='flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-6 mt-5'>
+    <div className="max-w-2xl">
+                        <div className="flex items-center gap-4 mt-4">
+                            <span className="h-[1px] w-12 bg-[#BC002D]"></span>
+                            <span className="text-[10px] tracking-[0.6em] text-[#BC002D] uppercase font-black">
+                                Curated Selection
+                            </span>
+                        </div>
+                        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tighter leading-none uppercase">
+                            Shop By  <span className="text-[#bd002d] ml-1">Country.</span>
                         </h2>
+                        
                     </div>
-                    {/* <button 
-                        onClick={() => navigate('/collection')}
-                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 hover:text-[#BC002D] hover:border-[#BC002D] transition-all'
+                    <button 
+                        onClick={() => {navigate('/shopallcountry');window.scroll(0,0)}}
+                        className='text-[10px] font-black uppercase tracking-widest flex items-center gap-2 group border-b border-black pb-1 text-[#BC002D] hover:border-[#BC002D] transition-all'
                     >
-                        Explore Global Archive <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
-                    </button> */}
+                        Explore All Countries <ArrowRight size={14} className='group-hover:translate-x-1 transition-transform' />
+                    </button>
                 </div>
         
 

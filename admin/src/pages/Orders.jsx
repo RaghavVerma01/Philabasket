@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import {
   RefreshCw, Truck, CheckCircle2, ShoppingBag, Ban, 
   ChevronLeft, ChevronRight, Download, Eye, Clock, 
-  MapPin, Package, CreditCard, PackageCheck,FileText
+  MapPin, Package, CreditCard, PackageCheck,FileText,Search,X
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
@@ -35,46 +35,67 @@ const Orders = ({ token }) => {
   const [globalStats, setGlobalStats] = useState({});
   const [sortBy, setSortBy] = useState("DATE_DESC");
   const [filterStatus, setFilterStatus] = useState("ALL");
+  const [tempShippingDate, setTempShippingDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [tempTracking, setTempTracking] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   // ── FETCH LOGIC ──────────────────────────────────────────────────────────
+  // 1. UPDATED FETCH LOGIC
   const fetchAllOrders = useCallback(async (isManual = false) => {
     try {
       if (isManual) setLoading(true);
+      
       const todayParam = filterStatus === "TODAY" 
-      ? `&date=${new Date().toISOString().split('T')[0]}` 
-      : "";
+        ? `&date=${new Date().toISOString().split('T')[0]}` 
+        : "";
 
       const statusQuery = filterStatus === "TODAY" ? "ALL" : filterStatus;
+      
+      // We trim and encode to ensure special characters or spaces don't break the URL
+      const searchQueryParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : "";
 
       const response = await axios.post(
-      `${backendUrl}/api/order/list?page=${currentPage}&limit=${ORDERS_PER_PAGE}&status=${statusQuery}${todayParam}&sort=${sortBy}`, 
-      {}, 
-      { headers: { token } }
-    );
+        `${backendUrl}/api/order/list?page=${currentPage}&limit=${ORDERS_PER_PAGE}&status=${statusQuery}${todayParam}${searchQueryParam}&sort=${sortBy}`, 
+        {}, 
+        { headers: { token } }
+      );
+
       if (response.data.success) {
         setOrders(response.data.orders);
         setTotalOrdersCount(response.data.totalOrders);
         setGlobalStats(response.data.stats || {});
       }
     } catch (err) {
+      console.error("Fetch Error:", err);
       toast.error("Registry Sync Failed");
     } finally {
       setLoading(false);
     }
-  }, [token, currentPage, filterStatus, sortBy]);
+  }, [token, currentPage, filterStatus, sortBy, searchQuery]);
 
+  // 2. CONSOLIDATED DEBOUNCE EFFECT
+  // This effect handles the delay for searching so we don't spam the server.
   useEffect(() => {
-    fetchAllOrders(currentPage === 1);
-  }, [fetchAllOrders]);
+    const delayDebounceFn = setTimeout(() => {
+        // If we are already on page 1, trigger fetch. 
+        // If not, changing page to 1 will trigger the currentPage useEffect.
+        if (currentPage === 1) {
+            fetchAllOrders(false);
+        } else {
+            setCurrentPage(1);
+        }
+    }, 400); // 400ms is standard for search
 
-  // Reset to page 1 whenever filters or sorting change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filterStatus, sortBy]);
+    return () => clearTimeout(delayDebounceFn);
+}, [searchQuery, filterStatus, sortBy]); // Trigger on any search/filter change
+
+// --- PAGINATION LOGIC ---
+useEffect(() => {
+    fetchAllOrders(false);
+}, [currentPage]); // Only trigger when the page actually changes
   const downloadShippingManifestcolumn = async () => {
     const toastId = toast.loading("Generating Shipping Manifest PDF...");
     try {
@@ -313,21 +334,30 @@ const Orders = ({ token }) => {
     }
   };
 
-  const updateOrder = async (orderId, status, trackingNumber) => {
+  const updateOrder = async (orderId, status, trackingNumber, shippedDate) => {
     setLoading(true);
     try {
-      const res = await axios.post(backendUrl + '/api/order/status', { orderId, status, trackingNumber }, { headers: { token } });
-      if (res.data.success) {
-        toast.success(`Status updated to ${status}`);
-        setShowTrackingModal(false);
-        fetchAllOrders(false);
-      }
-    } catch {
-      toast.error("Update Error");
+        // Ensure all 4 variables are included in the object sent to the backend
+        const res = await axios.post(
+            backendUrl + '/api/order/status', 
+            { orderId, status, trackingNumber, shippedDate }, 
+            { headers: { token } }
+        );
+
+        if (res.data.success) {
+            toast.success(`Status updated to ${status}`);
+            setShowTrackingModal(false);
+            fetchAllOrders(false);
+        } else {
+            toast.error(res.data.message); // Show the specific error from backend
+        }
+    } catch (err) {
+        console.error("Update Error:", err);
+        toast.error("Network or Server Error");
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   const totalPages = Math.ceil(totalOrdersCount / ORDERS_PER_PAGE);
 
@@ -371,8 +401,8 @@ const Orders = ({ token }) => {
             { label: "Total", val: totalOrdersCount, bg: "bg-white", color: "text-gray-900" },
             { label: "New", val: globalStats["Order Placed"] || 0, bg: "bg-blue-50", color: "text-blue-600" },
             { label: "Hold", val: globalStats["On Hold"] || 0, bg: "bg-gray-100", color: "text-gray-600" },
-            { label: "Paid", val: globalStats["Money Received"] || 0, bg: "bg-cyan-50", color: "text-cyan-600" },
-            { label: "Transit", val: (globalStats["Shipped"] || 0) + (globalStats["Out for delivery"] || 0), bg: "bg-purple-50", color: "text-purple-600" },
+            // { label: "Paid", val: globalStats["Money Received"] || 0, bg: "bg-cyan-50", color: "text-cyan-600" },
+            { label: "Shipped", val: (globalStats["Shipped"] || 0) + (globalStats["Out for delivery"] || 0), bg: "bg-purple-50", color: "text-purple-600" },
             { label: "Done", val: globalStats["Delivered"] || 0, bg: "bg-green-50", color: "text-green-600" },
             { label: "Cancel", val: globalStats["Cancelled"] || 0, bg: "bg-red-50", color: "text-red-600" },
             { label: "Revenue", val: `₹${((globalStats.revenue || 0) / 1000).toFixed(1)}k`, bg: "bg-white", color: "text-gray-900" },
@@ -386,6 +416,24 @@ const Orders = ({ token }) => {
 
         {/* ── CONTROLS ── */}
         <div className='bg-white p-4 rounded-2xl border border-gray-100 flex flex-wrap justify-between items-center gap-4 shadow-sm'>
+        <div className='relative w-full md:w-96'>
+        <Search size={14} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+        <input 
+            type="text"
+            placeholder="Search by Order # or Name..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none focus:border-[#BC002D] transition-all"
+        />
+        {searchQuery && (
+            <button 
+                onClick={() => setSearchQuery("")}
+                className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-900'
+            >
+                <X size={14} />
+            </button>
+        )}
+    </div>
         <div className='flex flex-wrap gap-2'>
   {["ALL", "TODAY", "Order Placed","Complete", "On Hold", "Processing", "Shipped", "Delivered", "Cancelled"].map(s => (
     <button
@@ -414,85 +462,118 @@ const Orders = ({ token }) => {
 
         {/* ── TABLE ── */}
         <div className='space-y-3'>
-          {loading && orders.length === 0 ? (
-            <div className='flex justify-center py-20'><RefreshCw className='animate-spin text-gray-300' size={40} /></div>
-          ) : orders.length === 0 ? (
-            <div className='bg-white rounded-3xl border border-gray-100 py-20 text-center shadow-sm'>
-              <Package size={48} className='text-gray-200 mx-auto mb-4' />
-              <p className='text-sm font-bold text-gray-400 uppercase tracking-widest'>Registry Empty</p>
+  {loading ? (
+    // Show spinner during every fetch to indicate search is working
+    <div className='flex justify-center py-20'>
+      <RefreshCw className='animate-spin text-[#BC002D]' size={40} />
+    </div>
+  ) : orders.length === 0 ? (
+    <div className='bg-white rounded-3xl border border-gray-100 py-20 text-center shadow-sm'>
+      {searchQuery ? (
+        <>
+          <Search size={48} className='text-gray-200 mx-auto mb-4' />
+          <p className='text-sm font-bold text-gray-400 uppercase tracking-widest'>
+            No specimens found for "{searchQuery}"
+          </p>
+          <button 
+            onClick={() => setSearchQuery("")} 
+            className="mt-4 text-[#BC002D] text-[10px] font-black uppercase tracking-widest border-b border-[#BC002D]"
+          >
+            Clear Search
+          </button>
+        </>
+      ) : (
+        <>
+          <Package size={48} className='text-gray-200 mx-auto mb-4' />
+          <p className='text-sm font-bold text-gray-400 uppercase tracking-widest'>Registry Empty</p>
+        </>
+      )}
+    </div>
+  ) : (
+    orders.map((order) => {
+      const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG["Order Placed"];
+      const Icon = cfg.icon;
+      return (
+        <div key={order._id} className='bg-white rounded-2xl border border-gray-100 hover:border-[#BC002D]/30 hover:shadow-md transition-all overflow-hidden'>
+          {/* ... rest of your order row content ... */}
+          <div className='grid grid-cols-1 md:grid-cols-[auto_1fr_1.2fr_auto] items-center gap-4 p-4'>
+            <div className={`w-1.5 h-12 rounded-full ${cfg.dot} hidden md:block`} />
+            
+            {/* Clickable Area for Detail View */}
+            <div className='min-w-0 cursor-pointer' onClick={() => navigate(`/orders/${order._id}`)}>
+              <div className='flex items-center gap-2 mb-1'>
+                <span className='text-[10px] font-mono font-bold text-[#BC002D] bg-red-50 px-2 py-0.5 rounded'>
+                  {order.orderNo || `#${order._id.slice(-6).toUpperCase()}`}
+                </span>
+                <p className='font-bold text-gray-900 text-sm truncate'>
+  {/* Prioritize the data joined by the new search pipeline */}
+  {order.userDetails?.name || 
+   order.userId?.name || 
+   `${order.address?.firstName || ''} ${order.address?.lastName || ''}`.trim() || 
+   "Guest Collector"}
+</p>
+              </div>
+              <p className='text-[11px] text-gray-500 font-medium truncate max-w-[280px]'>
+                {order.items.map(i => `${i.name} x${i.quantity}`).join(' • ')}
+              </p>
             </div>
-          ) : (
-            orders.map((order) => {
-              const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG["Order Placed"];
-              const Icon = cfg.icon;
-              return (
-                <div key={order._id} className='bg-white rounded-2xl border border-gray-100 hover:border-gray-300 hover:shadow-md transition-all overflow-hidden'>
-                  <div className='grid grid-cols-1 md:grid-cols-[auto_1fr_1.2fr_auto] items-center gap-4 p-4'>
-                    <div className={`w-1.5 h-12 rounded-full ${cfg.dot} hidden md:block`} />
 
-                    <div className='min-w-0 cursor-pointer' onClick={() => navigate(`/orders/${order._id}`)}>
-                      <div className='flex items-center gap-2 mb-1'>
-                        <span className='text-[10px] font-mono font-bold text-[#BC002D] bg-red-50 px-2 py-0.5 rounded'>
-                          {order.orderNo || `#${order._id.slice(-6).toUpperCase()}`}
-                        </span>
-                        <p className='font-bold text-gray-900 text-sm truncate'>
-                          {order.address.firstName} {order.address.lastName}
-                        </p>
-                      </div>
-                      <p className='text-[11px] text-gray-500 font-medium truncate max-w-[280px]'>
-                        {order.items.map(i => `${i.name} x${i.quantity}`).join(' • ')}
-                      </p>
-                    </div>
+            
 
-                    <div className='hidden lg:flex flex-col border-l border-gray-100 pl-6'>
-                      <div className='flex items-start gap-1.5'>
-                        <MapPin size={10} className='text-gray-400 mt-0.5' />
-                        <p className='text-[10px] text-gray-500 font-medium truncate max-w-[250px]'>
-                          {order.address.street}, {order.address.city}
-                        </p>
-                      </div>
-                    </div>
+            {/* Address Column */}
+            <div className='hidden lg:flex flex-col border-l border-gray-100 pl-6'>
+              <div className='flex items-start gap-1.5'>
+                <MapPin size={10} className='text-gray-400 mt-0.5' />
+                <p className='text-[10px] text-gray-500 font-medium truncate max-w-[250px]'>
+                  {order.address.street}, {order.address.city}
+                </p>
+              </div>
+            </div>
 
-                    <div className='flex items-center gap-4 ml-auto'>
-                      <div className='text-right'>
-                        <p className='text-xs font-black text-gray-900'>₹{order.amount}</p>
-                        <p className='text-[9px] text-gray-400 uppercase font-bold'>
-                          {new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
-                        </p>
-                      </div>
+            {/* Status and Actions */}
+            <div className='flex items-center gap-4 ml-auto'>
+              <div className='text-right'>
+                <p className='text-xs font-black text-gray-900'>₹{order.amount}</p>
+                <p className='text-[9px] text-gray-400 uppercase font-bold'>
+                  {new Date(order.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+                </p>
+              </div>
+              <div className='w-32'>
+                <span className={`w-full justify-center px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 ${cfg.color}`}>
+                  <Icon size={10} /> {order.status}
+                </span>
+              </div>
+              
+              {/* Status Update Select */}
+              <select
+  className='text-[10px] font-bold p-2 border border-gray-200 rounded-xl bg-gray-50 outline-none cursor-pointer'
+  value={order.status}
+  onChange={e => {
+    if (e.target.value === "Shipped") {
+      setActiveOrderId(order._id);
+      setTempTracking("");
+      // Ensure date is set to today by default when opening modal
+      setTempShippingDate(new Date().toISOString().split('T')[0]); 
+      setShowTrackingModal(true);
+    } else {
+      // FIX: Pass null for tracking and date when just changing status
+      updateOrder(order._id, e.target.value, null, null);
+    }
+  }}
+>
+                {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
 
-                      <div className='w-32'>
-                        <span className={`w-full justify-center px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 ${cfg.color}`}>
-                          <Icon size={10} /> {order.status}
-                        </span>
-                      </div>
-
-                      <select
-                        className='text-[10px] font-bold p-2 border border-gray-200 rounded-xl bg-gray-50 outline-none cursor-pointer'
-                        value={order.status}
-                        onChange={e => {
-                          if (e.target.value === "Shipped") {
-                            setActiveOrderId(order._id);
-                            setTempTracking("");
-                            setShowTrackingModal(true);
-                          } else {
-                            updateOrder(order._id, e.target.value, order.trackingNumber);
-                          }
-                        }}
-                      >
-                        {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-
-                      <button onClick={() => navigate(`/orders/${order._id}`, { state: { orderData: order } })} className='p-2.5 bg-gray-50 hover:bg-gray-900 hover:text-white rounded-xl transition-all border border-gray-100'>
-                        <Eye size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          )}
+              <button onClick={() => navigate(`/orders/${order._id}`, { state: { orderData: order } })} className='p-2.5 bg-gray-50 hover:bg-gray-900 hover:text-white rounded-xl transition-all border border-gray-100'>
+                <Eye size={14} />
+              </button>
+            </div>
+          </div>
         </div>
+      );
+    })
+  )}
+</div>
 
         {/* ── PAGINATION ── */}
         {totalPages > 1 && (
@@ -512,26 +593,49 @@ const Orders = ({ token }) => {
 
       {/* ── TRACKING MODAL ── */}
       {showTrackingModal && (
-        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
-          <div className='bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200'>
+    <div className='fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4'>
+        <div className='bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl animate-in fade-in zoom-in duration-200'>
             <div className='flex items-center gap-3 mb-4'>
-              <div className='p-2 bg-purple-50 text-purple-600 rounded-lg'><Truck size={20}/></div>
-              <h4 className='font-black uppercase text-sm tracking-tight'>Dispatch Registry</h4>
+                <div className='p-2 bg-purple-50 text-purple-600 rounded-lg'><Truck size={20}/></div>
+                <h4 className='font-black uppercase text-sm tracking-tight'>Dispatch Registry</h4>
             </div>
+
+            {/* Tracking ID Input */}
+            <label className='text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block'>Consignment ID</label>
             <input 
-              autoFocus
-              className='w-full border-2 border-gray-100 focus:border-purple-500 p-4 rounded-xl mb-4 uppercase font-mono text-sm outline-none transition-all' 
-              placeholder="CONSIGNMENT ID"
-              value={tempTracking}
-              onChange={e => setTempTracking(e.target.value)}
+                autoFocus
+                className='w-full border-2 border-gray-100 focus:border-[#BC002D] p-3 rounded-xl mb-4 uppercase font-mono text-sm outline-none transition-all' 
+                placeholder="AWB / TRACKING #"
+                value={tempTracking}
+                onChange={e => setTempTracking(e.target.value)}
             />
+
+            {/* Shipping Date Input */}
+            <label className='text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block'>Dispatch Date</label>
+            <input 
+                type="date"
+                className='w-full border-2 border-gray-100 focus:border-[#BC002D] p-3 rounded-xl mb-6 font-sans text-sm outline-none transition-all' 
+                value={tempShippingDate}
+                onChange={e => setTempShippingDate(e.target.value)}
+            />
+
             <div className='flex gap-2'>
-                <button onClick={() => updateOrder(activeOrderId, "Shipped", tempTracking)} className='flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-[#BC002D] transition-colors'>Confirm</button>
-                <button onClick={() => setShowTrackingModal(false)} className='flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200'>Cancel</button>
+                <button 
+                    onClick={() => updateOrder(activeOrderId, "Shipped", tempTracking, tempShippingDate)} 
+                    className='flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-[#BC002D] transition-colors'
+                >
+                    Confirm
+                </button>
+                <button 
+                    onClick={() => setShowTrackingModal(false)} 
+                    className='flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-gray-200'
+                >
+                    Cancel
+                </button>
             </div>
-          </div>
         </div>
-      )}
+    </div>
+)}
     </div>
   );
 };

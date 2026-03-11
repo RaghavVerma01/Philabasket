@@ -80,7 +80,7 @@ const Navbar = () => {
     );
 
     return (
-        <div className='sticky top-0 z-[9999] w-full'>
+        <div className='z-[10000] w-full bg-white'>
             
             {/* --- MARQUEE --- */}
             {/* --- DYNAMIC ANNOUNCEMENT MARQUEE --- */}

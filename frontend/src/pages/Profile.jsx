@@ -230,19 +230,24 @@ const Profile = () => {
         </span>
     </div>
     
-    <Link to={'/referral'} className="relative">
-        <span className={`font-mono text-[11px] text-white bg-white/5 px-4 py-1.5 rounded-lg tracking-wider border border-white/5 group-hover/ref:bg-[#BC002D]/10 group-hover/ref:border-[#BC002D]/50 transition-all duration-500 shadow-2xl ${
-            userData?.tier === 'Platinum' ? 'group-hover/ref:shadow-cyan-500/20' : 
-            userData?.tier === 'Gold' ? 'group-hover/ref:shadow-amber-500/20' : 
-            'group-hover/ref:shadow-[#BC002D]/20'
-        }`}>
-            {userData?.referralCode || 'PHILA-XXXXXX'}
-        </span>
-        {/* Subtle Tooltip */}
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-black text-[8px] font-black uppercase tracking-tighter text-white rounded opacity-0 group-hover/ref:opacity-100 transition-opacity pointer-events-none border border-white/10 whitespace-nowrap">
-            View Network
-        </div>
-    </Link>
+    <Link to={'/referral'} className="relative group/ref block w-fit">
+    <span className={`font-mono text-[11px] text-white bg-white/5 px-4 py-2 rounded-lg tracking-wider border border-white/10 group-hover/ref:bg-white/10 transition-all duration-500 shadow-2xl whitespace-nowrap flex items-center justify-center min-w-[140px] ${
+        userData?.tier === 'Platinum' ? 'group-hover/ref:border-cyan-500/50 group-hover/ref:shadow-cyan-500/20' : 
+        userData?.tier === 'Gold' ? 'group-hover/ref:border-amber-500/50 group-hover/ref:shadow-amber-500/20' : 
+        'group-hover/ref:border-[#BC002D]/50 group-hover/ref:shadow-[#BC002D]/20'
+    }`}>
+        {userData?.referralCode || 'PHILA-Q9HAA0'}
+    </span>
+
+    {/* Dynamic Tooltip */}
+    <div className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded opacity-0 group-hover/ref:opacity-100 transition-all duration-300 pointer-events-none border whitespace-nowrap shadow-lg ${
+        userData?.tier === 'Platinum' ? 'bg-cyan-950 text-cyan-400 border-cyan-500/30' : 
+        userData?.tier === 'Gold' ? 'bg-amber-950 text-amber-400 border-amber-500/30' : 
+        'bg-red-950 text-red-400 border-red-500/30'
+    }`}>
+        View Network
+    </div>
+</Link>
 </div>
         </div>
     </div>

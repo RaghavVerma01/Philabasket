@@ -50,7 +50,7 @@ const FeaturedProducts = () => {
         <section className="bg-white py-5 md:py-5 overflow-hidden select-none relative border-t border-black/[0.03]">
             <div className="absolute -left-[10vw] top-[10%] h-[80%] w-[40%] bg-[#bd002d]/5 rounded-r-[600px] pointer-events-none"></div>
 
-            <div className='px-1 md:px-16 lg:px-2 relative z-10'>
+            <div className='px-1 md:px-16 lg:px-3 relative z-10'>
                 
                 {/* --- HEADER --- */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-5 gap-8">

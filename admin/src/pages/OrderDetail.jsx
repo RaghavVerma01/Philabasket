@@ -330,7 +330,7 @@ const OrderDetail = ({ token }) => {
               <p style={styles.headerLabel}>Order Details</p>
               {order.deliveryMethod === 'fast' && <span style={styles.priorityBadge}>⚡ Priority</span>}
             </div>
-            <h1 style={styles.headerName}>{delivery?.firstName} {delivery?.lastName}</h1>
+            <h1 style={styles.headerName}>{order.userId?.name }</h1>
             <p style={styles.countryLabel}><Globe size={11} /> {delivery?.country}</p>
           </div>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>

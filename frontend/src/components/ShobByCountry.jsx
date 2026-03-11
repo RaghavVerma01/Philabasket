@@ -106,7 +106,7 @@ const ShopByCountry = () => {
                             </div>
                             
                             <div className='flex flex-col items-center text-center'>
-                                <p className='text-[11px] font-black uppercase tracking-tighter text-gray-900 group-hover:text-[#BC002D] transition-colors'>
+                                <p className='text-[10px] lg:text-[13px] font-semibold tracking-tight text-gray-900 text-transform:capatlized tracking-tighter text-gray-900 group-hover:text-[#BC002D] transition-colors'>
                                     {country.displayName}
                                 </p>
                                 <p className='text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1'>
