@@ -91,11 +91,15 @@ const OrderDetail = ({ token }) => {
       doc.setFontSize(8);
       doc.text(`${billAddr.firstName || ''} ${billAddr.lastName || ''}`, 14, 50);
       doc.text(`${billAddr.street || ''}`, 14, 54);
+      doc.text(`${billAddr.street2 || ''}`, 14, 54);
+
       doc.text(`${billAddr.city || ''}, ${billAddr.state || ''} ${billAddr.zipcode || ''}`, 14, 58);
   
       doc.text("SHIP TO:", 110, 45);
       doc.text(`${addr.firstName || ''} ${addr.lastName || ''}`, 110, 50);
       doc.text(`${addr.street || ''}`, 110, 54);
+      doc.text(`${addr.street2 || ''}`, 110, 54);
+
       doc.text(`${addr.city || ''}, ${addr.state || ''} ${addr.zipcode || ''}`, 110, 58);
   
       // --- 4. ITEMS TABLE ---
@@ -267,7 +271,7 @@ const OrderDetail = ({ token }) => {
   };
 
   const copyAddress = (addr) => {
-    const t = `${addr.firstName} ${addr.lastName}\n${addr.street}\n${addr.city}, ${addr.state} ${addr.zipcode}\n${addr.country}`;
+    const t = `${addr.firstName} ${addr.lastName}\n${addr.street}\n${addr.street2}\n${addr.city}, ${addr.state} ${addr.zipcode}\n${addr.country}`;
     navigator.clipboard.writeText(t);
     toast.success("Address copied");
   };
@@ -305,6 +309,8 @@ const OrderDetail = ({ token }) => {
   const billing = order.billingAddress;
   const isDifferent = billing && (
     billing.street !== delivery.street || 
+    billing.street2 !== delivery.street2 || 
+
     billing.zipcode !== delivery.zipcode || 
     billing.country !== delivery.country
   );
@@ -426,6 +432,8 @@ const OrderDetail = ({ token }) => {
                     <div style={styles.addrBody}>
                         <p style={styles.addrName}>{delivery?.firstName} {delivery?.lastName}</p>
                         <p style={styles.addrLine}>{delivery?.street}</p>
+                        <p style={styles.addrLine}>{delivery?.street2}</p>
+
                         <p style={styles.addrLine}>{delivery?.city}, {delivery?.state}</p>
                         <p style={{ ...styles.addrLine, fontWeight: 700 }}>{delivery?.zipcode}, {delivery?.country}</p>
                         <div style={{ marginTop: '10px' }}>
@@ -445,6 +453,8 @@ const OrderDetail = ({ token }) => {
                         <div style={styles.addrBody}>
                             <p style={styles.addrName}>{billing?.firstName} {billing?.lastName}</p>
                             <p style={styles.addrLine}>{billing?.street}</p>
+                            <p style={styles.addrLine}>{billing?.street2}</p>
+
                             <p style={styles.addrLine}>{billing?.city}, {billing?.state}</p>
                             <p style={{ ...styles.addrLine, fontWeight: 700 }}>{billing?.zipcode}, {billing?.country}</p>
                         </div>

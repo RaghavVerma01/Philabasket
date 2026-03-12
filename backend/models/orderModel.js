@@ -19,6 +19,11 @@ const orderSchema = new mongoose.Schema({
         enum: ['standard', 'fast'], 
         default: 'standard' 
     }, //
+    courierProvider: { 
+        type: String, 
+        enum: ['DTDC', 'India Post', 'Other', ''], 
+        default: '' 
+    },
     allowInvoice: { type: Boolean, default: false },
 
     address: { type: Object, required: true },

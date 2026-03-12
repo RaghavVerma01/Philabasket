@@ -13,6 +13,8 @@ const Profile = () => {
     const [isEditingName, setIsEditingName] = useState(false);
     const [address, setAddress] = useState({ 
         street: '', 
+        street2: '', // Added
+        country: 'India', // Added default
         city: '', 
         state: '', 
         zipCode: '', 
@@ -26,7 +28,16 @@ const Profile = () => {
         if (userData) {
             setName(userData.name || '');
             if (userData.defaultAddress) {
-                setAddress(userData.defaultAddress);
+                // Ensure we merge existing data with default keys to avoid undefined inputs
+                setAddress({
+                    street: userData.defaultAddress.street || '',
+                    street2: userData.defaultAddress.street2 || '',
+                    country: userData.defaultAddress.country || 'India',
+                    city: userData.defaultAddress.city || '',
+                    state: userData.defaultAddress.state || '',
+                    zipCode: userData.defaultAddress.zipCode || '',
+                    phone: userData.defaultAddress.phone || ''
+                });
             }
         }
     }, [userData]);
@@ -273,6 +284,27 @@ const Profile = () => {
                                     placeholder="Enter street address..." 
                                 />
                             </div>
+                            <div className='md:col-span-2'>
+    <p className='text-[9px] uppercase font-bold text-gray-400 mb-2 ml-1'>Area / Landmark (Line 2)</p>
+    <input 
+        value={address.street2} 
+        onChange={(e)=>setAddress({...address, street2: e.target.value})} 
+        className='w-full p-4 bg-gray-50 border border-black/5 rounded-sm text-sm text-black font-medium outline-none focus:border-[#BC002D]/30 transition-all placeholder-gray-400' 
+        placeholder="Apartment, suite, unit, etc. (optional)" 
+    />
+</div>
+
+{/* --- Country Selection --- */}
+<div className='md:col-span-2'>
+    <p className='text-[9px] uppercase font-bold text-gray-400 mb-2 ml-1'>Country / Region</p>
+    <input 
+        type="text"
+        value={address.country || ''} 
+        onChange={(e) => setAddress({ ...address, country: e.target.value })}
+        placeholder="Enter your country..."
+        className='w-full p-4 bg-gray-50 border border-black/5 rounded-sm text-sm text-black font-medium outline-none focus:border-[#BC002D]/30 transition-all placeholder-gray-400' 
+    />
+</div>
 
                             <div className='relative'>
                                 <p className='text-[9px] uppercase font-bold text-gray-400 mb-2 ml-1'>Postal Pincode</p>

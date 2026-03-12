@@ -38,12 +38,12 @@ const PlaceOrder = () => {
 
     const [sameAsShipping, setSameAsShipping] = useState(true);
     const [formData, setFormData] = useState({
-        firstName: '', lastName: '', email: '', street: '',
+        firstName: '', lastName: '', email: '', street: '',street2:'',
         city: '', state: '', zipcode: '', country: 'India', countryCode: '+91', phone: ''
     });
 
     const [billingData, setBillingData] = useState({
-        firstName: '', lastName: '', email: '', street: '', 
+        firstName: '', lastName: '', email: '', street: '', street2:'',
         city: '', state: '', zipcode: '',phone: '', country: 'India'
     });
     // Add this near your other state declarations
@@ -175,6 +175,7 @@ const handleBillingPincodeChange = async (e) => {
                     lastName: lNameParts.join(' ') || '',
                     email: userData.email || '',
                     street: adr.street || '',
+                    street2:adr.street2 ||'',
                     city: adr.city || '',
                     state: adr.state || '',
                     zipcode: adr.zipCode || '',
@@ -445,6 +446,7 @@ const calculation = useMemo(() => {
                         </div>
 
                         <input required value={formData.street} onChange={(e)=>setFormData({...formData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Shipping Street' />
+        <input value={formData.street2} onChange={(e)=>setFormData({...formData, street2: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Street Line 2 (Area / Landmark - Optional)' />
                         
                         <div className='grid grid-cols-2 gap-3'>
                             <div className='relative'>
@@ -511,7 +513,7 @@ const calculation = useMemo(() => {
         </div>
 
         <input required value={billingData.street} onChange={(e)=>setBillingData({...billingData, street: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Billing Street' />
-        
+        <input value={billingData.street2} onChange={(e)=>setBillingData({...billingData, street2: e.target.value})} className='bg-white border border-gray-100 py-3.5 px-4 w-full text-xs placeholder-gray-400 rounded-sm' placeholder='Billing Street Line 2 (Optional)' />
         <div className='grid grid-cols-2 gap-3'>
             <div className='relative'>
                 <input 
@@ -545,7 +547,7 @@ const calculation = useMemo(() => {
                 </div>
 
                 {/* COLUMN 2: SPECIMEN OVERVIEW */}
-                <div className='flex flex-col gap-6 w-full lg:max-w-[340px]'>
+                {/* <div className='flex flex-col gap-6 w-full lg:max-w-[340px]'>
                     <Title text1={'SPECIMEN'} text2={'OVERVIEW'} />
                     <div className='bg-white border border-gray-100 p-2 overflow-y-auto max-h-[500px] custom-scrollbar rounded-sm'>
                         {products.filter(p => cartItems[p._id] > 0).map((item, index) => (
@@ -559,7 +561,7 @@ const calculation = useMemo(() => {
                             </div>
                         ))}
                     </div>
-                </div>
+                </div> */}
 
                 {/* COLUMN 3: LEDGER SUMMARY */}
                 <div className='flex flex-col gap-6 w-full lg:max-w-[380px]'>

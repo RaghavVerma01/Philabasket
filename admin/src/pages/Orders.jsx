@@ -41,6 +41,7 @@ const Orders = ({ token }) => {
   const [activeOrderId, setActiveOrderId] = useState(null);
   const [tempTracking, setTempTracking] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [tempCourier, setTempCourier] = useState("India Post");
 
   // ── FETCH LOGIC ──────────────────────────────────────────────────────────
   // 1. UPDATED FETCH LOGIC
@@ -183,18 +184,19 @@ useEffect(() => {
 
         if (response.data.success) {
             const ordersData = response.data.orders;
-            const doc = new jsPDF('l', 'mm', 'a4');
+            // 'p' for Portrait to fit 2x2 nicely on A4
+            const doc = new jsPDF('p', 'mm', 'a4');
 
-            // Grid Configuration
-            const labelWidth = 65;
-            const labelHeight = 45;
+            // --- 2x2 GRID CONFIGURATION ---
+            const labelWidth = 90;   // Increased width for 2 columns
+            const labelHeight = 130; // Increased height for 2 rows
             const startX = 15;
             const startY = 15;
-            const marginX = 5;
-            const marginY = 5;
-            const labelsPerRow = 4;
-            const labelsPerPage = 8;
-            const padding = 4;
+            const marginX = 10;
+            const marginY = 10;
+            const labelsPerRow = 2;
+            const labelsPerPage = 4;
+            const padding = 8;
 
             ordersData.forEach((order, index) => {
                 if (index > 0 && index % labelsPerPage === 0) {
@@ -208,59 +210,73 @@ useEffect(() => {
                 const x = startX + (col * (labelWidth + marginX));
                 const y = startY + (row * (labelHeight + marginY));
 
-                // Draw Label Border
-                doc.setDrawColor(220);
+                // Draw Label Border (Light Registry Style)
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.1);
                 doc.rect(x, y, labelWidth, labelHeight);
 
                 const addr = order.address || {};
-                const name = `${addr.firstName || ''} ${addr.lastName || ''}`.trim();
+                const name = `MR. ${(`${addr.firstName || ''} ${addr.lastName || ''}`).toUpperCase()}`;
                 const phone = addr.phone?.$numberLong || addr.phone || "N/A";
                 const zip = addr.zipcode || addr.zipCode || '';
 
-                // --- MULTILINE ADDRESS LOGIC ---
-                // We create an array of strings for each line
+                // --- DATA PREP (Including Street 2) ---
                 const addressLines = [
                     addr.street || '',
-                    `${addr.city || ''}, ${addr.state || ''}`,
-                    `${addr.country || ''} - ${zip}`.toUpperCase() // Country at the bottom of the block
-                ].filter(line => line.trim() !== ""); // Remove empty lines
+                    addr.street2 || '', // Added Street 2
+                    addr.city || '',
+                    `${addr.state || ''}, ${addr.country || ''} - ${zip}`.toUpperCase()
+                ].filter(line => line.trim() !== "");
 
-                // 1. Header: Order Number
+                // 1. Order ID Header
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(9);
-                doc.text(`OD: ${order.orderNo || order._id.slice(-6).toUpperCase()}`, x + padding, y + 6);
+                doc.setFontSize(10);
+                doc.text(`OD: ${order.orderNo || order._id.slice(-6).toUpperCase()}`, x + padding, y + 10);
 
                 // 2. "To,"
                 doc.setFont("helvetica", "normal");
-                doc.setFontSize(8);
-                doc.text("To,", x + padding, y + 11);
+                doc.setFontSize(9);
+                doc.text("To,", x + padding, y + 18);
 
-                // 3. Recipient Name
+                // 3. RECIPIENT NAME (Auto-scaling for long names)
+                let nameFontSize = 14;
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
-                doc.text(`Mr. ${name}`, x + padding, y + 16);
-
-                // 4. Address Distribution
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(8);
+                const maxTextWidth = labelWidth - (padding * 2);
                 
-                let currentY = y + 21;
+                // Reduce font size if name is too long
+                while (doc.getTextWidth(name) > maxTextWidth && nameFontSize > 8) {
+                    nameFontSize--;
+                }
+                doc.setFontSize(nameFontSize);
+                doc.text(name, x + padding, y + 26);
+
+                // 4. ADDRESS BLOCK (With Wrap Logic)
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                
+                let currentY = y + 36;
                 addressLines.forEach((line) => {
-                    // splitTextToSize ensures that if a single line (like a long street) is too wide, it wraps
-                    const wrappedLine = doc.splitTextToSize(line, labelWidth - (padding * 2));
+                    const wrappedLine = doc.splitTextToSize(line, maxTextWidth);
                     doc.text(wrappedLine, x + padding, currentY);
-                    // Move currentY down based on number of lines wrappedLine produced (approx 3.5mm per line)
-                    currentY += (wrappedLine.length * 4); 
+                    currentY += (wrappedLine.length * 6); // Space between lines
                 });
 
-                // 5. Mobile (Locked to the bottom area of the label)
+                // 5. MOBILE (Locked to Bottom)
                 doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                doc.text(`Mob: ${phone}`, x + padding, y + labelHeight - 4);
+                doc.setFontSize(11);
+                doc.text(`MOB: ${phone}`, x + padding, y + labelHeight - padding);
+                
+                // 6. Optional: Small "PhilaBasket Registry" branding at bottom right
+                doc.setFontSize(7);
+                doc.setFont("helvetica", "italic");
+                doc.setTextColor(150);
+                const brandText = "PHILABASKET ARCHIVE";
+                doc.text(brandText, x + labelWidth - doc.getTextWidth(brandText) - padding, y + labelHeight - padding);
+                doc.setTextColor(0); // Reset color
             });
 
-            doc.save(`Archive_Labels_${new Date().toISOString().split('T')[0]}.pdf`);
-            toast.update(toastId, { render: "Labels Exported Successfully", type: "success", isLoading: false, autoClose: 3000 });
+            doc.save(`Shipping_Labels_2x2_${new Date().toISOString().split('T')[0]}.pdf`);
+            toast.update(toastId, { render: "2x2 Labels Generated", type: "success", isLoading: false, autoClose: 3000 });
         }
     } catch (error) {
         console.error("Label Export Error:", error);
@@ -334,22 +350,28 @@ useEffect(() => {
     }
   };
 
-  const updateOrder = async (orderId, status, trackingNumber, shippedDate) => {
+  const updateOrder = async (orderId, status, trackingNumber, shippedDate, courierProvider) => {
     setLoading(true);
     try {
-        // Ensure all 4 variables are included in the object sent to the backend
         const res = await axios.post(
             backendUrl + '/api/order/status', 
-            { orderId, status, trackingNumber, shippedDate }, 
+            { 
+                orderId, 
+                status, 
+                trackingNumber, 
+                shippedDate, 
+                courierProvider // This sends the 'tempCourier' value to the backend
+            }, 
             { headers: { token } }
         );
 
         if (res.data.success) {
             toast.success(`Status updated to ${status}`);
             setShowTrackingModal(false);
-            fetchAllOrders(false);
+            // This is the key: it refreshes the whole list from the DB
+            fetchAllOrders(false); 
         } else {
-            toast.error(res.data.message); // Show the specific error from backend
+            toast.error(res.data.message);
         }
     } catch (err) {
         console.error("Update Error:", err);
@@ -542,6 +564,17 @@ useEffect(() => {
                 <span className={`w-full justify-center px-3 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 ${cfg.color}`}>
                   <Icon size={10} /> {order.status}
                 </span>
+                {order.trackingNumber && (
+      <div className='flex flex-col items-center animate-fade-in'>
+        <div className='flex items-center gap-1 text-[8px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-100 uppercase tracking-tighter'>
+          <Truck size={8} />
+          {order.courierProvider }
+        </div>
+        <p className='text-[9px] font-mono font-bold text-gray-400 mt-0.5 tracking-tighter'>
+          {order.trackingNumber}
+        </p>
+      </div>
+    )}
               </div>
               
               {/* Status Update Select */}
@@ -551,18 +584,23 @@ useEffect(() => {
   onChange={e => {
     if (e.target.value === "Shipped") {
       setActiveOrderId(order._id);
-      setTempTracking("");
-      // Ensure date is set to today by default when opening modal
+      // Pre-fill modal with existing data if available
+      setTempTracking(order.trackingNumber || "");
+      setTempCourier(order.courierProvider || "India Post"); 
       setTempShippingDate(new Date().toISOString().split('T')[0]); 
       setShowTrackingModal(true);
     } else {
-      // FIX: Pass null for tracking and date when just changing status
-      updateOrder(order._id, e.target.value, null, null);
+      // FIX: Added the 5th argument (null) so the function signature matches.
+      // This prevents the "Network Error" caused by an undefined variable.
+      updateOrder(order._id, e.target.value, null, null, null);
     }
   }}
 >
-                {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+  {Object.keys(STATUS_CONFIG).map(s => (
+    <option key={s} value={s}>{s}</option>
+  ))}
+</select>
+                
 
               <button onClick={() => navigate(`/orders/${order._id}`, { state: { orderData: order } })} className='p-2.5 bg-gray-50 hover:bg-gray-900 hover:text-white rounded-xl transition-all border border-gray-100'>
                 <Eye size={14} />
@@ -600,6 +638,23 @@ useEffect(() => {
                 <h4 className='font-black uppercase text-sm tracking-tight'>Dispatch Registry</h4>
             </div>
 
+            <label className='text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block'>Courier Provider</label>
+            <div className='flex gap-2 mb-4'>
+                {['India Post', 'DTDC'].map(provider => (
+                    <button
+                        key={provider}
+                        onClick={() => setTempCourier(provider)}
+                        className={`flex-1 py-2 rounded-xl text-[10px] font-bold uppercase border-2 transition-all ${
+                            tempCourier === provider 
+                            ? 'border-[#BC002D] bg-red-50 text-[#BC002D]' 
+                            : 'border-gray-100 text-gray-400'
+                        }`}
+                    >
+                        {provider}
+                    </button>
+                ))}
+            </div>
+
             {/* Tracking ID Input */}
             <label className='text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block'>Consignment ID</label>
             <input 
@@ -621,7 +676,7 @@ useEffect(() => {
 
             <div className='flex gap-2'>
                 <button 
-                    onClick={() => updateOrder(activeOrderId, "Shipped", tempTracking, tempShippingDate)} 
+                    onClick={() => updateOrder(activeOrderId, "Shipped", tempTracking, tempShippingDate,tempCourier)} 
                     className='flex-1 bg-gray-900 text-white py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-[#BC002D] transition-colors'
                 >
                     Confirm

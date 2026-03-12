@@ -119,6 +119,20 @@ const shippingDisplayValue = isFreeShipping
     ? `<span style="color: #2e7d32; font-weight: 900;">COMPLIMENTARY</span>` 
     : `${symbol}${displayShipping}`;
 
+    // --- NEW: TIER CONFIGURATION ---
+const TIER_CONFIG = {
+    'Platinum': { color: '#06b6d4', bg: '#ecfeff', next: 0, icon: '◈', perks: ['20% Rewards', 'Free Shipping', 'Priority Curation'] },
+    'Gold': { color: '#f59e0b', bg: '#fffbeb', next: 50000, icon: '✦', perks: ['15% Rewards', 'Early Archive Access', 'Birthday Specimens'] },
+    'Silver': { color: '#64748b', bg: '#f8fafc', next: 30000, icon: '○', perks: ['10% Rewards', 'Standard Support', 'Registry Access'] }
+};
+
+const userTier = orderData.userId?.tier || 'Silver';
+const tier = TIER_CONFIG[userTier];
+const pointsToNext = tier.next > 0 ? (tier.next - (orderData.userId?.totalRewardPoints || 0)) : 0;
+
+// --- NEW: SAVINGS CALCULATION ---
+const totalSavings = (pbExclusiveDiscount + (discountAmount || 0) + (pointsValue || 0)).toFixed(2);
+
 // ... inside the return template table ...
 
 
@@ -165,6 +179,33 @@ const shippingDisplayValue = isFreeShipping
     </table>
 </td>
                         </tr>
+
+                        <tr>
+                            <td style="padding: 20px 40px 0 40px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${tier.bg}; border-radius: 12px; border: 1px solid ${tier.color}40;">
+                                    <tr>
+                                        <td style="padding: 20px;">
+                                            <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                                                <tr>
+                                                    <td width="60%">
+                                                        <span style="color: ${tier.color}; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Collector Status</span>
+                                                        <h3 style="margin: 5px 0; color: ${secondaryColor}; font-size: 18px;">${tier.icon} ${userTier} Member</h3>
+                                                    </td>
+                                                    <td align="right">
+                                                        ${pointsToNext > 0 ? `<p style="margin: 0; font-size: 11px; color: #64748b;"><strong>${pointsToNext.toLocaleString()} pts</strong> to next tier</p>` : `<p style="margin: 0; font-size: 11px; color: ${tier.color};"><strong>Max Tier Reached</strong></p>`}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                            <div style="margin-top: 10px; border-top: 1px solid ${tier.color}20; padding-top: 10px;">
+                                                <p style="margin: 0; font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Current Perks: <span style="color: ${secondaryColor}; ml: 5px;">${tier.perks.join(' • ')}</span></p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+
+                        
                         <tr>
                             <td style="padding: 40px;">
                                 <h2 style="margin: 0 0 15px 0; font-size: 20px;">Order ${trackingNumber ? 'Dispatched' : 'Confirmed'}</h2>
@@ -526,7 +567,8 @@ export const updateOrderItems = async (req, res) => {
 
 const updateStatus = async (req, res) => {
     try {
-        const { orderId, status, trackingNumber, shippedDate } = req.body;
+        // --- Added courierProvider to destructuring ---
+        const { orderId, status, trackingNumber, shippedDate, courierProvider } = req.body;
         
         const currentOrder = await orderModel.findById(orderId).populate('userId');
         if (!currentOrder) {
@@ -537,42 +579,52 @@ const updateStatus = async (req, res) => {
         const updateFields = { status: finalStatus };
         
         if (trackingNumber) updateFields.trackingNumber = trackingNumber;
+        
+        // --- Added courierProvider to update fields ---
+        if (courierProvider) updateFields.courierProvider = courierProvider;
 
-        // --- FIX: Convert String Date to Number Timestamp ---
         if (shippedDate) {
-            // new Date("2026-03-13").getTime() returns a Number (e.g., 1773350400000)
             updateFields.shippedDate = new Date(shippedDate).getTime();
         }
+
+        // --- Workflow Reversal Logic ---
         if (finalStatus === 'Order Placed' && currentOrder.status !== 'Order Placed') {
-            // Optional: Clear logistics if moving backward in workflow
             updateFields.trackingNumber = "";
             updateFields.shippedDate = null;
+            updateFields.courierProvider = ""; // Clear courier on reset
 
             try {
                 await sendEmail(
                     currentOrder.address.email, 
                     "Order Confirmation Update", 
-                    getOrderHtmlTemplate(currentOrder) // Sends standard confirmation template
+                    getOrderHtmlTemplate(currentOrder)
                 );
             } catch (emailError) {
                 console.error("Order Placed Email Failed:", emailError);
             }
         }
 
+        // --- Shipping Logic (with Courier Info) ---
         if (finalStatus === 'Shipped' && currentOrder.status !== 'Shipped') {
             await rewardReferrer(currentOrder); 
             try {
+                // Pass courierProvider to the template so the email shows "Via India Post" or "Via DTDC"
                 await sendEmail(
                     currentOrder.address.email, 
                     "Items Shipped", 
-                    getOrderHtmlTemplate(currentOrder, null, trackingNumber || currentOrder.trackingNumber)
+                    getOrderHtmlTemplate(
+                        currentOrder, 
+                        null, 
+                        trackingNumber || currentOrder.trackingNumber,
+                        courierProvider || currentOrder.courierProvider // New argument for template
+                    )
                 );
             } catch (emailError) {
                 console.error("Shipping Email Failed:", emailError);
             }
         }
 
-        // --- REWARD LOGIC ---
+        // --- Reward Logic (Delivered) ---
         if (finalStatus === 'Delivered' && currentOrder.status !== 'Delivered') {
             updateFields.payment = true;
             const itemSubtotal = currentOrder.items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
@@ -585,7 +637,6 @@ const updateStatus = async (req, res) => {
             await recordRewardActivity(currentOrder.userId._id, currentOrder.address.email, earnedPoints, 'earn_point', currentOrder._id);
         }
 
-        // Apply the updates
         await orderModel.findByIdAndUpdate(orderId, updateFields);
 
         res.json({ success: true, message: "Status Updated", currentStatus: finalStatus });

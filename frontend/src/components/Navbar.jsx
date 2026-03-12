@@ -112,7 +112,7 @@ const Navbar = () => {
             >
                 <Gift size={12} className='text-white' />
                 <p className='text-[9px] font-black text-white uppercase tracking-tighter'>
-                    {userPoints || 0} <span className='opacity-60'>PTS</span>
+                    {userPoints || 0}  <span className='opacity-60'>Coins</span>
                 </p>
             </div>
 
@@ -216,7 +216,7 @@ const Navbar = () => {
                                 <button onClick={() => setVisible(false)} className='flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400'><ArrowLeft size={14} /> Back</button>
                                 <div className='flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-black/5'>
                                     <Gift size={12} className='text-[#BC002D]' />
-                                    <span className='text-[10px] text-black font-semibold'>{userPoints || 0} PTS</span>
+                                    <span className='text-[10px] text-black font-semibold'>{userPoints || 0} Coins</span>
                                 </div>
                             </div>
                             

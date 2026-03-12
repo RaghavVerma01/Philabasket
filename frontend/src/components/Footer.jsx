@@ -88,11 +88,7 @@ const Footer = () => {
     />
     
     {/* Stripe */}
-    <img 
-        src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" 
-        className="h-3.5 w-auto" 
-        alt="Stripe" 
-    />
+
 </div>
             </div>
           </div>

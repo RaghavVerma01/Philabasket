@@ -101,7 +101,7 @@ const Users = ({ token }) => {
                                     <td className='p-4 font-mono text-[#BC002D] tracking-tighter'>{u.referralCode || 'UNASSIGNED'}</td>
                                     <td className='p-4'>
                                         <span className='text-amber-600 bg-amber-50 px-2 py-1 rounded-sm'>
-                                            {u.totalRewardPoints || 0} PTS
+                                            {u.totalRewardPoints || 0} Coins
                                         </span>
                                     </td>
                                     <td className='p-4 text-right'>
