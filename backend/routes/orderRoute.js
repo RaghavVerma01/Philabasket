@@ -1,5 +1,5 @@
 import express from 'express'
-import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus, emailInvoiceToUser, updateOrderItems} from '../controllers/orderController.js'
+import {placeOrder, placeOrderStripe, placeOrderRazorpay, allOrders, userOrders, updateStatus, verifyStripe, verifyRazorpay, getAdminDashboardStats, getDetailedAnalytics,cancelOrder, syncLegacyOrderDetails, singleOrder, updateInvoiceStatus, emailInvoiceToUser, updateOrderItems, placeOrderInstamojo, verifyInstamojo} from '../controllers/orderController.js'
 import adminAuth  from '../middleware/adminAuth.js'
 import authUser from '../middleware/auth.js'
 
@@ -14,7 +14,9 @@ orderRouter.post('/cancel', authUser, cancelOrder);
 // Payment Features
 orderRouter.post('/place',authUser,placeOrder)
 orderRouter.post('/stripe',authUser,placeOrderStripe)
-orderRouter.post('/razorpay',authUser,placeOrderRazorpay)
+// orderRoute.js
+orderRouter.post('/razorpay', authUser, placeOrderRazorpay);
+orderRouter.post('/verifyRazorpay', authUser, verifyRazorpay);
 
 // User Feature 
 orderRouter.post('/userorders',authUser,userOrders)
@@ -25,13 +27,16 @@ orderRouter.post('/email-invoice', adminAuth, emailInvoiceToUser);
 
 // verify payment
 orderRouter.post('/verifyStripe',authUser, verifyStripe)
-orderRouter.post('/verifyRazorpay',authUser, verifyRazorpay)
+
 orderRouter.get('/admin-stats', adminAuth, getAdminDashboardStats);
 orderRouter.get('/detailed-analytics', adminAuth, getDetailedAnalytics);
 orderRouter.post('/single', adminAuth, singleOrder);
 orderRouter.post('/update-invoice', adminAuth, updateInvoiceStatus);
 orderRouter.post('/update-items', adminAuth, updateOrderItems);
 orderRouter.post('/migrate-legacy-data', adminAuth, syncLegacyOrderDetails);
+// Instamojo Payment Routes
+orderRouter.post('/instamojo', authUser, placeOrderInstamojo);
+orderRouter.post('/verifyInstamojo', authUser, verifyInstamojo);
 
 
 

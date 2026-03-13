@@ -10,6 +10,9 @@ import {
     Globe, Info, Landmark, FileText, Smartphone, Mail, MapPin, CreditCard
 } from 'lucide-react';
 
+
+
+
 const PlaceOrder = () => {
     const [method, setMethod] = useState('cod');
     const { 
@@ -256,7 +259,7 @@ const calculation = useMemo(() => {
     
     // Default fallback values if the API hasn't returned yet
     const fees = adminSettings || { 
-        indiaFee: 125, 
+        indiaFee: 0, 
         indiaFeeFast: 250, 
         globalFee: 749, 
         globalFeeFast: 1500,
@@ -299,55 +302,130 @@ const calculation = useMemo(() => {
     };
 }, [cartItems, userPoints, usePoints, appliedCoupon, deliveryMethod, formData.country, getCartAmount, adminSettings]);
 
-    const onSubmitHandler = async (e) => {
-        if (e) e.preventDefault();
-        if (formData.country === 'Pakistan' || (!sameAsShipping && billingData.country === 'Pakistan')) {
-            return toast.error("Shipping Protocol: Deliveries to Pakistan are currently suspended.");
-        }
-        if (!agreedToTerms) return toast.error("Please acknowledge the Acquisition Terms.");
-        if (method === 'cheque' && !agreedToCheque) return setShowChequeModal(true);
-        if (method === 'bank' && !agreedToBankTransfer) return setShowBankModal(true);
-        if (loading) return;
-    
-        try {
-            setLoading(true);
-            const orderItems = products.filter(p => cartItems[p._id] > 0).map(p => ({...p, quantity: cartItems[p._id]}));
-            
-            const orderData = {
-                address: formData,
-                billingAddress: sameAsShipping ? formData : billingData,
-                items: orderItems,
-                deliveryFee: Number(calculation.feeApplied),
-                deliveryMethod: deliveryMethod, // Add this line // Clean number for DB
-                amount: Number(calculation.totalPayable),
-                pointsUsed: Math.round(calculation.pointsDeducted),
-                couponUsed: appliedCoupon ? appliedCoupon.code : null,
-                discountAmount: Number(calculation.couponDeducted),
-                phone: `${formData.countryCode}${formData.phone}`,
-                paymentMethod: method === 'cheque' ? 'Cheque' : method === 'bank' ? 'Direct Bank Transfer' : method.toUpperCase(),
-                status: (method === 'cheque' || method === 'bank') ? 'On Hold' : 'Order Placed'
-            };
-    
-            const response = await axios.post(backendUrl + '/api/order/place', orderData, { headers: { token } });
-            
-            if (response.data.success) {
-                setCartItems({});
-                setAppliedCoupon(null);
-                setCouponCode('');      
-                setUsePoints(false);    
+
+// ✅ Add this helper inside your PlaceOrder component
+const initPay = (order) => {
+    const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Ensure this is in your .env
+        amount: order.amount,
+        currency: order.currency,
+        name: 'PhilaBasket Registry',
+        description: 'Philatelic Acquisition',
+        order_id: order.id, // ID returned from your backend
+        receipt: order.receipt,
+        handler: async (response) => {
+            try {
+                // This sends the razorpay_payment_id and signature to your verifyRazorpay backend
+                const { data } = await axios.post(
+                    backendUrl + '/api/order/verifyRazorpay',
+                    response,
+                    { headers: { token } }
+                );
                 
-                setShowSuccess(true);
-                fetchUserData();
-                setTimeout(() => { navigate('/orders'); }, 4000);
+                if (data.success) {
+                    setCartItems({});
+                    setAppliedCoupon(null);
+                    setCouponCode('');      
+                    setUsePoints(false);    
+                    setShowSuccess(true);
+                    fetchUserData();
+                    setTimeout(() => { navigate('/orders'); }, 4000);
+                } else {
+                    toast.error(data.message);
+                }
+            } catch (error) {
+                toast.error("Verification Protocol Failed");
+            }
+        },
+        prefill: {
+            name: `${formData.firstName} ${formData.lastName}`,
+            email: formData.email,
+            contact: formData.phone
+        },
+        theme: { color: "#BC002D" }
+    };
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+};
+
+
+const onSubmitHandler = async (e) => {
+    if (e) e.preventDefault();
+    if (formData.country === 'Pakistan' || (!sameAsShipping && billingData.country === 'Pakistan')) {
+        return toast.error("Shipping Protocol: Deliveries to Pakistan are currently suspended.");
+    }
+    if (!agreedToTerms) return toast.error("Please acknowledge the Acquisition Terms.");
+    if (method === 'cheque' && !agreedToCheque) return setShowChequeModal(true);
+    if (method === 'bank' && !agreedToBankTransfer) return setShowBankModal(true);
+    if (loading) return;
+
+    try {
+        setLoading(true);
+        const orderItems = products.filter(p => cartItems[p._id] > 0).map(p => ({...p, quantity: cartItems[p._id]}));
+        
+        const orderData = {
+            address: formData,
+            billingAddress: sameAsShipping ? formData : billingData,
+            items: orderItems,
+            deliveryFee: Number(calculation.feeApplied),
+            deliveryMethod: deliveryMethod,
+            amount: Number(calculation.totalPayable),
+            pointsUsed: Math.round(calculation.pointsDeducted),
+            couponUsed: appliedCoupon ? appliedCoupon.code : null,
+            discountAmount: Number(calculation.couponDeducted),
+            paymentMethod: method.toUpperCase(),
+        };
+
+        // ✅ RAZORPAY HANDLER
+        if (method === 'razorpay') {
+            const response = await axios.post(
+                backendUrl + '/api/order/razorpay', 
+                orderData, 
+                { headers: { token } }
+            );
+            if (response.data.success) {
+                initPay(response.data.order);
+                setLoading(false); // Stop loading while modal is open
             } else {
                 toast.error(response.data.message);
                 setLoading(false);
             }
-        } catch (error) {
-            toast.error("Registry synchronization failed.");
-            setLoading(false);
+            return;
         }
-    };
+
+        if (method === 'instamojo') {
+            const response = await axios.post(
+                backendUrl + '/api/order/instamojo', 
+                orderData, 
+                { headers: { token } }
+            );
+            if (response.data.success) {
+                // Instamojo returns a longurl for redirection
+                window.location.href = response.data.payment_url;
+            } else {
+                toast.error(response.data.message);
+                setLoading(false);
+            }
+            return;
+        }
+
+        // ✅ STANDARD HANDLER (COD, Bank, Cheque, Stripe)
+        const response = await axios.post(backendUrl + '/api/order/place', orderData, { headers: { token } });
+        
+        if (response.data.success) {
+            setCartItems({});
+            setShowSuccess(true);
+            fetchUserData();
+            setTimeout(() => { navigate('/orders'); }, 4000);
+        } else {
+            toast.error(response.data.message);
+        }
+    } catch (error) {
+        toast.error("Registry synchronization failed.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className='relative text-black'>
@@ -630,7 +708,7 @@ const calculation = useMemo(() => {
             </div>
         </div>
         <p className='text-xs font-black'>
-            {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (adminSettings?.indiaFee || 125) : (adminSettings?.globalFee || 749)}`}
+            {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (adminSettings?.indiaFee || 0) : (adminSettings?.globalFee || 749)}`}
         </p>
     </div>
 
@@ -661,7 +739,7 @@ const calculation = useMemo(() => {
                         <Title text1={'PAYMENT'} text2={'PROTOCOL'} />
                         <div className='grid grid-cols-1 gap-2 mt-4'>
                             {[
-                                {id:'stripe', label:'Stripe / Global', icon:Globe},
+                                {id:'instamojo', label:'Instamojo / Credit / Debit', icon:CreditCard},
                                 {id:'razorpay', label:'Razorpay / UPI', icon:Smartphone},
                                 {id:'bank', label:'Bank Transfer', icon:Landmark},
                                 {id:'cheque', label:'Cheque Payment', icon:FileText},

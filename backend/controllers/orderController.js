@@ -12,6 +12,195 @@ import userRewardModel from "../models/userRewardModel.js";
 import settingsModel from "../models/settingModel.js";
 
 import { rewardReferrer } from "./userController.js";
+import Razorpay from 'razorpay';
+import crypto from 'crypto'; // Built-in Node module
+
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+// orderController.js
+
+
+
+
+
+
+export const placeOrderInstamojo = async (req, res) => {
+    try {
+        const { 
+            userId, items, amount, address, billingAddress, 
+            currency, pointsUsed, couponUsed, discountAmount, 
+            deliveryMethod 
+        } = req.body;
+
+        // 1. FETCH REGISTRY SETTINGS (Critical for Fees)
+        const settings = await settingsModel.findOne({}) || { 
+            rate: 83, 
+            indiaFee: 125, indiaFeeFast: 250, 
+            globalFee: 750, globalFeeFast: 1500 
+        };
+
+        // 2. CALCULATE DELIVERY FEE
+        const isIndia = address.country.toLowerCase() === 'india';
+        const method = deliveryMethod === 'fast' ? 'fast' : 'standard';
+
+        let deliveryFee = 0;
+        if (isIndia) {
+            deliveryFee = method === 'fast' ? settings.indiaFeeFast : settings.indiaFee;
+        } else {
+            deliveryFee = method === 'fast' ? settings.globalFeeFast : settings.globalFee;
+        }
+
+        // Apply Free Shipping override (Standard India orders >= 4999)
+        const cartAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        if (isIndia && method === 'standard' && cartAmount >= 4999) {
+            deliveryFee = 0;
+        }
+
+        // 3. GENERATE OAUTH2 ACCESS TOKEN
+        const authEndpoint = 'https://api.instamojo.com/oauth2/token/'; 
+        const params = new URLSearchParams();
+        params.append('grant_type', 'client_credentials');
+        params.append('client_id', process.env.INSTAMOJO_CLIENT_ID);
+        params.append('client_secret', process.env.INSTAMOJO_CLIENT_SECRET);
+
+        const authResponse = await axios.post(authEndpoint, params);
+        const accessToken = authResponse.data.access_token;
+
+        // 4. CONSTRUCT COMPLETE ORDER DATA
+        const orderData = {
+            userId,
+            items,
+            address,
+            billingAddress: billingAddress || address,
+            deliveryFee, // ✅ Now captured
+            deliveryMethod: method,
+            amount, // Total payable amount from frontend
+            pointsUsed: pointsUsed || 0,
+            couponUsed: couponUsed || null,
+            discountAmount: discountAmount || 0,
+            currency: currency || 'INR',
+            exchangeRate: settings.rate,
+            paymentMethod: "Instamojo",
+            payment: false,
+            date: Date.now(),
+            status: 'Awaiting Payment'
+        };
+
+        const newOrder = new orderModel(orderData);
+        await newOrder.save();
+
+        // 5. CREATE INSTAMOJO PAYMENT REQUEST
+        const paymentEndpoint = 'https://api.instamojo.com/v2/payment_requests/';
+        
+        const paymentRequestData = {
+            purpose: `PhilaBasket Order #${newOrder.orderNo}`,
+            amount: amount,
+            buyer_name: `${address.firstName} ${address.lastName}`,
+            email: address.email,
+            phone: address.phone,
+            // Pass the Order ID in the redirect URL for verification later
+            redirect_url: `${process.env.FRONTEND_URL}/verify-instamojo?orderId=${newOrder._id}`,
+            send_email: true,
+            allow_repeated_payments: false,
+        };
+
+        const paymentResponse = await axios.post(paymentEndpoint, paymentRequestData, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        res.json({ 
+            success: true, 
+            payment_url: paymentResponse.data.longurl 
+        });
+
+    } catch (error) {
+        console.error("Instamojo Protocol Error:", error.response?.data || error.message);
+        res.json({ success: false, message: "Payment Gateway Initialization Failed" });
+    }
+};
+
+// Initialize with your keys
+// Instamojo.setKeys(process.env.INSTAMOJO_API_KEY, process.env.INSTAMOJO_AUTH_TOKEN);
+// Instamojo.isSandboxMode(true); // Change to false for production
+
+// const placeOrderInstamojo = async (req, res) => {
+//     try {
+//         const { userId, items, amount, address, deliveryMethod } = req.body;
+
+//         // 1. Fetch registry protocols for delivery fee verification
+//         const settings = await settingsModel.findOne({}) || { indiaFee: 125, indiaFeeFast: 250 };
+        
+//         // 2. Create the Order in your DB as 'Pending'
+//         const orderData = {
+//             userId,
+//             items,
+//             address,
+//             amount,
+//             deliveryMethod,
+//             paymentMethod: "Instamojo",
+//             payment: false,
+//             date: Date.now(),
+//             status: 'Awaiting Payment'
+//         };
+
+//         const newOrder = new orderModel(orderData);
+//         await newOrder.save();
+
+//         // 3. Prepare Instamojo Payment Request
+//         const data = new Instamojo.PaymentData();
+//         data.purpose = `PhilaBasket Acquisition #${newOrder.orderNo}`;
+//         data.amount = amount;
+//         data.buyer_name = `${address.firstName} ${address.lastName}`;
+//         data.email = address.email;
+//         data.phone = address.phone;
+//         data.redirect_url = `${process.env.FRONTEND_URL}/verify-instamojo?orderId=${newOrder._id}`;
+//         data.allow_repeated_payments = false;
+
+//         Instamojo.createPayment(data, (error, response) => {
+//             if (error) {
+//                 return res.json({ success: false, message: "Instamojo Protocol Failed" });
+//             }
+//             // response contains longurl (the payment link)
+//             const paymentResponse = JSON.parse(response);
+//             res.json({ success: true, payment_url: paymentResponse.payment_request.longurl });
+//         });
+
+//     } catch (error) {
+//         res.json({ success: false, message: error.message });
+//     }
+// };
+
+export const verifyInstamojo = async (req, res) => {
+    try {
+        const { orderId, paymentId } = req.body;
+
+        // 1. Get Access Token (Same as above)
+        // 2. Call GET https://api.instamojo.com/v2/payments/{paymentId}/
+        // 3. Check if status is 'successful'
+        
+        // If successful:
+        const orderInfo = await orderModel.findByIdAndUpdate(orderId, {
+            $set: { payment: true, status: 'Order Placed' }
+        });
+
+        // Standard Post-Order Logistics (Stock, Cart, Email)
+        for (const item of orderInfo.items) {
+            await productModel.findByIdAndUpdate(item._id, { $inc: { stock: -item.quantity } });
+        }
+        await userModel.findByIdAndUpdate(orderInfo.userId, { $set: { cartData: {} } });
+
+        res.json({ success: true, message: "Registry Updated" });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+const razorpayInstance = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
 
 
 const recordRewardActivity = async (userId, userEmail, amount, type, orderId = null) => {
@@ -39,9 +228,7 @@ const recordRewardActivity = async (userId, userEmail, amount, type, orderId = n
 // --- CONFIGURATION ---
 const deliveryCharge = 100;
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
-const razorpayInstance = (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) 
-    ? new razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET }) 
-    : null;
+
 
 // --- UTILITIES ---
 const sendWhatsAppAlert = async (orderData) => {
@@ -830,9 +1017,119 @@ const verifyStripe = async (req, res) => {
 };
 
 const verifyRazorpay = async (req, res) => {
+    try {
+        const { userId, razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+        // 1. Verify Signature using HMAC SHA256
+        const sign = razorpay_order_id + "|" + razorpay_payment_id;
+        const expectedSign = crypto
+            .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+            .update(sign.toString())
+            .digest("hex");
+
+        if (expectedSign === razorpay_signature) {
+            // 2. PAYMENT SUCCESSFUL: Update Registry
+            // Find the order using the receipt ID (which we stored in razorpay_order_id)
+            // Or find it by mapping razorpay_order_id if you saved it. 
+            // Better: Find the most recent unpaid order for this user
+            const orderInfo = await orderModel.findOneAndUpdate(
+                { userId, payment: false, paymentMethod: "Razorpay" }, 
+                { $set: { payment: true } },
+                { sort: { date: -1 }, new: true }
+            );
+
+            // 3. Post-Payment Logistics (Stock, Rewards, Cart)
+            for (const item of orderInfo.items) {
+                await productModel.findByIdAndUpdate(item._id, { $inc: { stock: -item.quantity } });
+            }
+            await userModel.findByIdAndUpdate(userId, { $set: { cartData: {} } });
+
+            // Trigger Notifications
+            const htmlContent = getOrderHtmlTemplate(orderInfo.toObject(), orderInfo.deliveryFee);
+            await sendEmail(orderInfo.address.email, "Acquisition Confirmed", htmlContent);
+
+            res.json({ success: true, message: "Payment Verified & Acquisition Logged" });
+        } else {
+            res.json({ success: false, message: "Security Authentication Failed" });
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
 };
 
 const placeOrderRazorpay = async (req, res) => {
+    try {
+        const { userId, items, amount, address, billingAddress, currency, pointsUsed, couponUsed, discountAmount, deliveryMethod } = req.body;
+
+        // 1. Construct the Order Data (Same logic as your standard placeOrder)
+
+        const settings = await settingsModel.findOne({}) || { 
+            rate: 83, 
+            indiaFee: 125, indiaFeeFast: 250, 
+            globalFee: 750, globalFeeFast: 1500 
+        };
+
+        // 2. CALCULATE DELIVERY FEE (Missing in your original code)
+        const isIndia = address.country.toLowerCase() === 'india';
+        const method = deliveryMethod === 'fast' ? 'fast' : 'standard';
+
+        let deliveryFee = 0;
+        if (isIndia) {
+            deliveryFee = method === 'fast' ? settings.indiaFeeFast : settings.indiaFee;
+        } else {
+            deliveryFee = method === 'fast' ? settings.globalFeeFast : settings.globalFee;
+        }
+
+        // Apply Free Shipping override for Standard Domestic orders >= 4999
+        const cartAmount = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+        if (isIndia && method === 'standard' && cartAmount >= 4999) {
+            deliveryFee = 0;
+        }
+
+        // Note: amount is coming from frontend in INR (e.g., 5000)
+        const orderData = {
+            userId,
+            items,
+            address,
+            billingAddress: billingAddress || address,
+            amount,
+            deliveryFee,
+            deliveryMethod,
+            pointsUsed: pointsUsed || 0,
+            couponUsed: couponUsed || null,
+            discountAmount: discountAmount || 0,
+            currency: currency || 'INR',
+            paymentMethod: "Razorpay",
+            payment: false, // Remains false until verification
+            date: Date.now(),
+            status: 'Order Placed'
+        };
+
+        const newOrder = new orderModel(orderData);
+        await newOrder.save();
+
+        // 2. Create Razorpay Order
+        // Razorpay expects amount in PAISA (INR * 100)
+        const options = {
+            amount: amount * 100, 
+            currency: "INR",
+            receipt: newOrder._id.toString(),
+        };
+
+        razorpayInstance.orders.create(options, (error, order) => {
+            if (error) {
+                console.log(error);
+                return res.json({ success: false, message: error.description });
+            }
+            res.json({ success: true, order }); // This 'order' contains the Razorpay ID
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
 };
 
 const placeOrderStripe = async (req, res) => {
