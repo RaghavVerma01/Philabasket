@@ -207,22 +207,22 @@ useEffect(() => {
                     addr.street || '',
                     addr.street2 || '',
                     addr.city || '',
-                    `${addr.state || ''}, ${addr.country || ''} - ${addr.zipcode || addr.zipCode || ''}`.toUpperCase()
+                    `${addr.state || ''}, ${addr.country || ''} - ${addr.zipcode || addr.zipCode || ''}`
                 ].filter(line => line.trim() !== "");
 
                 // --- CONTENT RENDERING ---
                 
                 // 1. Order ID & Header (Fixed position)
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(8);
-                const orderText = `ORDER: #${order.orderNo || order._id.slice(-6).toUpperCase()}`;
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
+                const orderText = `Order: #${order.orderNo || order._id.slice(-6).toUpperCase()}`;
                 doc.text(orderText, x + labelWidth - doc.getTextWidth(orderText) - padding, y + 8);
                 
                 doc.setFont("helvetica", "normal");
                 doc.text("To,", x + padding, y + 8);
 
                 // 2. Recipient Name
-                let nameFontSize = 11;
+                let nameFontSize = 8.5;
                 doc.setFont("helvetica", "bold");
                 while (doc.getTextWidth(name) > maxTextWidth && nameFontSize > 7) {
                     nameFontSize -= 0.5;
@@ -245,8 +245,8 @@ useEffect(() => {
 
                 // 4. Mobile Number (Snapped with small gap)
                 currentY += 2.5; 
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(8.5);
                 doc.text(`MOB: ${phone}`, x + padding, currentY);
 
                 // --- DYNAMIC BORDER DRAWING ---
