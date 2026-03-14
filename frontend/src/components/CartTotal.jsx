@@ -54,6 +54,7 @@ const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
     const currentDeliveryFee = calculateShipping();
     const isFreeShipping = currentDeliveryFee === 0 && subtotal > 0;
     const currencySymbol = currency === 'USD' ? '$' : '₹';
+    const isIndia = country?.toLowerCase().trim() === 'india';
 
     return (
         <div className='w-full'>
@@ -97,7 +98,9 @@ const CartTotal = ({ country = 'India', deliveryMethod = 'standard' }) => {
                     <div>
                         <p className='text-gray-400 font-black uppercase tracking-widest text-[9px]'>Registry Shipping Fee</p>
                         <p className='text-[8px] font-black text-[#BC002D] uppercase tracking-tighter'>
-                            {deliveryMethod === 'fast' ? '⚡ Priority Dispatch' : 'Standard Delivery'}
+                            {deliveryMethod === 'fast' 
+                                ? (isIndia ? '⚡ Speed Post ' : '⚡ Speed Post') 
+                                : (isIndia ? 'Registered Parcel' : 'Redistered Shipping')}
                         </p>
                     </div>
                     <div className='text-right'>

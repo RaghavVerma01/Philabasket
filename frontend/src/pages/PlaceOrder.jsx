@@ -703,16 +703,26 @@ const onSubmitHandler = async (e) => {
         <div className='flex items-center gap-3'>
             <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'standard' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
             <div>
-                <p className='text-[10px] font-black uppercase'>Standard Delivery</p>
-                <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 5-7 Working Days</p>
+                <p className='text-[10px] font-black uppercase'>
+                    {formData.country === 'India' ? 'Registered Parcel' : 'Registered Shipping'}
+                </p>
+                <p className='text-[8px] text-gray-700 font-medium '>
+                    {formData.country === 'India' 
+                        ? 'Expected Delivery within 5-7 working days from dispatch' 
+                        : 'Expected Delivery within 20-25 working days from dispatch'}
+                </p>
             </div>
         </div>
-        <p className='text-xs font-black'>
-            {calculation.isFreeShipping ? 'FREE' : `₹${formData.country === 'India' ? (adminSettings?.indiaFee || 0) : (adminSettings?.globalFee || 749)}`}
+        <p className='text-xs font-black text-right'>
+            {calculation.isFreeShipping ? (
+                <span className='text-emerald-600'>FREE</span>
+            ) : (
+                `₹${formData.country === 'India' ? (adminSettings?.indiaFee || 0) : (adminSettings?.globalFee || 749)}`
+            )}
         </p>
     </div>
 
-    {/* Conditional Fast Option based on Database Toggles */}
+    {/* Conditional Fast Option */}
     {((formData.country === 'India' && (adminSettings?.isIndiaFastActive ?? true)) || 
       (formData.country !== 'India' && (adminSettings?.isGlobalFastActive ?? true))) && (
         <div 
@@ -722,11 +732,17 @@ const onSubmitHandler = async (e) => {
             <div className='flex items-center gap-3'>
                 <div className={`w-2.5 h-2.5 border rounded-full ${deliveryMethod === 'fast' ? 'bg-[#BC002D] border-[#BC002D]' : 'border-gray-300'}`}></div>
                 <div>
-                    <p className='text-[10px] font-black uppercase'>⚡ Fast Delivery</p>
-                    <p className='text-[9px] text-gray-400 font-bold uppercase'>Estimated 2-3 Working Days</p>
+                    <p className='text-[10px] font-black uppercase'>
+                        {formData.country === 'India' ? '⚡ Speed Post' : ' Speed Post'}
+                    </p>
+                    <p className='text-[8px] text-gray-700 font-medium '>
+                        {formData.country === 'India' 
+                            ? 'Expected Delivery within 2-5 Days of dispatch' 
+                            : 'Expected Delivery within 15-20 Days of dispatch'}
+                    </p>
                 </div>
             </div>
-            <p className='text-xs font-black'>
+            <p className='text-xs font-black text-right'>
                 ₹{formData.country === 'India' ? (adminSettings?.indiaFeeFast || 250) : (adminSettings?.globalFeeFast || 1500)}
             </p>
         </div>

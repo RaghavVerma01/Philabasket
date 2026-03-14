@@ -28,7 +28,7 @@ export const sendUpdateEmails = async (products) => {
             
             await Promise.all(batch.map(user => 
                 resend.emails.send({
-                    from: 'Registry <updates@philabasket.com>', // Requires domain verification
+                    from: 'Registry <updates@philabasket.in>', // Requires domain verification
                     to: user.email,
                     subject: 'Registry Update: New Specimens Archived',
                     html: `

@@ -85,7 +85,7 @@ const Shipping = () => {
                                         <p className='text-[9px] font-black uppercase text-gray-400'>Standard / Registered Post</p>
                                         <p className='text-3xl font-black tracking-tighter'>₹{fees?.indiaFee || 49}</p>
                                     </div>
-                                    <p className='text-[10px] text-gray-400 mt-2 font-bold italic'>*Expected within 14 working days from dispatch</p>
+                                    <p className='text-[10px] text-gray-400 mt-2 font-bold italic'>*Expected within 5-7  working days from dispatch</p>
                                 </div>
                                 {fees?.isIndiaFastActive && (
                                     <div className='pt-6 border-t border-gray-50'>
@@ -93,7 +93,7 @@ const Shipping = () => {
                                             <p className='text-[9px] font-black uppercase text-[#BC002D] flex items-center gap-1'><Zap size={10} fill="#BC002D"/> Speed Post (Priority)</p>
                                             <p className='text-3xl font-black tracking-tighter'>₹{fees?.indiaFeeFast || 99}</p>
                                         </div>
-                                        <p className='text-[10px] text-gray-400 mt-2 font-bold italic'>*Expected within 7 working days from dispatch</p>
+                                        <p className='text-[10px] text-gray-400 mt-2 font-bold italic'>*Expected within 2-5 working days from dispatch</p>
                                     </div>
                                 )}
                             </div>
@@ -105,22 +105,29 @@ const Shipping = () => {
                             <div className='space-y-8'>
                                 <div>
                                     <div className='flex justify-between items-end'>
-                                        <p className='text-[9px] font-black uppercase text-white/40'>Standard Global Flat Rate</p>
+                                        <p className='text-[9px] font-black uppercase text-white/40'>Registered Shipping</p>
                                         <p className='text-3xl font-black tracking-tighter'>₹{fees?.globalFee || 749}</p>
                                     </div>
-                                    <p className='text-[10px] text-white/30 mt-2 font-bold italic'>*Expected within 20 working days from dispatch</p>
+                                    <p className='text-[10px] text-white/30 mt-2 font-bold italic'>*Expected within 20-25 working days from dispatch</p>
                                 </div>
                                 {fees?.isGlobalFastActive && (
                                     <div className='pt-6 border-t border-white/5'>
                                         <div className='flex justify-between items-end'>
-                                            <p className='text-[9px] font-black uppercase text-[#BC002D] flex items-center gap-1'><Zap size={10} fill="#BC002D"/> Express Global</p>
+                                            <p className='text-[9px] font-black uppercase text-[#BC002D] flex items-center gap-1'><Zap size={10} fill="#BC002D"/> Speed Post</p>
                                             <p className='text-3xl font-black tracking-tighter'>₹{fees?.globalFeeFast || 1500}</p>
                                         </div>
-                                        <p className='text-[10px] text-white/30 mt-2 font-bold italic'>*Priority processing and faster transit</p>
+                                        <p className='text-[10px] text-white/30 mt-2 font-bold italic'>*Expected within 15-20 working days from dispatch</p>
                                     </div>
                                 )}
                             </div>
+
                         </div>
+                        <div className='border-t border-gray-100 pt-10 text-center md:text-left'>
+                    <p className='text-[10px] text-gray-400 font-bold uppercase italic leading-loose'>
+                        Note: *The time of delivery may vary. Since we have no control / authority over the shipping company that is India Post (Indian Postal Department, Government of India).
+                    </p>
+                </div>
+
                     </div>
                 </section>
 
@@ -146,11 +153,11 @@ const Shipping = () => {
                                     <h4 className='text-[10px] font-black uppercase tracking-widest'>Optional Transit Insurance</h4>
                                 </div>
                                 <div className='flex justify-between border-b pb-3 mb-3'>
-                                    <span className='text-xs font-bold text-gray-400'>Indian Buyers</span>
+                                    <span className='text-xs font-bold text-gray-700'>Indian Buyers</span>
                                     <span className='text-xs font-black text-[#BC002D]'>7% Premium</span>
                                 </div>
                                 <div className='flex justify-between'>
-                                    <span className='text-xs font-bold text-gray-400'>International Buyers</span>
+                                    <span className='text-xs font-bold text-gray-700'>International Buyers</span>
                                     <span className='text-xs font-black text-[#BC002D]'>12.5% Premium</span>
                                 </div>
                                 <p className='text-[9px] text-gray-400 mt-4 leading-relaxed font-bold uppercase'>Charges applied on total invoice amount. Deposited via Bank or PayPal.</p>
@@ -200,12 +207,7 @@ const Shipping = () => {
                 </section>
 
                 {/* --- FOOTNOTE --- */}
-                <div className='border-t border-gray-100 pt-10 text-center md:text-left'>
-                    <p className='text-[10px] text-gray-400 font-bold uppercase italic leading-loose'>
-                        Note: *The time of delivery may vary. Since we have no control / authority over the shipping company that is India Post (Indian Postal Department, Government of India).
-                    </p>
-                </div>
-
+               
             </div>
 
             <style dangerouslySetInnerHTML={{ __html: `

@@ -32,7 +32,7 @@ const Legal = () => {
         <div className='bg-[#FCF9F4] min-h-screen py-12 px-[6%] font-serif text-black'>
             {/* Header Section */}
             <div className='max-w-4xl mx-auto text-center mb-16'>
-                <h2 className='text-3xl font-black uppercase tracking-[0.2em] mb-4'>Privacy <span className='text-[#BC002D]'>Protocol</span></h2>
+                <h2 className='text-3xl font-black uppercase tracking-[0.2em] mb-4'>Privacy <span className='text-[#BC002D]'>Policy</span></h2>
                 <div className='h-1 w-20 bg-[#BC002D] mx-auto mb-6'></div>
                 <p className='text-xs text-gray-500 uppercase font-bold tracking-widest leading-relaxed'>
                     This policy outlines how we manage, protect, and archive your data within the Philabasket Registry.
