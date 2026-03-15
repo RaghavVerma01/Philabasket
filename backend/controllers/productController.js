@@ -275,14 +275,24 @@ const bulkAddProducts = async (req, res) => {
 
             // --- CATEGORY CLEANING (Handles comma-separated strings from Excel) ---
             let parsedCategory = [];
-            const rawCat = clean(row.category);
-            if (rawCat) {
-                // Split, trim, and remove duplicates in one go
-                parsedCategory = [...new Set(rawCat.split(',').map(c => c.trim()).filter(Boolean))];
-                parsedCategory.forEach(cat => {
-                    discoveredCategories.set(cat, (discoveredCategories.get(cat) || 0) + 1);
-                });
-            }
+const rawCat = row.category ? String(row.category).trim() : "";
+
+if (rawCat) {
+    // 1. Remove [ ] " and ' characters globally
+    const strippedCat = rawCat.replace(/[\[\]"']/g, '');
+    
+    // 2. Split by comma, trim whitespace, and remove empty values
+    parsedCategory = [...new Set(
+        strippedCat.split(',')
+            .map(c => c.trim())
+            .filter(Boolean)
+    )];
+
+    // 3. Register discovered categories for the registry update
+    parsedCategory.forEach(cat => {
+        discoveredCategories.set(cat, (discoveredCategories.get(cat) || 0) + 1);
+    });
+}
 
             const mPrice = Number(String(row.marketPrice || 0).replace(/[^0-9.]/g, '')) || 0;
             const rowPrice = Number(String(row.price || 0).replace(/[^0-9.]/g, ''));
@@ -300,8 +310,8 @@ const bulkAddProducts = async (req, res) => {
                 year: Number(row.year) || 0,
                 country: clean(row.country) || "India",
                 producedCount: Number(String(row.producedCount || 0).replace(/[^0-9]/g, '')) || 0,
-                condition: clean(row.condition) || "Mint",
-                stock: Number(row.stock) || 1,
+                condition: clean(row.condition) || "Unknown",
+                stock: Number(row.stock) || 0,
                 bestseller: String(row.bestseller || '').toLowerCase() === 'true',
                 newArrival: String(row.newArrival || '').toLowerCase() === 'true',
                 blogLink: clean(row.blogLink),

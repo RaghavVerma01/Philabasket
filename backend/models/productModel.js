@@ -46,7 +46,7 @@ const productSchema = new mongoose.Schema({
     condition: { 
         type: String, 
         required: true, 
-        enum: ['Mint', 'Used', 'Fine', 'Near Mint'],
+
         index: true
     }, 
     country: { 
