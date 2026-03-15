@@ -250,10 +250,8 @@ const bulkAddProducts = async (req, res) => {
             const nameTrimmed = clean(row.name || Object.values(row)[0]);
             if (!nameTrimmed || existingNames.has(nameTrimmed.toLowerCase())) return;
 
-            // --- REFINED DATE NORMALIZATION ---
             const normalizeDate = (val) => {
                 if (!val) return "";
-                // Handle Excel serial numbers (e.g. 45000)
                 if (typeof val === 'number') {
                     const date = XLSX.SSF.parse_date_code(val);
                     return `${String(date.d).padStart(2, '0')}/${String(date.m).padStart(2, '0')}/${date.y}`;
@@ -273,26 +271,34 @@ const bulkAddProducts = async (req, res) => {
             }
             if (productImages.length === 0) productImages = [DEFAULT_IMAGE];
 
-            // --- CATEGORY CLEANING (Handles comma-separated strings from Excel) ---
+            // --- CATEGORY, COUNTRY & YEAR INTEGRATION ---
             let parsedCategory = [];
-const rawCat = row.category ? String(row.category).trim() : "";
+            const rawCat = row.category ? String(row.category).trim() : "";
+            const countryVal = clean(row.country) || "India"; 
+            const normalizedRelDate = normalizeDate(row.releaseDate || row.Date);
+            
+            if (rawCat) {
+                const strippedCat = rawCat.replace(/[\[\]"']/g, '');
+                parsedCategory = [...new Set(strippedCat.split(',').map(c => c.trim()).filter(Boolean))];
+            }
 
-if (rawCat) {
-    // 1. Remove [ ] " and ' characters globally
-    const strippedCat = rawCat.replace(/[\[\]"']/g, '');
-    
-    // 2. Split by comma, trim whitespace, and remove empty values
-    parsedCategory = [...new Set(
-        strippedCat.split(',')
-            .map(c => c.trim())
-            .filter(Boolean)
-    )];
+            // Add Country to Category List
+            if (countryVal && !parsedCategory.includes(countryVal)) {
+                parsedCategory.push(countryVal);
+            }
 
-    // 3. Register discovered categories for the registry update
-    parsedCategory.forEach(cat => {
-        discoveredCategories.set(cat, (discoveredCategories.get(cat) || 0) + 1);
-    });
-}
+            // Add Year (YYYY) to Category List
+            if (normalizedRelDate) {
+                const yearVal = normalizedRelDate.split('/')[2]; 
+                if (yearVal && !parsedCategory.includes(yearVal)) {
+                    parsedCategory.push(yearVal);
+                }
+            }
+
+            // Register for Registry Update
+            parsedCategory.forEach(cat => {
+                discoveredCategories.set(cat, (discoveredCategories.get(cat) || 0) + 1);
+            });
 
             const mPrice = Number(String(row.marketPrice || 0).replace(/[^0-9.]/g, '')) || 0;
             const rowPrice = Number(String(row.price || 0).replace(/[^0-9.]/g, ''));
@@ -305,10 +311,10 @@ if (rawCat) {
                 price: rowPrice || mPrice,
                 image: productImages,
                 youtubeUrl: clean(row.youtubeUrl),
-                releaseDate: normalizeDate(row.releaseDate || row.Date), // Check common header variations
+                releaseDate: normalizedRelDate, 
                 category: parsedCategory,
                 year: Number(row.year) || 0,
-                country: clean(row.country) || "India",
+                country: countryVal,
                 producedCount: Number(String(row.producedCount || 0).replace(/[^0-9]/g, '')) || 0,
                 condition: clean(row.condition) || "Unknown",
                 stock: Number(row.stock) || 0,
@@ -327,13 +333,13 @@ if (rawCat) {
             const sheetName = workbook.SheetNames[0];
             const rows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
             rows.forEach(processRow);
-            await finalizeImport(res, stamps, discoveredCategories, usedImageNames);
+            await finalizeImport(res, stamps, discoveredCategories); // Updated params
         } else {
             const stream = Readable.from(req.file.buffer);
             stream.pipe(csv({ mapHeaders: ({ header }) => header.trim() }))
                 .on('data', processRow)
                 .on('end', async () => {
-                    await finalizeImport(res, stamps, discoveredCategories, usedImageNames);
+                    await finalizeImport(res, stamps, discoveredCategories); // Updated params
                 });
         }
 
@@ -343,34 +349,63 @@ if (rawCat) {
     }
 };
 
-// --- HELPER: DATABASE COMMIT LOGIC ---
-async function finalizeImport(res, stamps, discoveredCategories, usedImageNames) {
-    if (stamps.length === 0) return res.json({ success: false, message: "No new or valid data found." });
 
-    const categoryOps = Array.from(discoveredCategories).map(([name, count]) => ({
-        updateOne: {
-            filter: { name },
-            update: { $inc: { productCount: count }, $setOnInsert: { group: "Independent" } },
-            upsert: true
-        }
-    }));
-    
-    if (categoryOps.length > 0) await categoryModel.bulkWrite(categoryOps);
-    
+const finalizeImport = async (res, stamps, discoveredCategories) => {
     try {
-        const result = await productModel.insertMany(stamps, { ordered: false });
-        if (usedImageNames.length > 0) {
-            await mediaModel.updateMany(
-                { originalName: { $in: usedImageNames } },
-                { $set: { isAssigned: true } }
-            );
+        if (stamps.length > 0) {
+            await productModel.insertMany(stamps, { ordered: false });
         }
-        res.json({ success: true, message: `Successfully registered ${result.length} items.` });
-    } catch (dbErr) {
-        const count = dbErr.result?.nInserted || 0;
-        res.json({ success: true, message: `Partial Sync: ${count} items added.` });
+
+        const countriesInUpload = new Set(stamps.map(s => s.country));
+
+        const categoryOps = Array.from(discoveredCategories.keys()).map(catName => {
+            
+            // 1. Check if it's a Country
+            const isCountry = countriesInUpload.has(catName);
+
+            // 2. Check if it's a Year (Exactly 4 digits, e.g., 1947)
+            const isYear = /^\d{4}$/.test(catName);
+
+            // Determine the group
+            let groupName = "Independent"; // Default
+            if (isCountry) {
+                groupName = "Country";
+            } else if (isYear) {
+                groupName = "Year"; // Grouping years together
+            }
+
+            return {
+                updateOne: {
+                    filter: { name: catName },
+                    update: { 
+                        $set: { 
+                            name: catName,
+                            group: groupName 
+                        },
+                        $inc: { productCount: discoveredCategories.get(catName) }
+                    },
+                    upsert: true
+                }
+            };
+        });
+
+        if (categoryOps.length > 0) {
+            await categoryModel.bulkWrite(categoryOps);
+        }
+
+        res.json({ 
+            success: true, 
+            message: `Registry Synchronized. ${stamps.length} items processed.` 
+        });
+
+    } catch (error) {
+        console.error("Finalize Error:", error);
+        res.status(500).json({ success: false, message: "Database synchronization failed." });
     }
-}
+};
+
+// --- HELPER: DATABASE COMMIT LOGIC ---
+
 
 // --- CORE CRUD (Upgraded for 100k+ Items) ---
 // const listProducts = async (req, res) => {
