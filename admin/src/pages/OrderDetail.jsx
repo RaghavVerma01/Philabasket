@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
     "Processing":         { color: "bg-amber-50 text-amber-800 border-amber-200", icon: PackageCheck },
     "Shipped":         { color: "bg-violet-50 text-violet-800 border-violet-200", icon: Truck },
     "Complete":         { color: "bg-violet-50 text-violet-800 border-violet-200", icon: Truck },
-    "Delivered":       { color: "bg-emerald-50 text-emerald-800 border-emerald-200", icon: CheckCircle2 },
+    // "Delivered":       { color: "bg-emerald-50 text-emerald-800 border-emerald-200", icon: CheckCircle2 },
     "Cancelled":       { color: "bg-red-50 text-red-800 border-red-200",        icon: Ban },
 };
 
@@ -582,32 +582,47 @@ const OrderDetail = ({ token }) => {
         </div>
         
         {/* Scrollable Body: flex-1 makes it take up all remaining vertical space */}
-        <div style={styles.sidebarBody} className="sidebar-scroll">
-            {userOrdersList.map((item) => (
-                <div 
-                    key={item._id} 
-                    onClick={() => { navigate(`/orders/${item._id}`); setIsSidebarOpen(false); }}
-                    style={{
-                        ...styles.historyItem,
-                        borderLeft: item._id === orderId ? '4px solid #BC002D' : '4px solid transparent',
-                        background: item._id === orderId ? '#f8fafc' : '#fff'
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={styles.historyRef}>#{item.orderNo || item._id.slice(-6)}</span>
-                        <span style={{ 
-                            fontSize: '9px', 
-                            fontWeight: 800, 
-                            color: STATUS_CONFIG[item.status]?.color.includes('emerald') ? '#059669' : '#64748b' 
-                        }}>{item.status}</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={styles.historyDate}>{new Date(item.date).toLocaleDateString()}</span>
-                        <span style={{ fontWeight: 700 }}>₹{item.amount}</span>
-                    </div>
+        {/* Scrollable Body */}
+<div style={styles.sidebarBody} className="sidebar-scroll">
+    {userOrdersList
+        // Sort: Newest Date (Highest Value) first
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .map((item) => (
+            <div 
+                key={item._id} 
+                onClick={() => { 
+                    navigate(`/orders/${item._id}`); 
+                    setIsSidebarOpen(false); 
+                }}
+                style={{
+                    ...styles.historyItem,
+                    // Highlights the order currently being viewed
+                    borderLeft: item._id === orderId ? '4px solid #BC002D' : '4px solid transparent',
+                    background: item._id === orderId ? '#f8fafc' : '#fff'
+                }}
+            >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={styles.historyRef}>
+                        #{item.orderNo || item._id.slice(-6).toUpperCase()}
+                    </span>
+                    <span style={{ 
+                        fontSize: '9px', 
+                        fontWeight: 800, 
+                        color: item.status === 'Delivered' || item.status === 'Complete' ? '#059669' : '#64748b' 
+                    }}>
+                        {item.status.toUpperCase()}
+                    </span>
                 </div>
-            ))}
-        </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={styles.historyDate}>
+                        {new Date(item.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    <span style={{ fontWeight: 700 }}>₹{item.amount.toLocaleString('en-IN')}</span>
+                </div>
+            </div>
+        ))
+    }
+</div>
     </div>
 </div>
 
