@@ -207,7 +207,9 @@ useEffect(() => {
     try {
       
       const response = await axios.post(
-        `${backendUrl}/api/order/list?limit=1000&status=${filterStatus}&sort=${sortBy}`, 
+        `${backendUrl}/api/order/list?limit=1000&status=${
+          filterStatus === "Complete" ? "Complete,Delivered" : filterStatus
+        }&sort=${sortBy}`, 
         {}, 
         { headers: { token } }
       );
@@ -276,11 +278,15 @@ useEffect(() => {
   const downloadShippingManifest = async () => {
     const toastId = toast.loading("Generating Archive Labels...");
     try {
-        const response = await axios.post(
-            `${backendUrl}/api/order/list?limit=1000&status=${filterStatus === "TODAY" ? "ALL" : filterStatus}`, 
-            {}, 
-            { headers: { token } }
-        );
+      const response = await axios.post(
+        `${backendUrl}/api/order/list?limit=1000&status=${
+            filterStatus === "TODAY" 
+                ? "ALL" 
+                : (filterStatus === "Complete" ? "Complete,Delivered" : filterStatus)
+        }&sort=${sortBy}`, 
+        {}, 
+        { headers: { token } }
+    );
 
         if (response.data.success) {
             const ordersData = response.data.orders;
@@ -385,11 +391,16 @@ useEffect(() => {
     const toastId = toast.loading("Synthesizing Line-Item Registry...");
     try {
         // Reduced limit to 2000 for better stability and added specific timeout protection
-        const response = await axios.post(
-            `${backendUrl}/api/order/list?limit=2000&status=${filterStatus}&sort=${sortBy}`, 
-            {}, 
-            { headers: { token }, timeout: 30000 }
-        );
+        // --- Update the status parameter to handle the combined logic ---
+const response = await axios.post(
+  `${backendUrl}/api/order/list?limit=1000&status=${
+      filterStatus === "TODAY" 
+          ? "ALL" 
+          : (filterStatus === "Complete" ? "Complete,Delivered" : filterStatus)
+  }&sort=${sortBy}`, 
+  {}, 
+  { headers: { token } }
+);
 
         if (response.data?.success && response.data.orders?.length > 0) {
             const ordersData = response.data.orders;
@@ -557,7 +568,7 @@ useEffect(() => {
         )}
     </div>
         <div className='flex flex-wrap gap-2'>
-  {["ALL", "TODAY", "Order Placed","Complete", "On Hold", "Processing", "Shipped", "Delivered", "Cancelled"].map(s => (
+  {["ALL", "TODAY", "Order Placed","Complete", "On Hold", "Processing", "Shipped",  "Cancelled"].map(s => (
     <button
       key={s}
       onClick={() => setFilterStatus(s)}
