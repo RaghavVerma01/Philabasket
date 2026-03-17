@@ -175,7 +175,7 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
             {/* TEXT & SMALL ICON (Slides out on Hover) */}
             <div className='flex items-center gap-3 group-hover:translate-x-12 group-hover:opacity-0 transition-all duration-500 ease-in-out'>
                 <ShoppingCart size={16} className="opacity-70" />
-                <span className='text-[10px] font-black uppercase tracking-[0.25em]'>
+                <span className='text-[7px] font-black uppercase tracking-[0.25em]'>
                     Add to Cart
                 </span>
             </div>

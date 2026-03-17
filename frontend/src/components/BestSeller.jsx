@@ -138,9 +138,7 @@ return (
             {/* Verification Footer */}
             <div className="mt-10 flex flex-col items-center gap-4">
                 <div className='h-10 w-[1px] bg-gradient-to-b from-[#bd002d] to-transparent'></div>
-                <p className='text-[8px] tracking-[0.5em] text-gray-300 uppercase font-black'>
-                    Verified Philatelic Provenance
-                </p>
+                
             </div>
         </div>
     </div>

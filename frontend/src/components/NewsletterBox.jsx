@@ -31,7 +31,7 @@ const NewsletterBox = () => {
 };
 
   return (
-    <div className='bg-white py-5 px-6 relative overflow-hidden border-t border-black/[0.03]  lg:mt-[-27vh]'>
+    <div className='bg-white py-5 px-6 relative overflow-hidden border-t border-black/[0.03]  lg:mt-[3vh]'>
       
       {/* NewHero Curved Accent */}
       <div className="absolute -right-[15vw] top-1/2 -translate-y-1/2 h-[80%] w-[40%] bg-[#bd002d]/5 rounded-l-[600px] pointer-events-none"></div>
