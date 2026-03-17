@@ -25,7 +25,7 @@ const getAllMedia = async (req, res) => {
 // @route   POST /api/product/sync-media
 // @access  Private/Admin
 const syncMediaToProducts = async (req, res) => {
-    const DEFAULT_IMAGE = "https://res.cloudinary.com/dvsdithxh/image/upload/v1770344955/Logo-5_nqnyl4.png";
+    const DEFAULT_IMAGE = "https://res.cloudinary.com/darmvywhd/image/upload/v1773777548/Logo-5_asqxkr.png";
 
     try {
         const orphanedMedia = await mediaModel.find({ isAssigned: false });

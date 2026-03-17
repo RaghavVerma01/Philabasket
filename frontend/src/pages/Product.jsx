@@ -24,7 +24,7 @@ const Product = () => {
     if (!url || !url.includes('cloudinary')) return url;
 
     //w->width,0->opacity , a--->angle 
-    const watermarkTransform = 'l_Logo-5_tagline_yaxuag,fl_relative,w_0.7,c_scale,o_80,a_-45';
+    const watermarkTransform = 'l_Logo-5_asqxkr,fl_relative,w_0.7,c_scale,o_80,a_-45';
     return url.includes('f_auto,q_auto')
       ? url.replace('/f_auto,q_auto/', `/f_auto,q_auto,${watermarkTransform}/`)
       : url.replace('/upload/', `/upload/f_auto,q_auto,${watermarkTransform}/`);

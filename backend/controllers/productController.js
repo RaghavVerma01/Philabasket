@@ -221,7 +221,7 @@ const bulkAddProducts = async (req, res) => {
         const stamps = [];
         const usedImageNames = [];
         const discoveredCategories = new Map();
-        const DEFAULT_IMAGE = "https://res.cloudinary.com/dvsdithxh/image/upload/v1770344955/Logo-5_nqnyl4.png";
+        const DEFAULT_IMAGE = "https://res.cloudinary.com/darmvywhd/image/upload/v1773778136/Logo-5_copy_jajgfg.png";
 
         const [existingStamps, allMedia] = await Promise.all([
             productModel.find({}, 'name').lean(),

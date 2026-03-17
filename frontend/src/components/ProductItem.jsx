@@ -31,15 +31,30 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
 
   const optimizedImage = useMemo(() => {
     const rawUrl = image && image[0] ? image[0] : "";
+    
+    // 1. If not a Cloudinary URL, return as is
     if (!rawUrl || !rawUrl.includes('cloudinary')) return rawUrl;
 
-    //
-    const watermarkTransform = 'l_Logo-5_go95bd,fl_relative,w_0.7,c_scale,o_90,a_-45';
-    if (rawUrl.includes('f_auto,q_auto')) {
-        return rawUrl.replace('/f_auto,q_auto/', `/f_auto,q_auto,${watermarkTransform}/`);
+    // 2. Define the watermark overlay 
+    // (Ensure 'Logo-5_go95bd' is an uploaded asset in this specific Cloudinary account)
+    const watermarkTransform = 'l_Logo-5_asqxkr,fl_relative,w_0.7,c_scale,o_90,a_-45';
+    
+    try {
+        // 3. Split the URL at '/upload/'
+        const parts = rawUrl.split('/upload/');
+        if (parts.length !== 2) return rawUrl;
+
+        // 4. Clean the second part by removing any existing f_auto,q_auto tags
+        // This prevents "Double Injection" errors
+        const cleanPath = parts[1].replace(/^f_auto,q_auto\//, "");
+
+        // 5. Reconstruct: [Base URL] + [/upload/] + [New Params] + [Watermark] + [Clean Path]
+        return `${parts[0]}/upload/f_auto,q_auto,w_600,${watermarkTransform}/${cleanPath}`;
+    } catch (err) {
+        console.error("Cloudinary transform error:", err);
+        return rawUrl;
     }
-    return rawUrl.replace('/upload/', `/upload/f_auto,q_auto,w_600,${watermarkTransform}/`);
-  }, [image]);
+}, [image]);
 
   const handleNavigation = (e) => {
     if (isPriorityMode) return; 
