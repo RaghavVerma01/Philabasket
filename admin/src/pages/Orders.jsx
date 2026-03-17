@@ -7,7 +7,7 @@ import { toast } from 'react-toastify';
 import {
   RefreshCw, Truck, CheckCircle2, ShoppingBag, Ban, 
   ChevronLeft, ChevronRight, Download, Eye, Clock, 
-  MapPin, Package, CreditCard, PackageCheck,FileText,Search,X
+  MapPin, Package, CreditCard, PackageCheck,FileText,Search,X,Plus,Trash2
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
@@ -43,6 +43,106 @@ const Orders = ({ token }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [tempCourier, setTempCourier] = useState("India Post");
 
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userSearchResults, setUserSearchResults] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [newOrder, setNewOrder] = useState({
+    items: [{ name: '', price: 0, quantity: 1 }],
+    deliveryFee: 125,
+    deliveryMethod: 'standard',
+    paymentMethod: 'Direct bank transfer'
+  });
+  const [isNewUser, setIsNewUser] = useState(false);
+const [newUserDetails, setNewUserDetails] = useState({
+    firstName: '', lastName: '', street: '', city: '', state: '', zipCode: '', phone: ''
+});
+
+
+  const handleUserSearch = async (val) => {
+    setUserSearchQuery(val);
+    if (val.length > 2) {
+      try {
+        const res = await axios.get(`${backendUrl}/api/user/search?query=${val}`, { headers: { token } });
+        if (res.data.success) setUserSearchResults(res.data.users);
+      } catch (err) { console.error(err); }
+    } else {
+      setUserSearchResults([]);
+    }
+  };
+
+  const handleAddItem = () => {
+    setNewOrder(prev => ({ ...prev, items: [...prev.items, { name: '', price: 0, quantity: 1 }] }));
+  };
+
+  const handleRemoveItem = (index) => {
+    if (newOrder.items.length > 1) {
+      const updatedItems = newOrder.items.filter((_, i) => i !== index);
+      setNewOrder(prev => ({ ...prev, items: updatedItems }));
+    }
+  };
+
+  const handleItemChange = (index, field, value) => {
+    const updatedItems = [...newOrder.items];
+    updatedItems[index][field] = field === 'price' || field === 'quantity' ? Number(value) : value;
+    setNewOrder(prev => ({ ...prev, items: updatedItems }));
+  };
+
+  const createManualOrder = async () => {
+    // 1. Validation Logic
+    if (!isNewUser && !selectedUser) {
+        return toast.error("Please select an existing Collector or enable 'New Collector' mode.");
+    }
+
+    if (isNewUser && (!userSearchQuery || !newUserDetails.firstName)) {
+        return toast.error("Email and First Name are required for new collectors.");
+    }
+
+    setLoading(true);
+    try {
+        // 2. Construct the correct payload
+        const payload = {
+            ...newOrder,
+            email: isNewUser ? userSearchQuery : selectedUser.email,
+            address: isNewUser ? newUserDetails : selectedUser.defaultAddress,
+            isNewUser, // Backend uses this to trigger user creation
+            name: isNewUser ? `${newUserDetails.firstName} ${newUserDetails.lastName}` : selectedUser.name
+        };
+
+        // 3. Send the request using the payload
+        const res = await axios.post(`${backendUrl}/api/order/create-manual`, payload, { 
+            headers: { token } 
+        });
+
+        if (res.data.success) {
+            toast.success(`Order #${res.data.orderNo} Recorded Successfully`);
+            
+            // 4. Reset All States
+            setShowCreateModal(false);
+            setSelectedUser(null);
+            setIsNewUser(false); // Reset toggle
+            setUserSearchQuery("");
+            setNewUserDetails({ firstName: '', lastName: '', street: '', city: '', state: '', zipCode: '', phone: '' });
+            setNewOrder({ 
+                items: [{ name: '', price: 0, quantity: 1 }], 
+                deliveryFee: 125, 
+                deliveryMethod: 'standard', 
+                paymentMethod: 'Direct bank transfer' 
+            });
+
+            // Refresh the main registry list
+            fetchAllOrders(true);
+        } else {
+            toast.error(res.data.message);
+        }
+    } catch (err) {
+        console.error("Manual Order Error:", err);
+        toast.error("Failed to record registry entry");
+    } finally {
+        setLoading(false);
+    }
+};
+
   // ── FETCH LOGIC ──────────────────────────────────────────────────────────
   // 1. UPDATED FETCH LOGIC
   const fetchAllOrders = useCallback(async (isManual = false) => {
@@ -52,25 +152,30 @@ const Orders = ({ token }) => {
       const todayParam = filterStatus === "TODAY" 
         ? `&date=${new Date().toISOString().split('T')[0]}` 
         : "";
-
-      const statusQuery = filterStatus === "TODAY" ? "ALL" : filterStatus;
-      
-      // We trim and encode to ensure special characters or spaces don't break the URL
+  
+      // Logic to handle merged statuses
+      let statusQuery = filterStatus;
+      if (filterStatus === "TODAY") {
+        statusQuery = "ALL";
+      } else if (filterStatus === "Complete") {
+        // Send both to backend
+        statusQuery = "Complete,Delivered";
+      }
+  
       const searchQueryParam = searchQuery.trim() ? `&search=${encodeURIComponent(searchQuery.trim())}` : "";
-
+  
       const response = await axios.post(
         `${backendUrl}/api/order/list?page=${currentPage}&limit=${ORDERS_PER_PAGE}&status=${statusQuery}${todayParam}${searchQueryParam}&sort=${sortBy}`, 
         {}, 
         { headers: { token } }
       );
-
+  
       if (response.data.success) {
         setOrders(response.data.orders);
         setTotalOrdersCount(response.data.totalOrders);
         setGlobalStats(response.data.stats || {});
       }
     } catch (err) {
-      console.error("Fetch Error:", err);
       toast.error("Registry Sync Failed");
     } finally {
       setLoading(false);
@@ -100,6 +205,7 @@ useEffect(() => {
   const downloadShippingManifestcolumn = async () => {
     const toastId = toast.loading("Generating Shipping Manifest PDF...");
     try {
+      
       const response = await axios.post(
         `${backendUrl}/api/order/list?limit=1000&status=${filterStatus}&sort=${sortBy}`, 
         {}, 
@@ -278,66 +384,58 @@ useEffect(() => {
   const downloadRegistry = async () => {
     const toastId = toast.loading("Synthesizing Line-Item Registry...");
     try {
-      // Fetch up to 10,000 orders based on current filters
-      const response = await axios.post(
-        `${backendUrl}/api/order/list?limit=10000&status=${filterStatus}&sort=${sortBy}`, 
-        {}, 
-        { headers: { token } }
-      );
+        // Reduced limit to 2000 for better stability and added specific timeout protection
+        const response = await axios.post(
+            `${backendUrl}/api/order/list?limit=2000&status=${filterStatus}&sort=${sortBy}`, 
+            {}, 
+            { headers: { token }, timeout: 30000 }
+        );
 
-      if (response.data.success) {
-        const ordersData = response.data.orders;
-        const reportData = [];
+        if (response.data?.success && response.data.orders?.length > 0) {
+            const ordersData = response.data.orders;
+            const reportData = [];
 
-        // FLATTENING LOGIC: Create one row per product specimen
-        ordersData.forEach((order) => {
-          order.items.forEach((item, index) => {
-            reportData.push({
-              "Order": order.orderNo || `#${order._id.slice(-6).toUpperCase()}`,
-              "First": order.address?.firstName || "",
-              "Last": order.address?.lastName || "",
-              "Item #": index + 1, // Sequential numbering resets for every new order
-              "Item Name": item.name,
-              "Quantity (- Refund)": item.quantity,
-              "Item Cost": item.price,
-              "Total Cost": item.price * item.quantity,
-              "Status": order.status,
-              "Date": new Date(order.date).toLocaleDateString('en-IN')
+            ordersData.forEach((order) => {
+                // Check if items exist before mapping
+                if (order.items && Array.isArray(order.items)) {
+                    order.items.forEach((item, index) => {
+                        reportData.push({
+                            "Order": order.orderNo || `#${order._id.slice(-6).toUpperCase()}`,
+                            "First Name": order.address?.firstName || "N/A",
+                            "Last Name": order.address?.lastName || "",
+                            "Item #": index + 1,
+                            "Item Name": item.name || "Unknown Item",
+                            "Quantity": item.quantity || 0,
+                            "Price": item.price || 0,
+                            "Total": (item.price || 0) * (item.quantity || 0),
+                            "Status": order.status,
+                            "Date": new Date(order.date).toLocaleDateString('en-IN')
+                        });
+                    });
+                }
             });
-          });
-        });
 
-        // Generate Excel Worksheet
-        const ws = XLSX.utils.json_to_sheet(reportData);
-        
-        // Define Column Widths for a clean corporate look
-        const wscols = [
-          { wch: 12 }, // Order
-          { wch: 15 }, // First
-          { wch: 15 }, // Last
-          { wch: 8 },  // Item #
-          { wch: 50 }, // Item Name
-          { wch: 18 }, // Quantity
-          { wch: 12 }, // Item Cost
-          { wch: 12 }, // Total Cost
-          { wch: 15 }, // Status
-          { wch: 12 }  // Date
-        ];
-        ws['!cols'] = wscols;
+            const ws = XLSX.utils.json_to_sheet(reportData);
+            
+            // Set explicit column widths
+            ws['!cols'] = [
+                { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 10 }, 
+                { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, 
+                { wch: 15 }, { wch: 15 }
+            ];
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Line Item Registry");
-        
-        // Finalize Download
-        XLSX.writeFile(wb, `PhilaBasket_Detailed_Registry_${new Date().toISOString().split('T')[0]}.xlsx`);
-        
-        toast.update(toastId, { render: "Registry Exported Successfully", type: "success", isLoading: false, autoClose: 3000 });
-      }
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Registry");
+            XLSX.writeFile(wb, `PhilaBasket_Registry_${new Date().toISOString().split('T')[0]}.xlsx`);
+            
+            toast.update(toastId, { render: "Registry Exported", type: "success", isLoading: false, autoClose: 3000 });
+        } else {
+            toast.update(toastId, { render: "No orders found to export", type: "info", isLoading: false, autoClose: 3000 });
+        }
     } catch (error) {
-      console.error("Export Error:", error);
-      toast.update(toastId, { render: "Export Failed: Sync Error", type: "error", isLoading: false, autoClose: 3000 });
+        toast.update(toastId, { render: "Export Failed: Server Timeout", type: "error", isLoading: false, autoClose: 3000 });
     }
-  };
+};
 
   const updateOrder = async (orderId, status, trackingNumber, shippedDate, courierProvider) => {
     setLoading(true);
@@ -384,6 +482,14 @@ useEffect(() => {
             <span className='bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full'>{totalOrdersCount}</span>
           </div>
           <div className='flex gap-2'>
+
+          <button 
+              onClick={() => setShowCreateModal(true)} 
+              className='flex items-center gap-2 px-4 py-2.5 bg-[#BC002D] text-white rounded-xl text-xs font-bold hover:bg-black transition-all active:scale-95 shadow-lg shadow-[#BC002D]/20'
+            >
+              <Plus size={14} /> New Order Entry
+            </button>
+
     {/* PDF Export Button */}
     <button 
       onClick={downloadShippingManifest} 
@@ -414,7 +520,12 @@ useEffect(() => {
             { label: "Hold", val: globalStats["On Hold"] || 0, bg: "bg-gray-100", color: "text-gray-600" },
             // { label: "Paid", val: globalStats["Money Received"] || 0, bg: "bg-cyan-50", color: "text-cyan-600" },
             { label: "Shipped", val: (globalStats["Shipped"] || 0) + (globalStats["Out for delivery"] || 0), bg: "bg-purple-50", color: "text-purple-600" },
-            { label: "Done", val: globalStats["Delivered"] || 0, bg: "bg-green-50", color: "text-green-600" },
+            { 
+              label: "Done", 
+              val: (globalStats["Delivered"] || 0) + (globalStats["Complete"] || 0), 
+              bg: "bg-green-50", 
+              color: "text-green-600" 
+            },
             { label: "Cancel", val: globalStats["Cancelled"] || 0, bg: "bg-red-50", color: "text-red-600" },
             { label: "Revenue", val: `₹${((globalStats.revenue || 0) / 1000).toFixed(1)}k`, bg: "bg-white", color: "text-gray-900" },
           ].map(s => (
@@ -617,6 +728,187 @@ useEffect(() => {
           </div>
         )}
       </div>
+
+
+      {showCreateModal && (
+        <div className='fixed inset-0 bg-black/60 backdrop-blur-sm z-[250] flex items-center justify-center p-4'>
+          <div className='bg-white w-full max-w-2xl rounded-[32px] p-8 shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto custom-scrollbar'>
+            <div className='flex justify-between items-center mb-8'>
+              <div className='flex items-center gap-3'>
+                <div className='w-10 h-10 bg-red-50 text-[#BC002D] rounded-2xl flex items-center justify-center'><ShoppingBag size={20}/></div>
+                <h2 className='text-lg font-black uppercase tracking-tight'>Manual Registry Entry</h2>
+              </div>
+              <button onClick={() => setShowCreateModal(false)} className='p-2 hover:bg-gray-100 rounded-full transition-colors'><X size={20}/></button>
+            </div>
+
+            {/* Step 1: User Search */}
+            <div className='relative mb-8'>
+    {/* Header with Toggle */}
+    <div className='flex justify-between items-center mb-3'>
+        <label className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]'>1. Find or Create Collector</label>
+        <button 
+            onClick={() => { setIsNewUser(!isNewUser); setSelectedUser(null); }} 
+            className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-lg transition-all border ${
+                isNewUser ? 'bg-[#BC002D] text-white border-[#BC002D]' : 'bg-gray-100 text-gray-400 border-transparent hover:bg-gray-200'
+            }`}
+        >
+            {isNewUser ? '✓ Adding New Collector' : '+ New Collector'}
+        </button>
+    </div>
+
+    {!isNewUser ? (
+        /* --- MODE A: SEARCH EXISTING --- */
+        <div className='relative'>
+            <Search size={16} className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400' />
+            <input 
+                className='w-full border-2 border-gray-100 bg-gray-50/50 p-4 pl-12 rounded-2xl text-sm font-bold focus:border-[#BC002D] outline-none transition-all'
+                placeholder='Search Name or Email...'
+                value={userSearchQuery}
+                onChange={(e) => handleUserSearch(e.target.value)}
+            />
+            {userSearchResults.length > 0 && (
+                <div className='absolute z-50 w-full bg-white border border-gray-100 rounded-2xl mt-2 shadow-xl overflow-hidden'>
+                    {userSearchResults.map(user => (
+                        <div 
+                            key={user._id} 
+                            onClick={() => { setSelectedUser(user); setUserSearchResults([]); setUserSearchQuery(user.name); }}
+                            className='p-4 hover:bg-red-50 cursor-pointer border-b border-gray-50 last:border-0'
+                        >
+                            <p className='text-xs font-black text-gray-900'>{user.name}</p>
+                            <p className='text-[10px] text-gray-400 font-bold'>{user.email}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    ) : (
+        /* --- MODE B: CREATE NEW COLLECTOR --- */
+        <div className='grid grid-cols-2 gap-3 animate-in slide-in-from-top duration-300'>
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none' 
+                placeholder='First Name' 
+                value={newUserDetails.firstName}
+                onChange={e => setNewUserDetails({...newUserDetails, firstName: e.target.value})} 
+            />
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none' 
+                placeholder='Last Name' 
+                value={newUserDetails.lastName}
+                onChange={e => setNewUserDetails({...newUserDetails, lastName: e.target.value})} 
+            />
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none col-span-2' 
+                placeholder='Email Address' 
+                type="email"
+                value={newUserDetails.email}
+                onChange={e => setNewUserDetails({...newUserDetails, email: e.target.value})} 
+            />
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none col-span-2' 
+                placeholder='Street Address' 
+                value={newUserDetails.street}
+                onChange={e => setNewUserDetails({...newUserDetails, street: e.target.value})} 
+            />
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none' 
+                placeholder='City' 
+                value={newUserDetails.city}
+                onChange={e => setNewUserDetails({...newUserDetails, city: e.target.value})} 
+            />
+            <input 
+                className='border-2 border-gray-100 p-3 rounded-xl text-xs font-bold focus:border-[#BC002D] outline-none' 
+                placeholder='Zip Code' 
+                value={newUserDetails.zipCode}
+                onChange={e => setNewUserDetails({...newUserDetails, zipCode: e.target.value})} 
+            />
+        </div>
+    )}
+
+    {/* Selected User Badge */}
+    {selectedUser && !isNewUser && (
+        <div className='mt-4 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-between'>
+            <div>
+                <p className='text-[10px] font-black text-green-700 uppercase tracking-widest'>Collector Linked</p>
+                <p className='text-xs font-bold text-green-900'>{selectedUser.name}</p>
+            </div>
+            <CheckCircle2 className='text-green-500' size={18} />
+        </div>
+    )}
+</div>
+
+            {/* Step 2: Specimens List */}
+            <div className='space-y-4 mb-8'>
+              <div className='flex justify-between items-center'>
+                <label className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]'>2. Record Specimens</label>
+                <button onClick={handleAddItem} className='text-[10px] font-black text-[#BC002D] uppercase flex items-center gap-1 hover:underline'><Plus size={12}/> Add Specimen</button>
+              </div>
+              
+              <div className='space-y-3'>
+                {newOrder.items.map((item, idx) => (
+                  <div key={idx} className='flex gap-3 items-end animate-in slide-in-from-left duration-200'>
+                    <div className='flex-1'>
+                      <input 
+                        className='w-full border-2 border-gray-100 p-3 rounded-xl text-xs font-bold outline-none focus:border-[#BC002D]' 
+                        placeholder='Item Name'
+                        value={item.name}
+                        onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
+                      />
+                    </div>
+                    <div className='w-24'>
+                      <input 
+                        className='w-full border-2 border-gray-100 p-3 rounded-xl text-xs font-bold outline-none focus:border-[#BC002D]' 
+                        placeholder='Price'
+                        type='number'
+                        value={item.price}
+                        onChange={(e) => handleItemChange(idx, 'price', e.target.value)}
+                      />
+                    </div>
+                    <div className='w-16'>
+                      <input 
+                        className='w-full border-2 border-gray-100 p-3 rounded-xl text-xs font-bold outline-none focus:border-[#BC002D]' 
+                        placeholder='Qty'
+                        type='number'
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(idx, 'quantity', e.target.value)}
+                      />
+                    </div>
+                    <button onClick={() => handleRemoveItem(idx)} className='p-3 text-gray-300 hover:text-red-500 transition-colors'><Trash2 size={16}/></button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Step 3: Logistics */}
+            <div className='grid grid-cols-2 gap-4 mb-8'>
+              <div>
+                <label className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block'>Delivery Fee (INR)</label>
+                <input 
+                  type='number'
+                  className='w-full border-2 border-gray-100 p-3 rounded-xl text-xs font-bold'
+                  value={newOrder.deliveryFee}
+                  onChange={(e) => setNewOrder({...newOrder, deliveryFee: Number(e.target.value)})}
+                />
+              </div>
+              <div>
+                <label className='text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 block'>Total Valuation</label>
+                <div className='bg-gray-900 text-white p-3 rounded-xl text-xs font-black flex items-center justify-center'>
+                  INR {newOrder.items.reduce((acc, i) => acc + (i.price * i.quantity), 0) + newOrder.deliveryFee}
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={createManualOrder}
+              disabled={loading}
+              className='w-full py-4 bg-gray-900 text-white rounded-[20px] font-black uppercase tracking-[0.2em] text-xs hover:bg-[#BC002D] transition-all flex items-center justify-center gap-2'
+            >
+              {loading ? <RefreshCw className='animate-spin' size={14}/> : <PackageCheck size={16}/>}
+              Create Registry Order
+            </button>
+          </div>
+        </div>
+      )}
+
 
       {/* ── TRACKING MODAL ── */}
       {showTrackingModal && (

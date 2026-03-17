@@ -1,80 +1,82 @@
-import xlsx from 'xlsx';
+import fs from 'fs';
+import csv from 'csv-parser';
 import mongoose from 'mongoose';
-import orderModel from './models/orderModel.js';
-import userModel from './models/userModel.js';
 import dotenv from 'dotenv';
+import orderModel from './models/orderModel.js'; // Ensure path is correct
 
 dotenv.config();
 
-const BACKUP_FILE = '/Users/parthpankajsingh/Desktop/ML Projects/test/wp_wlr_user_rewards.csv';
-
-const cleanupLegacyEntries = async () => {
+const syncFromCsv = async () => {
     try {
-        await mongoose.connect(`${process.env.MONGODB_URI}/e-commerce`);
-        console.log("✅ Connected to PhilaBasket Registry");
+        await mongoose.connect(`${process.env.MONGODB_URI}/e-commerce`)
 
-        // 1. Load Excel to map Order Numbers to Names
-        const workbook = xlsx.readFile(BACKUP_FILE);
-        const rows = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        
-        const wpNameMap = new Map();
-        rows.forEach(row => {
-            const orderNo = parseInt(row['Order Number'] || row['ID']);
-            const fName = (row['First Name (Billing)'] || "").trim();
-            const lName = (row['Last Name (Billing)'] || "").trim();
-            if (orderNo) {
-                wpNameMap.set(orderNo, { 
-                    fName, 
-                    lName, 
-                    fullName: `${fName} ${lName}`.trim() 
-                });
-            }
-        });
+        console.log("Connected to PhilaBasket Registry...");
 
-        // 2. Find all orders that currently show "Legacy Entry" or have no userId
-        const problematicOrders = await orderModel.find({
-            $or: [
-                { userId: { $exists: false } },
-                { userId: "696b5cf3cbfa2614b4bcffe3" }, // Your placeholder ID
-                { "address.firstName": "Legacy" }
-            ]
-        });
+        const results = [];
+        // Use the updated CSV file generated in the previous step
+        fs.createReadStream('/Users/parthpankajsingh/Desktop/ML Projects/test/e-commerce.orders_updated.csv')
+            .pipe(csv())
+            .on('data', (data) => results.push(data))
+            .on('end', async () => {
+                console.log(`Parsing ${results.length} orders for synchronization...`);
 
-        console.log(`🔍 Found ${problematicOrders.length} orders needing name/ID repair...`);
+                const bulkOps = [];
 
-        let repaired = 0;
+                for (const row of results) {
+                    const orderNo = parseInt(row.orderNo);
+                    if (!orderNo) continue;
 
-        for (const order of problematicOrders) {
-            const wpData = wpNameMap.get(order.orderNo);
-            
-            if (wpData) {
-                // Find the actual user in the user table (e.g., Vivek Divakar)
-                const actualUser = await userModel.findOne({
-                    name: { $regex: new RegExp(`^${wpData.fullName}$`, 'i') }
-                });
+                    // Reconstruct the items array from the flattened CSV columns
+                    const items = [];
+                    let i = 0;
+                    while (row[`items[${i}].name`]) {
+                        items.push({
+                            name: row[`items[${i}].name`],
+                            price: parseFloat(row[`items[${i}].price`]) || 0,
+                            quantity: parseInt(row[`items[${i}].quantity`]) || 1
+                        });
+                        i++;
+                    }
 
-                const updateData = {
-                    "address.firstName": wpData.fName,
-                    "address.lastName": wpData.lName,
-                };
+                    // Calculate the new total amount (including delivery fee)
+                    const subtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                    const deliveryFee = parseFloat(row.deliveryFee) || 0;
+                    const finalAmount = subtotal + deliveryFee;
 
-                if (actualUser) {
-                    updateData.userId = actualUser._id;
+                    // Prepare the bulk update operation
+                    bulkOps.push({
+                        updateOne: {
+                            filter: { orderNo: orderNo },
+                            update: { 
+                                $set: { 
+                                    items: items,
+                                    amount: finalAmount
+                                } 
+                            }
+                        }
+                    });
+
+                    // Execute in batches of 500 for memory efficiency
+                    if (bulkOps.length === 500) {
+                        await orderModel.bulkWrite(bulkOps);
+                        bulkOps.length = 0;
+                        console.log(`Synced 500 orders...`);
+                    }
                 }
 
-                await orderModel.findByIdAndUpdate(order._id, { $set: updateData });
-                repaired++;
-            }
-        }
+                // Final batch
+                if (bulkOps.length > 0) {
+                    await orderModel.bulkWrite(bulkOps);
+                }
 
-        console.log(`\n🎉 Repair Complete!`);
-        console.log(`Fixed Identity for: ${repaired} orders`);
-
-    } catch (err) {
-        console.error("❌ Repair Error:", err);
-    } finally {
-        await mongoose.connection.close();
+                console.log("✨ Registry Prices Synced Successfully!");
+                mongoose.connection.close();
+                process.exit(0);
+            });
+    } catch (error) {
+        console.error("❌ Sync Error:", error);
+        process.exit(1);
     }
 };
 
-cleanupLegacyEntries();
+syncFromCsv();

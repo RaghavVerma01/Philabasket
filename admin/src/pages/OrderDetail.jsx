@@ -48,70 +48,83 @@ const OrderDetail = ({ token }) => {
 
   const downloadInvoice = (order) => {
     try {
-      // Initialize jsPDF
       const doc = new jsPDF();
+      const brandColor = [188, 0, 45]; // Phila Basket Red
+      const textColor = [40, 40, 40];
   
-      // --- 1. HEADER SECTION (TEXT ONLY) ---
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(18);
-      doc.text("Phila Basket", 14, 18); // Shifted to left margin since logo is removed
+      // --- 1. HEADER SECTION ---
+      doc.setTextColor(brandColor[0], brandColor[1], brandColor[2]);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("Phila Basket", 14, 20);
       
+      doc.setTextColor(textColor[0], textColor[1], textColor[2]);
       doc.setFontSize(8);
-      doc.text("S - 606/607 School Block -2", 14, 23);
-      doc.text("Park end appt, Shakarpur", 14, 23);
-
-      
-      doc.text("New Delhi - 110092", 14, 27);
-      doc.text("Gst - 07APXPR4457E2Z8", 14, 31);
+      doc.setFont("helvetica", "normal");
+      // Corrected Y-coordinates to prevent overlap
+      doc.text("S - 606/607 School Block - 2", 14, 26);
+      doc.text("Park End Appt, Shakarpur", 14, 30);
+      doc.text("New Delhi - 110092", 14, 34);
+      doc.setFont("helvetica", "bold");
+      doc.text("GSTIN: 07APXPR4457E2Z8", 14, 38);
   
       // Right-aligned Invoice Header
-      doc.setFontSize(14);
-      doc.text("TAX INVOICE", 140, 18);
+      doc.setFontSize(16);
+      doc.text("TAX INVOICE", 140, 20);
       doc.setFontSize(9);
-      doc.text(`Order #: ${order.orderNo || 'N/A'}`, 140, 25);
-      doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, 140, 30);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Order ID: ${order.orderNo || 'N/A'}`, 140, 27);
+      doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, 140, 32);
   
-      // --- 2. STATUS LOGIC ---
+      // Status Logic
       let displayStatus = (order.status || "Order Placed").toUpperCase();
-      const method = (order.paymentMethod || "").toUpperCase();
-      
-      if (['RAZORPAY', 'STRIPE', 'UPI'].includes(method)) {
-          displayStatus = "PAID";
-      } else if (method === 'COD') {
-          displayStatus = order.status === 'Delivered' ? "PAID (CASH)" : "PENDING (COD)";
+      if (['RAZORPAY', 'STRIPE', 'UPI'].includes(order.paymentMethod?.toUpperCase())) {
+          displayStatus = "PAID (PREPAID)";
       }
+      doc.setFont("helvetica", "bold");
+      doc.text(`Status: ${displayStatus}`, 140, 37);
   
-      doc.setFontSize(9);
-      doc.text(`Status: ${displayStatus}`, 140, 35);
-  
-      // --- 3. ADDRESSES ---
+      // --- 2. ADDRESSES (Dynamic Y-Coordinates) ---
       const addr = order.address || {};
       const billAddr = order.billingAddress || addr;
       
-      doc.setFontSize(10);
-      doc.text("BILL TO:", 14, 45);
-      doc.setFontSize(8);
-      doc.text(`${billAddr.firstName || ''} ${billAddr.lastName || ''}`, 14, 50);
-      doc.text(`${billAddr.street || ''}`, 14, 54);
-      doc.text(`${billAddr.street2 || ''}`, 14, 54);
-
-      doc.text(`${billAddr.city || ''}, ${billAddr.state || ''} ${billAddr.zipcode || ''}`, 14, 58);
+      const drawAddress = (title, data, x) => {
+          let currentY = 50;
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.text(title, x, currentY);
+          
+          currentY += 5;
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "normal");
+          doc.text(`${data.firstName || ''} ${data.lastName || ''}`, x, currentY);
+          
+          if (data.street) {
+              currentY += 4;
+              doc.text(data.street, x, currentY);
+          }
+          // Only move Y and draw if street2 exists
+          if (data.street2 && data.street2.trim() !== "") {
+              currentY += 4;
+              doc.text(data.street2, x, currentY);
+          }
+          currentY += 4;
+          doc.text(`${data.city || ''}, ${data.state || ''} - ${data.zipCode || data.zipcode || ''}`, x, currentY);
+          currentY += 4;
+          doc.text(`Phone: ${data.phone || 'N/A'}`, x, currentY);
+      };
   
-      doc.text("SHIP TO:", 110, 45);
-      doc.text(`${addr.firstName || ''} ${addr.lastName || ''}`, 110, 50);
-      doc.text(`${addr.street || ''}`, 110, 54);
-      doc.text(`${addr.street2 || ''}`, 110, 54);
-
-      doc.text(`${addr.city || ''}, ${addr.state || ''} ${addr.zipcode || ''}`, 110, 58);
+      drawAddress("BILL TO:", billAddr, 14);
+      drawAddress("SHIP TO:", addr, 110);
   
-      // --- 4. ITEMS TABLE ---
+      // --- 3. ITEMS TABLE ---
       let totalBaseAmount = 0;
       let totalGSTAmount = 0;
   
       const tableRows = (order.items || []).map((item, index) => {
           const basePriceUnit = Number(item.price || 0);
           const qty = item.quantity || 1;
-          const gstUnit = basePriceUnit * 0.05; // 5% GST Logic
+          const gstUnit = basePriceUnit * 0.05; // 5% GST
           const rowTotalIncl = (basePriceUnit + gstUnit) * qty;
           
           totalBaseAmount += basePriceUnit * qty;
@@ -119,65 +132,82 @@ const OrderDetail = ({ token }) => {
   
           return [
             index + 1, 
-            item.name || 'Specimen', 
-            "9704", 
+            item.name || 'Specimen Item', 
+            "9704", // Philatelic HSN
             qty, 
-            basePriceUnit.toFixed(2),
+            `INR ${basePriceUnit.toFixed(2)}`,
             "5%", 
-            rowTotalIncl.toFixed(2)
+            `INR ${rowTotalIncl.toFixed(2)}`
           ];
       });
   
       autoTable(doc, {
-          startY: 70,
-          head: [['#', 'Item & Description', 'HSN', 'Qty', 'Rate (Excl.)', 'IGST', 'Amount (Incl.)']],
+          startY: 75,
+          head: [['#', 'Specimen & Description', 'HSN', 'Qty', 'Rate (Excl.)', 'IGST', 'Amount (Incl.)']],
           body: tableRows,
           theme: 'grid',
-          headStyles: { fillColor: [188, 0, 45] }, // Phila Basket Brand Red
-          styles: { fontSize: 8 }
+          headStyles: { fillColor: brandColor, textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 8, cellPadding: 3 },
+          columnStyles: {
+              1: { cellWidth: 70 }, // Name column wider
+              6: { halign: 'right' }
+          }
       });
   
-      // --- 5. TOTALS SECTION ---
+      // --- 4. TOTALS SECTION ---
       const finalY = doc.lastAutoTable.finalY + 10;
-      const userCountry = (addr.country || "India").trim().toLowerCase();
-      const isIndia = userCountry === 'india';
+    const finalPayable = Number(order.amount || 0);
+    const couponDiscount = Number(order.discountAmount || 0);
+    const pointsDiscount = (Number(order.pointsUsed || 0) / 10);
+    const shippingCharge = Number(order.deliveryFee || 0);
+
+    // This creates a "grid" appearance by using specific widths and borders
+    autoTable(doc, {
+        startY: finalY,
+        margin: { left: 110 }, // Aligns the grid to the right side
+        tableWidth: 85,
+        theme: 'grid', // Changed to grid to ensure they stay "together" visually
+        styles: { 
+            fontSize: 8, 
+            cellPadding: 2,
+            lineColor: [240, 240, 240], // Subtle grey borders
+            lineWidth: 0.1 
+        },
+        body: [
+            ['Sub-Total (Excl. Tax)', `INR ${totalBaseAmount.toFixed(2)}`],
+            ['GST Total (5%)', `INR ${totalGSTAmount.toFixed(2)}`],
+            ['Delivery/Shipping', `INR ${shippingCharge.toFixed(2)}`],
+            // Conditional Rows: Only injected if they have values
+            ...(couponDiscount > 0 ? [[{ content: 'Coupon Discount', styles: { textColor: [0, 150, 0] } }, `INR -${couponDiscount.toFixed(2)}`]] : []),
+            ...(pointsDiscount > 0 ? [[{ content: 'Archive Credits', styles: { textColor: [0, 150, 0] } }, `INR -${pointsDiscount.toFixed(2)}`]] : []),
+            // The "Grand Total" Row
+            [{ 
+                content: 'Total Payable', 
+                styles: { fillColor: [250, 250, 250], fontStyle: 'bold', fontSize: 10, textColor: brandColor } 
+            }, 
+            { 
+                content: `INR ${finalPayable.toFixed(2)}`, 
+                styles: { fillColor: [250, 250, 250], fontStyle: 'bold', fontSize: 10, textColor: brandColor } 
+            }]
+        ],
+        columnStyles: { 
+            0: { cellWidth: 50 }, 
+            1: { cellWidth: 35, halign: 'right' } 
+        }
+    });
   
-      const itemTotalInclGst = totalBaseAmount + totalGSTAmount;
-      let shippingCharge = order.deliveryFee !== undefined ? Number(order.deliveryFee) : (isIndia ? 125 : 750);
-      
-      // Free Shipping Logic
-      if (isIndia && itemTotalInclGst > 4999) {
-          shippingCharge = 0;
-      }
-  
-      const couponDiscount = Number(order.discountAmount || 0);
-      const pointsDiscount = Number(order.pointsUsed || 0) / 10;
-      const finalPayable = Number(order.amount || 0);
-  
-      autoTable(doc, {
-          startY: finalY,
-          margin: { left: 105 },
-          tableWidth: 90,
-          theme: 'plain', 
-          styles: { fontSize: 8, cellPadding: 2 },
-          body: [
-              ['Sub-Total (Base Items)', `Rs. ${totalBaseAmount.toFixed(2)}`],
-              ['IGST (5%)', `Rs. ${totalGSTAmount.toFixed(2)}`],
-              [`Shipping Charge`, shippingCharge === 0 ? 'FREE' : `Rs. ${shippingCharge.toFixed(2)}`],
-              [{ content: 'Discount from Philaasket', styles: { textColor: [0, 128, 0], fontStyle: 'italic' } }, `Rs. -${totalGSTAmount.toFixed(2)}`],
-              [`Discount`, `Rs. -${couponDiscount.toFixed(2)}`],
-              [`Archive Credits`, `Rs. -${pointsDiscount.toFixed(2)}`],
-              [{ content: 'Total Payable', styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45] } }, 
-               { content: `Rs. ${finalPayable.toFixed(2)}`, styles: { fontStyle: 'bold', fontSize: 10, textColor: [188, 0, 45] } }]
-          ],
-          columnStyles: { 1: { halign: 'right' } }
-      });
-  
-      // --- 6. FOOTER ---
-      const footerY = doc.lastAutoTable.finalY + 15;
+      // --- 5. FOOTER ---
+      const pageHeight = doc.internal.pageSize.height;
       doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text("Thank you for your patronage. This is a computer generated invoice.", 14, pageHeight - 20);
+      doc.text("For any queries, please contact: support@philabasket.com", 14, pageHeight - 16);
+      
+      doc.setDrawColor(200);
+      doc.line(14, pageHeight - 25, 196, pageHeight - 25);
+  
       // Save File
-      doc.save(`Invoice_${order.orderNo || 'Order'}.pdf`);
+      doc.save(`Invoice_${order.orderNo || 'PB'}.pdf`);
   
     } catch (err) {
       console.error("PDF Error:", err);

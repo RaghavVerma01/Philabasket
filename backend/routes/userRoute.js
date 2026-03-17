@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginUser, registerUser, adminLogin, getUserProfile ,googleLogin, forgotPassword, resetPassword, listUsers, updateAddress, getPhilatelistDetail, getTopPhilatelists, getAllUsersData, adjustRewardPoints, getUnifiedHistoryAdmin } from '../controllers/userController.js';
+import { loginUser, registerUser, adminLogin, getUserProfile ,googleLogin, forgotPassword, resetPassword, listUsers, updateAddress, getPhilatelistDetail, getTopPhilatelists, getAllUsersData, adjustRewardPoints, getUnifiedHistoryAdmin, searchUsers } from '../controllers/userController.js';
 import { toggleWishlist, getWishlist } from '../controllers/wishlistController.js';
 
 
@@ -38,6 +38,7 @@ userRouter.post('/adjust-points', adminAuth, adjustRewardPoints);
 
 
 userRouter.get('/reward-history', authUser, getUnifiedHistory);
+userRouter.get('/search', adminAuth, searchUsers);
 
 
 

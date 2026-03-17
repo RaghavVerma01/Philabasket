@@ -490,6 +490,22 @@ export const adjustRewardPoints = async (req, res) => {
 };
 
 
+export const searchUsers = async (req, res) => {
+    try {
+        const { query } = req.query;
+        const users = await userModel.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { email: { $regex: query, $options: 'i' } }
+            ]
+        }).limit(5);
+        res.json({ success: true, users });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
+
+
 // controllers/userController.js
 
 

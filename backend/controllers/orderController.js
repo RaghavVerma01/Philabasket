@@ -21,6 +21,51 @@ dotenv.config()
 
 // orderController.js
 
+// controllers/orderController.js
+
+
+
+// controllers/orderController.js
+export const createManualOrder = async (req, res) => {
+    try {
+        const { email, items, deliveryFee, address, name, isNewUser } = req.body;
+
+        let user = await userModel.findOne({ email: email.toLowerCase().trim() });
+
+        // If user doesn't exist and isNewUser is true, create them
+        if (!user && isNewUser) {
+            user = new userModel({
+                name: name || address.firstName,
+                email: email.toLowerCase().trim(),
+                password: Math.random().toString(36).slice(-8), // Temporary password
+                defaultAddress: address
+            });
+            await user.save();
+        } else if (!user) {
+            return res.json({ success: false, message: "Collector not found. Please enable 'New Collector' mode." });
+        }
+
+        const subtotal = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+
+        const orderData = {
+            userId: user._id,
+            items,
+            amount: subtotal + (Number(deliveryFee) || 0),
+            address,
+            deliveryFee: Number(deliveryFee) || 0,
+            date: Date.now(),
+            status: "Order Placed",
+            payment: true
+        };
+
+        const newOrder = new orderModel(orderData);
+        await newOrder.save();
+
+        res.json({ success: true, message: "Order & User Registry Updated", orderNo: newOrder.orderNo });
+    } catch (error) {
+        res.json({ success: false, message: error.message });
+    }
+};
 
 
 
@@ -270,12 +315,10 @@ const options = {
 };
 
 const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null) => {
-    // Destructure orderData
     const { 
         address, 
         items, 
         amount, 
-        currency, 
         paymentMethod, 
         orderNo, 
         date, 
@@ -285,7 +328,7 @@ const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null
         deliveryFee 
     } = orderData;
 
-    const symbol = currency === 'USD' ? '$' : '₹';
+    const symbol = '₹';
     const accentColor = "#BC002D"; 
     const secondaryColor = "#1a1a1a";
     const bgColor = "#FCF9F4";
@@ -293,44 +336,38 @@ const getOrderHtmlTemplate = (orderData, activeFee = null, trackingNumber = null
     // --- LOGIC CALCULATIONS ---
     const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const gstAmount = rawSubtotal * 0.05;
-    const pbExclusiveDiscount = rawSubtotal * 0.05;
+    
+    // Logic: Only apply the 5% PB discount if it was actually part of the price calculation
+    const pbExclusiveDiscount = (rawSubtotal * 0.05);
     const pointsValue = pointsUsed ? pointsUsed / 10 : 0; 
 
-    // --- PROTOCOL FEE RESOLUTION ---
-    // Priority: 1. Explicitly passed activeFee | 2. Stored deliveryFee | 3. Hard fallback
+    // --- SHIPPING FEE RESOLUTION ---
     const finalFee = activeFee !== null ? activeFee : (deliveryFee || 0);
-    const displayShipping = Number(finalFee).toFixed(2);
-// --- SHIPPING FEE DISPLAY LOGIC ---
-const isFreeShipping = currency === 'INR' && amount >= 4999;
-const shippingDisplayValue = isFreeShipping 
-    ? `<span style="color: #2e7d32; font-weight: 900;">COMPLIMENTARY</span>` 
-    : `${symbol}${displayShipping}`;
+    const isFreeShipping = amount >= 4999;
+    const shippingDisplay = isFreeShipping 
+        ? `<span style="color: #2e7d32; font-weight: 900;">COMPLIMENTARY</span>` 
+        : `${symbol}${Number(finalFee).toFixed(2)}`;
 
-    // --- NEW: TIER CONFIGURATION ---
-const TIER_CONFIG = {
-    'Platinum': { color: '#06b6d4', bg: '#ecfeff', next: 0, icon: '◈', perks: ['20% Rewards', 'Free Shipping', 'Priority Curation'] },
-    'Gold': { color: '#f59e0b', bg: '#fffbeb', next: 50000, icon: '✦', perks: ['15% Rewards', 'Early Archive Access', 'Birthday Specimens'] },
-    'Silver': { color: '#64748b', bg: '#f8fafc', next: 30000, icon: '○', perks: ['10% Rewards', 'Standard Support', 'Registry Access'] }
-};
+    // --- TIER CONFIGURATION ---
+    const TIER_CONFIG = {
+        'Platinum': { color: '#06b6d4', bg: '#ecfeff', next: 0, icon: '◈', perks: ['20% Rewards', 'Free Shipping', 'Priority Curation'] },
+        'Gold': { color: '#f59e0b', bg: '#fffbeb', next: 50000, icon: '✦', perks: ['15% Rewards', 'Early Archive Access', 'Birthday Specimens'] },
+        'Silver': { color: '#64748b', bg: '#f8fafc', next: 30000, icon: '○', perks: ['10% Rewards', 'Standard Support', 'Registry Access'] }
+    };
 
-const userTier = orderData.userId?.tier || 'Silver';
-const tier = TIER_CONFIG[userTier];
-const pointsToNext = tier.next > 0 ? (tier.next - (orderData.userId?.totalRewardPoints || 0)) : 0;
-
-// --- NEW: SAVINGS CALCULATION ---
-const totalSavings = (pbExclusiveDiscount + (discountAmount || 0) + (pointsValue || 0)).toFixed(2);
-
-// ... inside the return template table ...
-
+    const userTier = orderData.userId?.tier || 'Silver';
+    const tier = TIER_CONFIG[userTier];
+    const userPoints = orderData.userId?.totalRewardPoints || 0;
+    const pointsToNext = tier.next > 0 ? (tier.next - userPoints) : 0;
 
     const itemRows = items.map(item => `
         <tr style="border-bottom: 1px solid #eeeeee;">
             <td style="padding: 12px 0;">
-                <p style="margin: 0; font-weight: bold; color: ${secondaryColor}; font-size: 14px;">${item.name}</p>
-                <p style="margin: 4px 0 0 0; color: #888; font-size: 11px; text-transform: uppercase;">Specimen ID: ${item._id.toString().slice(-6)}</p>
+                <p style="margin: 0; font-weight: bold; color: ${secondaryColor}; font-size: 13px;">${item.name}</p>
+                <p style="margin: 4px 0 0 0; color: #999; font-size: 10px; text-transform: uppercase;">Specimen HSN: 9704</p>
             </td>
-            <td style="padding: 12px 0; text-align: center; color: ${secondaryColor}; font-weight: bold;">x${item.quantity}</td>
-            <td style="padding: 12px 0; text-align: right; color: ${accentColor}; font-weight: bold;">${symbol}${item.price.toFixed(2)}</td>
+            <td style="padding: 12px 0; text-align: center; color: ${secondaryColor}; font-weight: bold; font-size: 13px;">x${item.quantity}</td>
+            <td style="padding: 12px 0; text-align: right; color: ${secondaryColor}; font-weight: bold; font-size: 13px;">${symbol}${item.price.toLocaleString('en-IN')}</td>
         </tr>`).join('');
 
     return `
@@ -340,80 +377,58 @@ const totalSavings = (pbExclusiveDiscount + (discountAmount || 0) + (pointsValue
         <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${bgColor}; padding: 40px 20px;">
             <tr>
                 <td align="center">
-                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                    <table width="600" border="0" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
                         <tr>
-                            <td style="background-color: ${accentColor}; padding: 25px 30px;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0">
-        <tr>
-            <td width="80" align="left" style="vertical-align: middle;">
-                <img src="https://res.cloudinary.com/darmvywhd/image/upload/v1773258449/lat_ut1ao6.png" 
-                     alt="PhilaBasket" 
-                     width="65" 
-                     style="display: block; border: 0; outline: none; text-decoration: none;" />
-            </td>
-
-            <td align="center" style="vertical-align: middle;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 3px; font-weight: 900; line-height: 1.2;">
-                    PhilaBasket
-                </h1>
-                <p style="color: rgba(255,255,255,0.8); margin: 4px 0 0 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
-                    The World of Philately
-                </p>
-            </td>
-
-            <td width="80">&nbsp;</td>
-        </tr>
-    </table>
-</td>
+                            <td style="background-color: ${accentColor}; padding: 30px; text-align: center;">
+                                <img src="https://res.cloudinary.com/darmvywhd/image/upload/v1773258449/lat_ut1ao6.png" width="60" style="margin-bottom: 10px;"/>
+                                <h1 style="color: #ffffff; margin: 0; font-size: 22px; text-transform: uppercase; letter-spacing: 4px; font-weight: 900;">PhilaBasket</h1>
+                                <p style="color: rgba(255,255,255,0.7); margin: 5px 0 0 0; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Registry & Acquisition Services</p>
+                            </td>
                         </tr>
 
                         <tr>
                             <td style="padding: 20px 40px 0 40px;">
-                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${tier.bg}; border-radius: 12px; border: 1px solid ${tier.color}40;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: ${tier.bg}; border-radius: 12px; border: 1px solid ${tier.color}30;">
                                     <tr>
-                                        <td style="padding: 20px;">
+                                        <td style="padding: 15px 20px;">
                                             <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                                 <tr>
-                                                    <td width="60%">
-                                                        <span style="color: ${tier.color}; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Collector Status</span>
-                                                        <h3 style="margin: 5px 0; color: ${secondaryColor}; font-size: 18px;">${tier.icon} ${userTier} Member</h3>
+                                                    <td>
+                                                        <span style="color: ${tier.color}; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;">Collector Rank</span>
+                                                        <h3 style="margin: 2px 0; color: ${secondaryColor}; font-size: 16px;">${tier.icon} ${userTier} Member</h3>
                                                     </td>
                                                     <td align="right">
-                                                        ${pointsToNext > 0 ? `<p style="margin: 0; font-size: 11px; color: #64748b;"><strong>${pointsToNext.toLocaleString()} pts</strong> to next tier</p>` : `<p style="margin: 0; font-size: 11px; color: ${tier.color};"><strong>Max Tier Reached</strong></p>`}
+                                                        ${pointsToNext > 0 ? `<p style="margin: 0; font-size: 10px; color: #64748b;"><strong>${pointsToNext.toLocaleString()} pts</strong> to upgrade</p>` : `<p style="margin: 0; font-size: 10px; color: ${tier.color}; font-weight: 900;">PREMIER STATUS</p>`}
                                                     </td>
                                                 </tr>
                                             </table>
-                                            <div style="margin-top: 10px; border-top: 1px solid ${tier.color}20; padding-top: 10px;">
-                                                <p style="margin: 0; font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold;">Current Perks: <span style="color: ${secondaryColor}; ml: 5px;">${tier.perks.join(' • ')}</span></p>
-                                            </div>
                                         </td>
                                     </tr>
                                 </table>
                             </td>
                         </tr>
 
-                        
                         <tr>
                             <td style="padding: 40px;">
-                                <h2 style="margin: 0 0 15px 0; font-size: 20px;">Order ${trackingNumber ? 'Dispatched' : 'Confirmed'}</h2>
-                                <p style="font-size: 15px; color: #555; line-height: 1.6;">Hi ${address.firstName},</p>
-                                <p style="font-size: 15px; color: #555; line-height: 1.6;">
+                                <h2 style="margin: 0 0 10px 0; font-size: 18px; font-weight: 900;">Acquisition ${trackingNumber ? 'Dispatched' : 'Successful'}</h2>
+                                <p style="font-size: 14px; color: #666;">Salutations, ${address.firstName},</p>
+                                <p style="font-size: 14px; color: #666; line-height: 1.5;">
                                     ${trackingNumber 
-                                        ? `Your philatelic acquisition has been dispatched. Track ID: <strong>${trackingNumber}</strong>.` 
-                                        : `Your acquisition request has been received. Our curators are currently authenticating your specimens.`}
+                                        ? `Your curated specimens are in transit. Consignment ID: <strong style="color:${secondaryColor}">${trackingNumber}</strong>.` 
+                                        : `Your acquisition request has been logged in our central registry. Our curators are currently finalizing your specimens for dispatch.`}
                                 </p>
 
-                                <table width="100%" style="margin: 25px 0; border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 15px 0;">
+                                <table width="100%" style="margin: 25px 0; border-top: 1px solid #f0f0f0; border-bottom: 1px solid #f0f0f0; padding: 15px 0;">
                                     <tr>
-                                        <td><span style="font-size: 11px; color: #999; text-transform: uppercase;">Registry ID</span><br><strong>#${orderNo}</strong></td>
-                                        <td align="right"><span style="font-size: 11px; color: #999; text-transform: uppercase;">Acquisition Date</span><br><strong>${new Date(date).toLocaleDateString()}</strong></td>
+                                        <td><span style="font-size: 9px; color: #bbb; text-transform: uppercase; font-weight: bold;">Order Registry No.</span><br><strong style="font-size: 14px;">#${orderNo}</strong></td>
+                                        <td align="right"><span style="font-size: 9px; color: #bbb; text-transform: uppercase; font-weight: bold;">Registry Date</span><br><strong style="font-size: 14px;">${new Date(date).toLocaleDateString('en-IN')}</strong></td>
                                     </tr>
                                 </table>
 
-                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0">
                                     <thead>
-                                        <tr style="text-align: left; font-size: 11px; color: #999; text-transform: uppercase;">
-                                            <th style="padding-bottom: 10px;">Specimen</th>
+                                        <tr style="text-align: left; font-size: 10px; color: #bbb; text-transform: uppercase;">
+                                            <th style="padding-bottom: 10px;">Asset Details</th>
                                             <th style="padding-bottom: 10px; text-align: center;">Qty</th>
                                             <th style="padding-bottom: 10px; text-align: right;">Valuation</th>
                                         </tr>
@@ -421,59 +436,67 @@ const totalSavings = (pbExclusiveDiscount + (discountAmount || 0) + (pointsValue
                                     <tbody>${itemRows}</tbody>
                                 </table>
 
-                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 10px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
+                                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-top: 20px;">
                                     <tr>
-                                        <td width="70%" style="padding: 4px 0; font-size: 13px; color: #777;">Asset Subtotal</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${rawSubtotal.toFixed(2)}</td>
+                                        <td width="70%" style="padding: 5px 0; font-size: 13px; color: #888;">Asset Subtotal</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; font-weight: bold;">${symbol}${rawSubtotal.toLocaleString('en-IN')}</td>
                                     </tr>
                                     <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: #777;">GST Protocol (5%)</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">${symbol}${gstAmount.toFixed(2)}</td>
-                                    </tr>
-                                    <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">Exclusive PB Discount (5%)</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${pbExclusiveDiscount.toFixed(2)}</td>
+                                        <td style="padding: 5px 0; font-size: 13px; color: #888;">GST Protocol (5%)</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; font-weight: bold;">${symbol}${gstAmount.toLocaleString('en-IN')}</td>
                                     </tr>
                                     
+                                    ${pbExclusiveDiscount > 0 ? `
+                                    <tr>
+                                        <td style="padding: 5px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">PB Exclusive Discount</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${pbExclusiveDiscount.toLocaleString('en-IN')}</td>
+                                    </tr>` : ''}
+
                                     ${discountAmount > 0 ? `
                                     <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">Coupon Applied (${couponUsed})</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${discountAmount.toFixed(2)}</td>
+                                        <td style="padding: 5px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">Coupon: ${couponUsed}</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; color: #2e7d32; font-weight: bold;">- ${symbol}${discountAmount.toLocaleString('en-IN')}</td>
                                     </tr>` : ''}
 
                                     ${pointsUsed > 0 ? `
                                     <tr>
-                                        <td style="padding: 4px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">Archive Credit Redemption (${pointsUsed} PTS)</td>
-                                        <td align="right" style="padding: 4px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">- ${symbol}${pointsValue.toFixed(2)}</td>
+                                        <td style="padding: 5px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">Archive Credits (${pointsUsed} pts)</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; color: ${accentColor}; font-weight: bold;">- ${symbol}${pointsValue.toLocaleString('en-IN')}</td>
                                     </tr>` : ''}
 
                                     <tr>
-    <td style="padding: 4px 0; font-size: 13px; color: #777;">Registry Shipping Fee (${address.country})</td>
-    <td align="right" style="padding: 4px 0; font-size: 13px; font-weight: bold;">
-        ${shippingDisplayValue}
-    </td>
-</tr>
+                                        <td style="padding: 5px 0; font-size: 13px; color: #888;">Registry Shipping</td>
+                                        <td align="right" style="padding: 5px 0; font-size: 13px; font-weight: bold;">${shippingDisplay}</td>
+                                    </tr>
+                                    
                                     <tr>
-                                        <td style="padding: 15px 0 5px 0; font-size: 16px; font-weight: 900; text-transform: uppercase; border-top: 2px solid ${secondaryColor};">Final Asset Valuation</td>
-                                        <td align="right" style="padding: 15px 0 5px 0; font-size: 18px; font-weight: 900; color: ${accentColor}; border-top: 2px solid ${secondaryColor};">${symbol}${amount.toLocaleString()}</td>
+                                        <td style="padding: 20px 0 0 0; font-size: 15px; font-weight: 900; text-transform: uppercase; border-top: 2px solid #000;">Total Valuation</td>
+                                        <td align="right" style="padding: 20px 0 0 0; font-size: 20px; font-weight: 900; color: ${accentColor}; border-top: 2px solid #000;">${symbol}${amount.toLocaleString('en-IN')}</td>
                                     </tr>
                                 </table>
-                                <table width="100%" style="margin-top: 30px;">
+
+                                <table width="100%" style="margin-top: 40px; border-top: 1px dashed #eee; padding-top: 20px;">
                                     <tr>
                                         <td width="50%" valign="top">
-                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Shipping Registry</h4>
-                                            <p style="margin: 0; font-size: 12px; line-height: 1.5;">
-                                                ${address.firstName} ${address.lastName}<br>
+                                            <h4 style="margin: 0 0 8px 0; font-size: 10px; color: #bbb; text-transform: uppercase; letter-spacing: 1px;">Shipping Destination</h4>
+                                            <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #444;">
+                                                <strong>${address.firstName} ${address.lastName}</strong><br>
                                                 ${address.street}<br>
-                                                ${address.city}, ${address.state} ${address.zipcode}
+                                                ${address.city}, ${address.state} ${address.zipcode || address.zipCode}
                                             </p>
                                         </td>
                                         <td width="50%" valign="top">
-                                            <h4 style="margin: 0 0 10px 0; font-size: 11px; color: #999; text-transform: uppercase;">Payment Protocol</h4>
-                                            <p style="margin: 0; font-size: 12px; line-height: 1.5;">${paymentMethod}</p>
+                                            <h4 style="margin: 0 0 8px 0; font-size: 10px; color: #bbb; text-transform: uppercase; letter-spacing: 1px;">Payment Method</h4>
+                                            <p style="margin: 0; font-size: 12px; line-height: 1.6; color: #444;">${paymentMethod}</p>
                                         </td>
                                     </tr>
                                 </table>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style="background-color: #f9f9f9; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                                <p style="margin: 0; font-size: 10px; color: #bbb;">PhilaBasket © 2024 • Authentic Philatelic Registry</p>
                             </td>
                         </tr>
                     </table>
@@ -923,7 +946,18 @@ const allOrders = async (req, res) => {
 
         // 1. Initial Filters
         let matchQuery = {};
-        if (status && status !== "ALL") matchQuery.status = status;
+        if (status && status !== "ALL") {
+            // Check if status contains multiple values (e.g., "Complete,Delivered")
+            if (status.includes(',')) {
+                const statusArray = status.split(',');
+                matchQuery.status = { $in: statusArray }; // Matches any status in the array
+            } else {
+                matchQuery.status = status;
+            }
+        }
+        
+        
+        
         if (date) {
             const start = new Date(date).setHours(0, 0, 0, 0);
             const end = new Date(date).setHours(23, 59, 59, 999);
