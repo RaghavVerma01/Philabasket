@@ -4,6 +4,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+@keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-100%);
+    }
+  }
+
 /* This forces the Navbar to stay above the Orders page cards and shadows */
 .sticky.top-0 {
     z-index: 99999 !important;

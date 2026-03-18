@@ -72,37 +72,63 @@ const Navbar = () => {
 
   const MegaMenu = ({ menuData }) => (
     <div className="group relative flex flex-col items-center cursor-pointer z-[9999]">
-      <div className="flex items-center gap-1.5 px-4 py-5 transition-all duration-500">
-        <p className='text-[13px] font-[800] text-black group-hover:text-[#BC002D] transition-colors capitalize font-["Nunito",sans-serif]'>
-          {menuData.title}
-        </p>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-[#BC002D] transition-all duration-300 group-hover:w-1/2 opacity-0 group-hover:opacity-100" />
-      </div>
-      <div className="absolute top-[85%] left-1/2 -translate-x-1/2 pt-2 invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-all duration-300 delay-100 group-hover:delay-0 z-[110]">
-        <div className="h-4 w-full bg-transparent" />
-        <div className="bg-white border-t-2 border-[#BC002D] p-10 flex gap-16 w-max shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-br-[40px]">
-          {menuData.groups?.map((group, idx) => (
-            <div key={idx} className="flex flex-col min-w-[180px]">
-              <h3 className='text-[10px] font-[900] text-[#BC002D] mb-6 tracking-[0.25em] border-b border-gray-100 pb-3 capitalize font-["Inter",sans-serif]'>
-                {group.groupName}
-              </h3>
-              <div className="flex flex-col gap-5">
-                {group.items?.map((item, i) => (
-                  <Link
-                    key={i}
-                    to={`/collection?category=${encodeURIComponent(item)}`}
-                    onClick={() => setVisible(false)}
-                    className="text-[13px] text-gray-800 leading-relaxed font-medium"
-                  >
-                    {item}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
+  {/* TOP LEVEL LINK */}
+  <div className="flex items-center gap-1.5 px-4 py-5 transition-all duration-500">
+    <p className='text-[13px] font-[800] text-black group-hover:text-[#BC002D] transition-colors capitalize font-["Nunito",sans-serif]'>
+      {menuData.title}
+    </p>
+    {/* UNDERLINE ANIMATION */}
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-[#BC002D] transition-all duration-300 group-hover:w-1/2 opacity-0 group-hover:opacity-100" />
+  </div>
+
+  {/* DROPDOWN CONTAINER */}
+  <div className="absolute top-[90%] left-1/2 -translate-x-1/2 pt-2 invisible opacity-0 translate-y-4 group-hover:visible group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-[110]">
+    <div className="h-4 w-full bg-transparent" />
+    <div className="bg-white border-t-2 border-[#BC002D] p-10 flex gap-16 w-max shadow-[0_40px_80px_rgba(0,0,0,0.15)] rounded-br-[60px] overflow-hidden">
+      
+      {menuData.groups?.map((group, idx) => (
+        <div 
+          key={idx} 
+          className="flex flex-col min-w-[180px] animate-fade-in-up" 
+          style={{ animationDelay: `${idx * 100}ms` }} // Staggers the columns
+        >
+         {group.groupName && group.groupName.trim() !== "" && (
+  <h3 className='text-[10px] font-[900] text-[#BC002D] mb-6 tracking-[0.25em] border-b border-gray-100 pb-3 capitalize font-["Inter",sans-serif]'>
+    {group.groupName}
+  </h3>
+)}
+          
+          <div className="flex flex-col gap-4">
+            {group.items?.map((item, i) => (
+              <Link
+                key={i}
+                to={`/collection?category=${encodeURIComponent(item)}`}
+                onClick={() => setVisible(false)}
+                className="text-[12px] text-gray-500 hover:text-[#BC002D] hover:translate-x-2 transition-all duration-300 ease-out font-medium flex items-center gap-2 group/item"
+              >
+                {/* SUBTLE HOVER DOT */}
+                <span className="w-0 h-0 bg-[#BC002D] rounded-full group-hover/item:w-1 group-hover/item:h-1 transition-all" />
+                {item}
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      ))}
     </div>
+  </div>
+
+  {/* CSS FOR STAGGERED ANIMATION */}
+  <style dangerouslySetInnerHTML={{ __html: `
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in-up {
+      animation: fadeInUp 0.5s ease forwards;
+      opacity: 0;
+    }
+  `}} />
+</div>
   );
 
   return (

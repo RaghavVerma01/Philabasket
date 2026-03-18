@@ -160,7 +160,7 @@ const ProductItem = ({ id, _id, image, name, price, marketPrice, category, stock
     {/* 1. WISHLIST BUTTON (Always Visible, First in Row) */}
     <button 
         onClick={onToggleWishlist}
-        className='h-[50px] w-[50px] shrink-0 flex items-center justify-center bg-white border border-black/10 rounded-xl hover:bg-gray-50 transition-all shadow-sm'
+        className='h-[50px] w-[50px] shrink-0 flex items-center justify-center bg-white border border-black/10 rounded-xl hover:bg-[#BC002D] transition-all shadow-sm'
     >
         <Heart 
             size={18} 

@@ -196,10 +196,10 @@ const HorizontalRegistry = () => {
                 ) : (
                     <button
                         onClick={() => handleCategoryClick(entry.name)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider text-white/80 hover:text-white hover:bg-white/10 transition-all duration-200 whitespace-nowrap"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider text-white hover:text-white hover:bg-white/10 transition-all duration-200 whitespace-nowrap"
                     >
                         {entry.name}
-                        <span className="text-[9px] font-mono font-black text-white/50">{entry.count}</span>
+                        <span className="text-[9px] font-mono font-black text-white">{entry.count}</span>
                     </button>
                 )}
             </div>

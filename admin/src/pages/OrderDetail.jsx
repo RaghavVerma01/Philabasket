@@ -33,6 +33,8 @@ const OrderDetail = ({ token }) => {
   const [trackingId, setTrackingId] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [shippedDate, setShippedDate] = useState('');
+
+
   const [orderStatus, setOrderStatus] = useState('');
   const [customerOrderCount, setCustomerOrderCount] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -44,6 +46,10 @@ const OrderDetail = ({ token }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSavingItems, setIsSavingItems] = useState(false);
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
+
+const [courierProvider, setCourierProvider] = useState("");
+
 
 
   const downloadInvoice = async (order) => {
@@ -315,20 +321,46 @@ const OrderDetail = ({ token }) => {
   };
 
   const updateTracking = async () => {
-    if (orderStatus === 'Shipped' && !trackingId) return toast.error("Tracking ID required");
+    // --- 1. STRICT MANDATORY VALIDATION ---
+    // Ensuring Courier, AWB, and Date are all present
+    if (!courierProvider) return toast.error("Courier Provider is mandatory");
+    if (!trackingId) return toast.error("Tracking Number (AWB) is mandatory");
+    if (!shippedDate) return toast.error("Dispatch Date is mandatory");
+
     setIsUpdating(true);
+    
     try {
-        const response = await axios.post(backendUrl + '/api/order/status', {
-            orderId, status: orderStatus, trackingNumber: trackingId,
-            shippedDate: shippedDate ? new Date(shippedDate).getTime() : null
-        }, { headers: { token } });
+        const response = await axios.post(
+            backendUrl + '/api/order/status', 
+            {
+                orderId, 
+                status: orderStatus, 
+                trackingNumber: trackingId,
+                courierProvider: courierProvider, // Added new field
+                // Convert YYYY-MM-DD string to numeric timestamp for the DB
+                shippedDate: new Date(shippedDate).getTime() 
+            }, 
+            { headers: { token } }
+        );
+
         if (response.data.success) {
-            toast.success("Logistics updated");
-            setOrder(prev => ({ ...prev, trackingNumber: trackingId, status: orderStatus }));
+            toast.success("Logistics Synchronized");
+            // Update local state to reflect the new registry data
+            setOrder(prev => ({ 
+                ...prev, 
+                trackingNumber: trackingId, 
+                status: orderStatus,
+                courierProvider: courierProvider,
+                shippedDate: new Date(shippedDate).getTime()
+            }));
         }
-    } catch (err) { toast.error("Update failed"); } 
-    finally { setIsUpdating(false); }
-  };
+    } catch (err) { 
+        console.error("Registry Sync Error:", err);
+        toast.error("Logistics Update Failed"); 
+    } finally { 
+        setIsUpdating(false); 
+    }
+};
 
   const copyAddress = (addr) => {
     const t = `${addr.firstName} ${addr.lastName}\n${addr.street}\n${addr.street2}\n${addr.city}, ${addr.state} ${addr.zipcode}\n${addr.country}`;
@@ -345,6 +377,7 @@ const OrderDetail = ({ token }) => {
             const d = response.data.order;
             setOrder(d);
             setTrackingId(d.trackingNumber || '');
+            setCourierProvider(d.courierProvider || '');
             setOrderStatus(d.status);
             if (d.shippedDate) setShippedDate(new Date(d.shippedDate).toISOString().split('T')[0]);
             const hist = await axios.post(backendUrl + '/api/order/userordersadmin', { userId: d.userId._id }, { headers: { token } });
@@ -525,22 +558,53 @@ const OrderDetail = ({ token }) => {
 
           {/* RIGHT COLUMN: Controls */}
           <div style={styles.rightCol}>
-            <div style={styles.card}>
-                <div style={styles.cardHeader}><span style={styles.cardTitle}>Logistics Record</span><Truck size={15} /></div>
-                <div style={styles.cardBody}>
-                    <label style={styles.inputLabel}>Current Status</label>
-                    <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)} style={styles.select}>
-                        {Object.keys(STATUS_CONFIG).map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <label style={styles.inputLabel}>Tracking Number</label>
-                    <input value={trackingId} onChange={(e) => setTrackingId(e.target.value.toUpperCase())} placeholder="AWB#" style={styles.input} />
-                    <label style={styles.inputLabel}>Dispatch Date</label>
-                    <input type="date" value={shippedDate} onChange={(e) => setShippedDate(e.target.value)} style={styles.input} />
-                    <button onClick={updateTracking} disabled={isUpdating} style={styles.saveBtn}>
-                        {isUpdating ? 'SYNCING...' : 'SAVE LOGISTICS'}
-                    </button>
-                </div>
-            </div>
+          <div style={styles.card}>
+    <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>Logistics Record</span>
+        <Truck size={15} />
+    </div>
+    <div style={styles.cardBody}>
+        {/* 1. STATUS */}
+        <label style={styles.inputLabel}>Current Status</label>
+        <select value={orderStatus} onChange={(e) => setOrderStatus(e.target.value)} style={styles.select}>
+            {Object.keys(STATUS_CONFIG).map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+
+        {/* 2. COURIER PROVIDER (NEW) */}
+        <label style={styles.inputLabel}>Courier Provider <span style={{color: '#BC002D'}}>*</span></label>
+        <select 
+            value={courierProvider} 
+            onChange={(e) => setCourierProvider(e.target.value)} 
+            style={{...styles.select, border: !courierProvider ? '1px solid #BC002D' : styles.select.border}}
+        >
+            <option value="">Select Provider</option>
+            <option value="India Post">India Post (Speed Post)</option>
+            <option value="DTDC">DTDC</option>
+        </select>
+
+        {/* 3. TRACKING ID */}
+        <label style={styles.inputLabel}>Tracking Number (AWB) <span style={{color: '#BC002D'}}>*</span></label>
+        <input 
+            value={trackingId} 
+            onChange={(e) => setTrackingId(e.target.value.toUpperCase())} 
+            placeholder="ENTER AWB#" 
+            style={{...styles.input, border: !trackingId ? '1px solid #BC002D' : styles.input.border}} 
+        />
+
+        {/* 4. DISPATCH DATE */}
+        <label style={styles.inputLabel}>Dispatch Date <span style={{color: '#BC002D'}}>*</span></label>
+        <input 
+            type="date" 
+            value={shippedDate} 
+            onChange={(e) => setShippedDate(e.target.value)} 
+            style={{...styles.input, border: !shippedDate ? '1px solid #BC002D' : styles.input.border}} 
+        />
+
+        <button onClick={updateTracking} disabled={isUpdating} style={styles.saveBtn}>
+            {isUpdating ? 'SYNCING...' : 'SAVE LOGISTICS'}
+        </button>
+    </div>
+</div>
             <div style={styles.card}>
               <div style={styles.cardHeader}><span style={styles.cardTitle}>Financial summary</span><CreditCard size={14}/></div>
               <div style={styles.cardBody}>
