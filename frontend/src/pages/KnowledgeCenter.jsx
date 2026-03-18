@@ -336,19 +336,19 @@ const KnowledgeCenter = () => {
                     )}
 
                     {/* INTERACTIVE ANATOMY SECTION */}
-                    <section className='bg-black rounded-[40px] p-10 text-white relative overflow-hidden'>
+                    {/* <section className='bg-black rounded-[40px] p-10 text-white relative overflow-hidden'>
                         <div className='relative z-10'>
                             <h3 className='text-2xl font-bold uppercase tracking-tighter mb-4'>Stamp Anatomy 101</h3>
                             <p className='text-gray-400 text-sm max-w-md font-sans mb-8'>Hover over the physical characteristics to understand how expert registrars evaluate a specimen.</p>
                             
-                            {/* Placeholder for actual image/svg map */}
+
                             <div className='aspect-video bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center relative'>
                                 <div className='absolute top-1/4 left-1/4 w-4 h-4 bg-[#BC002D] rounded-full animate-ping'></div>
                                 <span className='text-[10px] font-black uppercase tracking-[0.3em] text-white/20'>Interactive Specimen Map</span>
                             </div>
                         </div>
                         <div className='absolute -right-20 -bottom-20 w-64 h-64 bg-[#BC002D]/20 blur-[100px]'></div>
-                    </section>
+                    </section> */}
                 </div>
 
                 {/* RIGHT: LEADERBOARD & TOOLS */}
@@ -396,7 +396,7 @@ const KnowledgeCenter = () => {
                     </div>
 
                     {/* VALUATION TOOL PREVIEW */}
-                    <div className='bg-gradient-to-br from-[#BC002D] to-[#80001f] rounded-[32px] p-8 text-white'>
+                    {/* <div className='bg-gradient-to-br from-[#BC002D] to-[#80001f] rounded-[32px] p-8 text-white'>
                         <Lightbulb size={32} className='mb-6 opacity-50' />
                         <h4 className='text-lg font-bold uppercase mb-2'>Valuation Tool</h4>
                         <p className='text-[10px] text-white/60 uppercase font-black tracking-widest leading-loose mb-6'>
@@ -405,7 +405,7 @@ const KnowledgeCenter = () => {
                         <button className='flex items-center gap-2 text-[10px] font-black uppercase tracking-widest border-b border-white/30 pb-1 hover:border-white transition-all'>
                             Access Tool <ChevronRight size={14} />
                         </button>
-                    </div>
+                    </div> */}
 
                 </div>
             </div>
